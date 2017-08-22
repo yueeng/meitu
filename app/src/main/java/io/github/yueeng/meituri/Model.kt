@@ -10,7 +10,7 @@ import org.jsoup.select.Elements
  * Created by Rain on 2017/8/22.
  */
 
-open class Link(name: String, url: String?) {
+open class Link(val name: String, val url: String?) {
     constructor(e: Elements) : this(e.text(), e.attr("abs:href"))
     constructor(e: Element) : this(e.text(), e.attr("abs:href"))
 }

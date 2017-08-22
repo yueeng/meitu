@@ -20,6 +20,7 @@ import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 /**
@@ -138,3 +139,8 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
         holder?.set(get(position))
     }
 }
+
+
+val random = Random(System.currentTimeMillis())
+
+fun randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, arrayOf(random.nextInt(360).toFloat(), 1F, 0.5F).toFloatArray())
