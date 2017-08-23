@@ -37,6 +37,7 @@ class PreviewFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_preview, container, false)
         val pager = view.findViewById<ViewPager>(R.id.pager)
         pager.adapter = adapter
+        pager.offscreenPageLimit = 2
         pager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 if (position >= adapter.data.size - 3) query()
