@@ -53,7 +53,7 @@ class PreviewFragment : Fragment() {
                         ?.drawable as? BitmapDrawable)
                         ?.bitmap?.let {
                     Palette.from(it).generate {
-                        it.lightMutedSwatch?.rgb?.let {
+                        it.lightVibrantSwatch?.rgb?.let {
                             ValueAnimator.ofObject(ArgbEvaluator(), (view.background as? ColorDrawable)?.color ?: 0, it).apply {
                                 duration = 250
                                 addUpdateListener { view.backgroundColor = it.animatedValue as Int }
