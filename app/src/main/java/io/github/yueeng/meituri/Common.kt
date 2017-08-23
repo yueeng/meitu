@@ -5,13 +5,16 @@ package io.github.yueeng.meituri
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Bundle
+import android.support.v4.app.Fragment
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import com.squareup.picasso.Picasso
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestManager
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -28,21 +31,24 @@ import java.util.concurrent.TimeUnit
  * Created by Rain on 2017/8/22.
  */
 
-
 val LOG_TAG = "Meituri"
 
-fun logi(vararg msg: Any?) = Log.i(LOG_TAG, msg.joinToString(", "))
-fun loge(vararg msg: Any?) = Log.e(LOG_TAG, msg.joinToString(", "))
-fun logw(vararg msg: Any?) = Log.w(LOG_TAG, msg.joinToString(", "))
-fun logd(vararg msg: Any?) = Log.d(LOG_TAG, msg.joinToString(", "))
-fun logv(vararg msg: Any?) = Log.v(LOG_TAG, msg.joinToString(", "))
+fun debug(call: () -> Unit) {
+    if (BuildConfig.DEBUG) call()
+}
+
+fun logi(vararg msg: Any?) = debug { Log.i(LOG_TAG, msg.joinToString(", ")) }
+fun loge(vararg msg: Any?) = debug { Log.e(LOG_TAG, msg.joinToString(", ")) }
+fun logw(vararg msg: Any?) = debug { Log.w(LOG_TAG, msg.joinToString(", ")) }
+fun logd(vararg msg: Any?) = debug { Log.d(LOG_TAG, msg.joinToString(", ")) }
+fun logv(vararg msg: Any?) = debug { Log.v(LOG_TAG, msg.joinToString(", ")) }
 
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .cookieJar(JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL)))
-        .addInterceptor(HttpLoggingInterceptor())
+        .apply { debug { addInterceptor(HttpLoggingInterceptor()) } }
         .build()
 
 fun String.httpGet() = try {
@@ -67,7 +73,17 @@ fun Context.asActivity(): Activity? = when (this) {
 }
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
-fun ImageView.picasso(uri: String?) = uri?.let { Picasso.with(this.context).load(uri).into(this) }
+fun Fragment.glide(): RequestManager = Glide.with(this)
+
+inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle) {
+    supportFragmentManager.run {
+        val fragment = findFragmentById(container) as? T
+                ?: T::class.java.newInstance().apply { arguments = bundle() }
+        beginTransaction()
+                .replace(container, fragment)
+                .commit()
+    }
+}
 
 class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> Unit) {
     private val view = mutableListOf<WeakReference<V>>()

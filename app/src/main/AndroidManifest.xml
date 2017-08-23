@@ -21,6 +21,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".ListActivity" />
+        <activity
+            android:name=".PreviewActivity"
+            android:theme="@style/AppThemeDark" />
     </application>
 
 </manifest>

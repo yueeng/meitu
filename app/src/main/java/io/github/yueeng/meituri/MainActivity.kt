@@ -6,7 +6,6 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
-import android.support.v7.widget.Toolbar
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -23,19 +22,18 @@ import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.uiThread
 
+/**
+ * Main activity
+ * Created by Rain on 2017/8/22.
+ */
+
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
-        setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
-        supportFragmentManager.run {
-            val fragment = findFragmentById(R.id.container) as? ListFragment
-                    ?: ListFragment().apply { arguments = bundleOf("url" to "http://www.meituri.com/") }
-            beginTransaction()
-                    .replace(R.id.container, fragment)
-                    .commit()
-        }
+        setSupportActionBar(findViewById(R.id.toolbar))
+        setFragment<ListFragment>(R.id.container) { bundleOf("url" to "http://www.meituri.com/") }
     }
 }
 
@@ -43,14 +41,8 @@ class ListActivity : AppCompatActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
-        setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
-        supportFragmentManager.run {
-            val fragment = findFragmentById(R.id.container) as? ListFragment
-                    ?: ListFragment().apply { arguments = intent.extras }
-            beginTransaction()
-                    .replace(R.id.container, fragment)
-                    .commit()
-        }
+        setSupportActionBar(findViewById(R.id.toolbar))
+        setFragment<ListFragment>(R.id.container) { intent.extras }
     }
 }
 
@@ -70,15 +62,15 @@ class ListFragment : Fragment() {
         return view
     }
 
-    val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
-    val url by lazy { arguments.getString("url")!! }
-    val name by lazy { arguments.getString("name", "")!! }
+    private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
+    private val url by lazy { arguments.getString("url")!! }
+    private val name by lazy { arguments.getString("name", "")!! }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         query()
     }
 
-    fun query() {
+    private fun query() {
         if (busy()) return
         busy * true
         doAsync {
@@ -99,28 +91,30 @@ class ListFragment : Fragment() {
         }
     }
 
-    val adapter = ImageAdapter()
-
-    inner class TagClickableSpan(val tag: Link) : ClickableSpan() {
-        override fun onClick(widget: View) {
-            context.startActivity<ListActivity>("url" to tag.url!!, "name" to tag.name!!)
-        }
-
-        override fun updateDrawState(ds: TextPaint) {
-            ds.color = 0xFFFFFFFF.toInt()
-            ds.isUnderlineText = false
-        }
-    }
+    private val adapter = ImageAdapter()
 
     inner class ImageHolder(view: View) : DataHolder<Album>(view) {
-        val image = view.findViewById<ImageView>(R.id.image)!!
-        val text1 = view.findViewById<TextView>(R.id.text1)!!
+
+        inner class TagClickableSpan(private val tag: Link) : ClickableSpan() {
+            override fun onClick(widget: View) {
+                context.startActivity<ListActivity>("url" to tag.url!!, "name" to tag.name)
+            }
+
+            override fun updateDrawState(ds: TextPaint) {
+                ds.color = 0xFFFFFFFF.toInt()
+                ds.isUnderlineText = false
+            }
+        }
+
+        private val image = view.findViewById<ImageView>(R.id.image)!!
+        private val text1 = view.findViewById<TextView>(R.id.text1)!!
         val text2 = view.findViewById<TextView>(R.id.text2)!!
         override fun bind() {
-            image.picasso(value.image)
+            glide().load(value.image).into(image)
+//            image.picasso(value.image)
             text1.text = value.name
             val w = " "
-            val tags = value.tags?.map { "$w${it.name}$w" }?.joinToString(" ") ?: ""
+            val tags = value.tags?.joinToString(" ") { "$w${it.name}$w" } ?: ""
             val span = SpannableStringBuilder(tags)
             value.tags?.forEach {
                 val pw = tags.indexOf("$w${it.name}$w")
@@ -134,7 +128,10 @@ class ListFragment : Fragment() {
         }
 
         init {
-            text2.movementMethod = LinkMovementMethod.getInstance();
+            text2.movementMethod = LinkMovementMethod.getInstance()
+            view.setOnClickListener {
+                context.startActivity<PreviewActivity>("url" to value.url!!, "name" to value.name)
+            }
         }
     }
 
