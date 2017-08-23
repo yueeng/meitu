@@ -22,7 +22,7 @@ class PreviewActivity : AppCompatActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_preview)
         setSupportActionBar(findViewById(R.id.toolbar))
         setFragment<PreviewFragment>(R.id.container) { intent.extras }
     }
