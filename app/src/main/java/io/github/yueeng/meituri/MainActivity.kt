@@ -6,12 +6,7 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.TextPaint
 import android.text.method.LinkMovementMethod
-import android.text.style.BackgroundColorSpan
-import android.text.style.ClickableSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -100,36 +95,15 @@ class ListFragment : Fragment() {
     private val adapter = ImageAdapter()
 
     inner class ImageHolder(view: View) : DataHolder<Album>(view) {
-
-        inner class TagClickableSpan(private val tag: Link) : ClickableSpan() {
-            override fun onClick(widget: View) {
-                context.startActivity<ListActivity>("url" to tag.url!!, "name" to tag.name)
-            }
-
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = 0xFFFFFFFF.toInt()
-                ds.isUnderlineText = false
-            }
-        }
-
         private val image = view.findViewById<ImageView>(R.id.image)!!
         private val text1 = view.findViewById<TextView>(R.id.text1)!!
         val text2 = view.findViewById<TextView>(R.id.text2)!!
         override fun bind() {
             glide().load(value.image).into(image)
             text1.text = value.name
-            val w = " "
-            val tags = value.tags?.joinToString(" ") { "$w${it.name}$w" } ?: ""
-            val span = SpannableStringBuilder(tags)
-            value.tags?.forEach {
-                val pw = tags.indexOf("$w${it.name}$w")
-                val p = pw + w.length
-                val e = p + it.name.length
-                val ew = e + w.length
-                span.setSpan(TagClickableSpan(it), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                span.setSpan(BackgroundColorSpan(randomColor(0xBF)), pw, ew, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text2.text = value.tags?.spannable(" ", { it.name }) {
+                context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
             }
-            text2.text = span
         }
 
         init {

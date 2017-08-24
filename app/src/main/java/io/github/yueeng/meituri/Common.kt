@@ -21,6 +21,11 @@ import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.style.BackgroundColorSpan
+import android.text.style.ClickableSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -258,4 +263,30 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
             }
         }
     })
+}
+
+fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String = { "$it" }, call: ((T) -> Unit)?): SpannableStringBuilder {
+    class TagClickableSpan(val tag: T) : ClickableSpan() {
+        override fun onClick(widget: View) {
+            call?.invoke(tag)
+        }
+
+        override fun updateDrawState(ds: TextPaint) {
+            ds.color = 0xFFFFFFFF.toInt()
+            ds.isUnderlineText = false
+        }
+    }
+
+    val w = " "
+    val tags = this.joinToString(separator) { "$w${string(it)}$w" }
+    val span = SpannableStringBuilder(tags)
+    forEach {
+        val pw = tags.indexOf("$w${string(it)}$w")
+        val p = pw + w.length
+        val e = p + string(it).length
+        val ew = e + w.length
+        if (call != null) span.setSpan(TagClickableSpan(it), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        span.setSpan(BackgroundColorSpan(randomColor(0xBF)), pw, ew, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+    return span
 }
