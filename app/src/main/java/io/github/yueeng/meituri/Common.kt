@@ -2,17 +2,26 @@
 
 package io.github.yueeng.meituri
 
+import android.animation.ArgbEvaluator
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v4.view.PagerAdapter
+import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import okhttp3.JavaNetCookieJar
@@ -74,6 +83,16 @@ fun Context.asActivity(): Activity? = when (this) {
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 fun Fragment.glide(): RequestManager = Glide.with(this)
+val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
+val View.bgColor: Int get() = (this.background as? ColorDrawable)?.color ?: 0
+
+object Animator {
+    fun argb(begin: Int, over: Int, duration: Long, call: (Int) -> Unit): ValueAnimator =
+            ObjectAnimator.ofObject(ArgbEvaluator(), begin, over).apply {
+                this.duration = duration
+                addUpdateListener { call(it.animatedValue as Int) }
+            }
+}
 
 inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle) {
     supportFragmentManager.run {
@@ -156,6 +175,33 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
     }
 }
 
+abstract class DataPagerAdapter<T> : PagerAdapter() {
+    val data = mutableListOf<T>()
+    override fun isViewFromObject(view: View?, `object`: Any?): Boolean = view == `object`
+
+    override fun getCount(): Int = data.size
+    override fun destroyItem(container: ViewGroup, position: Int, `object`: Any?) {
+        container.removeView(`object` as? View)
+    }
+
+    override fun setPrimaryItem(container: ViewGroup?, position: Int, `object`: Any?) {
+        super.setPrimaryItem(container, position, `object`)
+    }
+
+    override fun instantiateItem(container: ViewGroup, position: Int): Any {
+        val item = data[position]
+        val view = container.inflate(R.layout.preview_item)
+        view.tag = item
+        bind(view, item)
+        container.addView(view)
+        return view
+    }
+
+    abstract fun bind(view: View, item: T)
+
+    fun getView(pager: ViewPager, position: Int = -1): View? =
+            pager.findViewWithTag(data[if (position == -1) pager.currentItem else position])
+}
 
 val random = Random(System.currentTimeMillis())
 

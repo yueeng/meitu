@@ -1,12 +1,7 @@
 package io.github.yueeng.meituri
 
-import android.animation.ArgbEvaluator
-import android.animation.ValueAnimator
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v4.app.Fragment
-import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.graphics.Palette
@@ -14,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
@@ -48,16 +42,12 @@ class PreviewFragment : Fragment() {
         pager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 if (position >= adapter.data.size - 3) query()
-                (pager.findViewWithTag<View>(adapter.data[position])
+                adapter.getView(pager, position)
                         ?.findViewById<ImageView>(R.id.image)
-                        ?.drawable as? BitmapDrawable)
                         ?.bitmap?.let {
                     Palette.from(it).generate {
                         it.lightVibrantSwatch?.rgb?.let {
-                            ValueAnimator.ofObject(ArgbEvaluator(), (view.background as? ColorDrawable)?.color ?: 0, it).apply {
-                                duration = 250
-                                addUpdateListener { view.backgroundColor = it.animatedValue as Int }
-                            }.start()
+                            Animator.argb(view.bgColor, it, 250, view::setBackgroundColor).start()
                         }
                     }
                 }
@@ -92,27 +82,10 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    inner class PreviewAdapter : PagerAdapter() {
-        val data = mutableListOf<String>()
-        override fun isViewFromObject(view: View?, `object`: Any?): Boolean = view == `object`
-
-        override fun getCount(): Int = data.size
-        override fun destroyItem(container: ViewGroup, position: Int, `object`: Any?) {
-            container.removeView(`object` as? View)
-        }
-
-        override fun setPrimaryItem(container: ViewGroup?, position: Int, `object`: Any?) {
-            super.setPrimaryItem(container, position, `object`)
-        }
-
-        override fun instantiateItem(container: ViewGroup, position: Int): Any {
-            val item = data[position]
-            val view = container.inflate(R.layout.preview_item)
-            view.tag = item
+    inner class PreviewAdapter : DataPagerAdapter<String>() {
+        override fun bind(view: View, item: String) {
             val image = view.findViewById<ImageView>(R.id.image)
             glide().load(item).into(image)
-            container.addView(view)
-            return view
         }
     }
 }
