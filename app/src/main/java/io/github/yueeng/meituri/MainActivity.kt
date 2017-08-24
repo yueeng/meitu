@@ -53,9 +53,11 @@ class ListFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = adapter
+        recycler.loadMore(2) { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
+                uri = url
                 query()
             }
         }
@@ -64,17 +66,19 @@ class ListFragment : Fragment() {
 
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments.getString("url")!! }
+    private var uri: String? = null
     private val name by lazy { arguments.getString("name", "")!! }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        uri = url
         query()
     }
 
     private fun query() {
-        if (busy()) return
+        if (busy() || uri == null) return
         busy * true
         doAsync {
-            val dom = url.httpGet().jsoup()
+            val dom = uri!!.httpGet().jsoup()
             val list = dom?.select(".hezi li")?.map {
                 Album(it.select(".biaoti a").text(),
                         it.select(".biaoti a").attr("abs:href")).apply {
@@ -84,8 +88,10 @@ class ListFragment : Fragment() {
                     tags = it.select("p:contains(类型) a").map { Link(it) }
                 }
             }
+            val next = dom?.select("#pages .current+a")?.attr("abs:href")
             uiThread {
                 busy * false
+                uri = next
                 if (list != null) adapter.add(list)
             }
         }
@@ -111,7 +117,6 @@ class ListFragment : Fragment() {
         val text2 = view.findViewById<TextView>(R.id.text2)!!
         override fun bind() {
             glide().load(value.image).into(image)
-//            image.picasso(value.image)
             text1.text = value.name
             val w = " "
             val tags = value.tags?.joinToString(" ") { "$w${it.name}$w" } ?: ""

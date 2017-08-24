@@ -36,7 +36,6 @@ dependencies {
     compile "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
     compile "com.squareup.okhttp3:okhttp-android-support:$okhttp_version"
     compile 'org.jetbrains.anko:anko-sdk15:0.10.1'
-//    compile 'com.squareup.picasso:picasso:2.5.2'
     compile 'com.github.bumptech.glide:annotations:4.0.0'
     compile 'com.github.bumptech.glide:glide:4.0.0'
     kapt 'com.github.bumptech.glide:compiler:4.0.0'

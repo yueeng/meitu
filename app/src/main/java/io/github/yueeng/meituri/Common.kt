@@ -16,7 +16,11 @@ import android.support.v4.app.Fragment
 import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.graphics.Palette
+import android.support.v7.widget.GridLayoutManager
+import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.StaggeredGridLayoutManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -116,6 +120,16 @@ object Animator {
             }
 }
 
+fun View.bg2imgColor(image: ImageView?, swatch: (Palette) -> Int? = { it.lightVibrantSwatch?.rgb }): Boolean =
+        image?.bitmap?.let {
+            Palette.from(it).generate {
+                swatch(it)?.let {
+                    Animator.argb(bgColor, it, 250, this::setBackgroundColor).start()
+                }
+            }
+            true
+        } ?: false
+
 inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle) {
     supportFragmentManager.run {
         val fragment = findFragmentById(container) as? T
@@ -214,12 +228,12 @@ abstract class DataPagerAdapter<T> : PagerAdapter() {
         val item = data[position]
         val view = container.inflate(R.layout.preview_item)
         view.tag = item
-        bind(view, item)
+        bind(view, item, position)
         container.addView(view)
         return view
     }
 
-    abstract fun bind(view: View, item: T)
+    abstract fun bind(view: View, item: T, position: Int)
 
     fun getView(pager: ViewPager, position: Int = -1): View? =
             pager.findViewWithTag(data[if (position == -1) pager.currentItem else position])
@@ -228,3 +242,20 @@ abstract class DataPagerAdapter<T> : PagerAdapter() {
 val random = Random(System.currentTimeMillis())
 
 fun randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, arrayOf(random.nextInt(360).toFloat(), 1F, 0.5F).toFloatArray())
+
+fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
+    this.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recycler: RecyclerView, state: Int) {
+            if (state != RecyclerView.SCROLL_STATE_IDLE) return
+            val layout = recycler.layoutManager
+            when (layout) {
+                is StaggeredGridLayoutManager ->
+                    if (layout.findLastVisibleItemPositions(null).max() ?: 0 >= adapter.itemCount - last) call()
+                is GridLayoutManager ->
+                    if (layout.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
+                is LinearLayoutManager ->
+                    if (layout.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
+            }
+        }
+    })
+}
