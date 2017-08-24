@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit
  * Created by Rain on 2017/8/22.
  */
 
-val LOG_TAG = "Meituri"
+val LOG_TAG = R::class.java.`package`.name.split(".").last()
 
 fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
