@@ -1,8 +1,7 @@
 apply plugin: 'com.android.application'
-
 apply plugin: 'kotlin-android'
-
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion android_compile_sdk
@@ -38,8 +37,10 @@ dependencies {
     compile "com.squareup.okhttp3:okhttp-android-support:$okhttp_version"
     compile 'org.jetbrains.anko:anko-sdk15:0.10.1'
 //    compile 'com.squareup.picasso:picasso:2.5.2'
+    compile 'com.github.bumptech.glide:annotations:4.0.0'
     compile 'com.github.bumptech.glide:glide:4.0.0'
-    compile 'com.github.bumptech.glide:okhttp3-integration:4.0.0@aar'
+    kapt 'com.github.bumptech.glide:compiler:4.0.0'
+    compile 'com.github.bumptech.glide:okhttp3-integration:4.0.0'
     compile 'org.jsoup:jsoup:1.10.3'
     compile 'com.github.oxoooo:touch-image-view:1.0.1'
     testImplementation 'junit:junit:4.12'

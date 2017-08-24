@@ -23,12 +23,21 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.GlideBuilder
+import com.bumptech.glide.Registry
 import com.bumptech.glide.RequestManager
+import com.bumptech.glide.annotation.GlideModule
+import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.module.AppGlideModule
+import com.bumptech.glide.request.RequestOptions
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jsoup.Jsoup
+import java.io.InputStream
 import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -57,8 +66,21 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
         .writeTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .cookieJar(JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL)))
-        .apply { debug { addInterceptor(HttpLoggingInterceptor()) } }
+        .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
+
+@GlideModule
+class MmAppGlideModule : AppGlideModule() {
+    override fun applyOptions(context: Context, builder: GlideBuilder) {
+        builder.setDefaultRequestOptions(RequestOptions()
+                .format(DecodeFormat.PREFER_ARGB_8888)
+                .placeholder(R.mipmap.ic_launcher))
+    }
+
+    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okhttp))
+    }
+}
 
 fun String.httpGet() = try {
     val html = okhttp.newCall(Request.Builder().url(this).build()).execute().body()?.string()
@@ -82,7 +104,7 @@ fun Context.asActivity(): Activity? = when (this) {
 }
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
-fun Fragment.glide(): RequestManager = Glide.with(this)
+fun Fragment.glide(): RequestManager = GlideApp.with(this)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
 val View.bgColor: Int get() = (this.background as? ColorDrawable)?.color ?: 0
 
