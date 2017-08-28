@@ -23,7 +23,7 @@
         <activity android:name=".ListActivity" />
         <activity
             android:name=".PreviewActivity"
-            android:theme="@style/AppThemeDark" />
+            android:theme="@style/AppThemePreview" />
     </application>
 
 </manifest>
