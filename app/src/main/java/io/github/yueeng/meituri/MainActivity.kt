@@ -1,5 +1,6 @@
 package io.github.yueeng.meituri
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.widget.SwipeRefreshLayout
@@ -74,15 +75,7 @@ class ListFragment : Fragment() {
         busy * true
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list = dom?.select(".hezi li")?.map {
-                Album(it.select(".biaoti a").text(),
-                        it.select(".biaoti a").attr("abs:href")).apply {
-                    image = it.select("img").attr("abs:src")
-                    organ = Link(it.select("p:contains(机构) a"))
-                    model = Link(it.select("p:contains(模特) a"))
-                    tags = it.select("p:contains(类型) a").map { Link(it) }
-                }
-            }
+            val list = dom?.select(".hezi li")?.map { Album(it) }
             val next = dom?.select("#pages .current+a")?.attr("abs:href")
             uiThread {
                 busy * false
@@ -97,19 +90,26 @@ class ListFragment : Fragment() {
     inner class ImageHolder(view: View) : DataHolder<Album>(view) {
         private val image = view.findViewById<ImageView>(R.id.image)!!
         private val text1 = view.findViewById<TextView>(R.id.text1)!!
-        val text2 = view.findViewById<TextView>(R.id.text2)!!
+        private val text2 = view.findViewById<TextView>(R.id.text2)!!
+        private val text3 = view.findViewById<TextView>(R.id.text3)!!
+        @SuppressLint("SetTextI18n")
         override fun bind() {
             glide().load(value.image).into(image)
             text1.text = value.name
-            text2.text = value.tags?.spannable(" ", { it.name }) {
-                context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+            text3.text = "${value.count}P"
+            text2.text = value.info.spannable(" ", { it.name }) {
+                it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
             }
         }
 
         init {
             text2.movementMethod = LinkMovementMethod.getInstance()
             view.setOnClickListener {
-                context.startActivity<PreviewActivity>("url" to value.url!!, "name" to value.name)
+                context.startActivity<PreviewActivity>(
+                        "url" to value.url!!,
+                        "name" to value.name,
+                        "count" to value.count
+                )
             }
         }
     }
