@@ -26,16 +26,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.GlideBuilder
-import com.bumptech.glide.Registry
-import com.bumptech.glide.RequestManager
+import com.bumptech.glide.*
 import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.module.AppGlideModule
 import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.request.target.ViewTarget
+import com.bumptech.glide.request.transition.Transition
+import com.davemorrissey.labs.subscaleview.ImageSource
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -265,4 +266,12 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
         span.setSpan(BackgroundColorSpan(randomColor(0xBF)), pw, ew, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
     return span
+}
+
+fun RequestBuilder<Bitmap>.into(view: SubsamplingScaleImageView) {
+    into(object : ViewTarget<SubsamplingScaleImageView, Bitmap>(view) {
+        override fun onResourceReady(resource: Bitmap?, transition: Transition<in Bitmap>?) {
+            this.view.setImage(ImageSource.bitmap(resource))
+        }
+    })
 }

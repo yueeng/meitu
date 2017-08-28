@@ -1,5 +1,6 @@
 package io.github.yueeng.meituri
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -8,6 +9,8 @@ import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.request.target.ViewTarget
 import com.bumptech.glide.request.transition.Transition
 import com.davemorrissey.labs.subscaleview.ImageSource
@@ -32,19 +35,25 @@ class PreviewActivity : AppCompatActivity() {
     }
 }
 
+@SuppressLint("SetTextI18n")
 class PreviewFragment : Fragment() {
     private val url by lazy { arguments.getString("url") }
+    private val count by lazy { arguments.getInt("count") }
     private var uri: String? = null
     private val adapter = PreviewAdapter()
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
+    private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
+    private val current get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: -1
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_preview, container, false)
         val pager = view.findViewById<ViewPager>(R.id.pager)
+        page + view.findViewById(R.id.text1)
         pager.adapter = adapter
         pager.offscreenPageLimit = 2
         pager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 if (position >= adapter.data.size - 3) query()
+                page * position
             }
         })
         return view
@@ -71,6 +80,7 @@ class PreviewFragment : Fragment() {
                 if (list != null) {
                     adapter.data.addAll(list)
                     adapter.notifyDataSetChanged()
+                    page * current
                 }
             }
         }
@@ -79,12 +89,7 @@ class PreviewFragment : Fragment() {
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
             val image = view.findViewById<SubsamplingScaleImageView>(R.id.image)
-            glide().asBitmap().load(item).into(object : ViewTarget<SubsamplingScaleImageView, Bitmap>(image) {
-                override fun onResourceReady(resource: Bitmap?, transition: Transition<in Bitmap>?) {
-                    this.view.setImage(ImageSource.bitmap(resource))
-                }
-
-            })
+            glide().asBitmap().load(item).into(image)
         }
     }
 }
