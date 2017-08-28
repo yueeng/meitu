@@ -1,6 +1,6 @@
 package io.github.yueeng.meituri
 
-import android.graphics.drawable.Drawable
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
@@ -8,9 +8,10 @@ import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import com.bumptech.glide.request.target.DrawableImageViewTarget
+import com.bumptech.glide.request.target.ViewTarget
 import com.bumptech.glide.request.transition.Transition
+import com.davemorrissey.labs.subscaleview.ImageSource
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
@@ -44,20 +45,10 @@ class PreviewFragment : Fragment() {
         pager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 if (position >= adapter.data.size - 3) query()
-                bg2img(currentView?.findViewById(R.id.image))
             }
         })
         return view
     }
-
-    private val currentItem: Int
-        get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: 0
-    private val currentView: View?
-        get() = view?.findViewById<ViewPager>(R.id.pager)?.let {
-            adapter.getView(it, currentItem)
-        }
-
-    fun bg2img(img: ImageView?) = view?.bg2imgColor(img) { it.lightVibrantSwatch?.rgb }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -87,12 +78,12 @@ class PreviewFragment : Fragment() {
 
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
-            val image = view.findViewById<ImageView>(R.id.image)
-            glide().load(item).into(object : DrawableImageViewTarget(image) {
-                override fun onResourceReady(resource: Drawable?, transition: Transition<in Drawable>?) {
-                    super.onResourceReady(resource, transition)
-                    if (currentItem == position) bg2img(image)
+            val image = view.findViewById<SubsamplingScaleImageView>(R.id.image)
+            glide().asBitmap().load(item).into(object : ViewTarget<SubsamplingScaleImageView, Bitmap>(image) {
+                override fun onResourceReady(resource: Bitmap?, transition: Transition<in Bitmap>?) {
+                    this.view.setImage(ImageSource.bitmap(resource))
                 }
+
             })
         }
     }

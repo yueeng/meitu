@@ -2,21 +2,16 @@
 
 package io.github.yueeng.meituri
 
-import android.animation.ArgbEvaluator
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.graphics.Palette
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -115,25 +110,6 @@ fun Context.asActivity(): Activity? = when (this) {
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 fun Fragment.glide(): RequestManager = GlideApp.with(this)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
-val View.bgColor: Int get() = (this.background as? ColorDrawable)?.color ?: 0
-
-object Animator {
-    fun argb(begin: Int, over: Int, duration: Long, call: (Int) -> Unit): ValueAnimator =
-            ObjectAnimator.ofObject(ArgbEvaluator(), begin, over).apply {
-                this.duration = duration
-                addUpdateListener { call(it.animatedValue as Int) }
-            }
-}
-
-fun View.bg2imgColor(image: ImageView?, swatch: (Palette) -> Int? = { it.lightVibrantSwatch?.rgb }): Boolean =
-        image?.bitmap?.let {
-            Palette.from(it).generate {
-                swatch(it)?.let {
-                    Animator.argb(bgColor, it, 250, this::setBackgroundColor).start()
-                }
-            }
-            true
-        } ?: false
 
 inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle) {
     supportFragmentManager.run {
