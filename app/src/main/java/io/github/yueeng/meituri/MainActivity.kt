@@ -2,7 +2,11 @@ package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
+import android.support.v4.app.FragmentManager
+import android.support.v4.app.FragmentStatePagerAdapter
+import android.support.v4.view.ViewPager
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.RecyclerView
@@ -24,12 +28,36 @@ import org.jetbrains.anko.uiThread
  */
 
 class MainActivity : AppCompatActivity() {
-
+    private val adapter by lazy { ListAdapter(supportFragmentManager) }
+    private val pager by lazy { findViewById<ViewPager>(R.id.container) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
-        setFragment<ListFragment>(R.id.container) { bundleOf("url" to "http://www.meituri.com/") }
+        adapter.data += listOf("http://www.meituri.com/" to "首页",
+                "http://www.meituri.com/zhongguo/" to "中国美女",
+                "http://www.meituri.com/riben/" to "日本美女",
+                "http://www.meituri.com/taiwan/" to "台湾美女",
+                "http://www.meituri.com/hanguo/" to "韩国美女",
+                "http://www.meituri.com/mote/" to "美女库",
+                "http://www.meituri.com/hanguo/" to "写真机构",
+                "http://www.meituri.com/mote/" to "分类")
+        val tabs: TabLayout = findViewById(R.id.tab)
+        pager.adapter = adapter
+        tabs.setupWithViewPager(pager)
+//        setFragment<ListFragment>(R.id.container) { bundleOf("url" to "http://www.meituri.com/") }
+    }
+}
+
+class ListAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+    val data = mutableListOf<Pair<String, String>>()
+    override fun getItem(position: Int): Fragment = ListFragment().apply {
+        arguments = bundleOf("url" to data[position].first, "name" to data[position].second)
+    }
+
+    override fun getCount(): Int = data.size
+    override fun getPageTitle(position: Int): CharSequence {
+        return data[position].second
     }
 }
 
