@@ -41,8 +41,7 @@ class MainActivity : AppCompatActivity() {
                 "http://www.meituri.com/taiwan/" to "台湾美女",
                 "http://www.meituri.com/hanguo/" to "韩国美女",
                 "http://www.meituri.com/mote/" to "美女库",
-                "http://www.meituri.com/jigou/" to "写真机构",
-                "" to "分类")
+                "http://www.meituri.com/jigou/" to "写真机构"/*, "" to "分类"*/)
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
         tabs.setupWithViewPager(pager)
@@ -63,17 +62,19 @@ class ListAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 }
 
 class ListActivity : AppCompatActivity() {
+    private val name by lazy { intent.getStringExtra("name")!! }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_list)
         setSupportActionBar(findViewById(R.id.toolbar))
+        title = name
+
         setFragment<ListFragment>(R.id.container) { intent.extras }
     }
 }
 
 class ListFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? {
-        activity.title = name
         val view = inflater.inflate(R.layout.fragment_list, container, false)
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
@@ -92,7 +93,6 @@ class ListFragment : Fragment() {
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments.getString("url")!! }
     private var uri: String? = null
-    private val name by lazy { arguments.getString("name", "")!! }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         uri = url
