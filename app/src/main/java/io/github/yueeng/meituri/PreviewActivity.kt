@@ -1,7 +1,6 @@
 package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
@@ -10,10 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import com.bumptech.glide.RequestBuilder
-import com.bumptech.glide.request.target.ViewTarget
-import com.bumptech.glide.request.transition.Transition
-import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
@@ -44,8 +39,11 @@ class PreviewFragment : Fragment() {
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
     private val current get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: -1
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_preview, container, false)
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
+            inflater.inflate(R.layout.fragment_preview, container, false)
+
+    override fun onViewCreated(view: View, state: Bundle?) {
         val pager = view.findViewById<ViewPager>(R.id.pager)
         page + view.findViewById(R.id.text1)
         pager.adapter = adapter
@@ -56,7 +54,6 @@ class PreviewFragment : Fragment() {
                 page * position
             }
         })
-        return view
     }
 
     override fun onCreate(state: Bundle?) {

@@ -30,7 +30,7 @@ import java.lang.IllegalArgumentException
 
 class MainActivity : AppCompatActivity() {
     private val adapter by lazy { ListAdapter(supportFragmentManager) }
-    private val pager by lazy { findViewById<ViewPager>(R.id.container) }
+    //    private val pager by lazy { findViewById<ViewPager>(R.id.container) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
@@ -42,10 +42,10 @@ class MainActivity : AppCompatActivity() {
                 "http://www.meituri.com/hanguo/" to "韩国美女",
                 "http://www.meituri.com/mote/" to "美女库",
                 "http://www.meituri.com/jigou/" to "写真机构"/*, "" to "分类"*/)
+        val pager = findViewById<ViewPager>(R.id.container)
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
         tabs.setupWithViewPager(pager)
-//        setFragment<ListFragment>(R.id.container) { bundleOf("url" to "http://www.meituri.com/") }
     }
 }
 
@@ -74,8 +74,10 @@ class ListActivity : AppCompatActivity() {
 }
 
 class ListFragment : Fragment() {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_list, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
+            inflater.inflate(R.layout.fragment_list, container, false)
+
+    override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = adapter
@@ -87,7 +89,6 @@ class ListFragment : Fragment() {
                 query()
             }
         }
-        return view
     }
 
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
