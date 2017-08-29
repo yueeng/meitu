@@ -14,14 +14,33 @@ open class Link(val name: String, val url: String? = null) {
     constructor(e: Elements) : this(e.text(), e.attr("abs:href"))
     constructor(e: Element) : this(e.text(), e.attr("abs:href"))
 }
+
+class Organ(name: String, url: String? = null) : Link(name, url) {
+    private var _count = 0
+    val count get() = _count
+
+    companion object {
+        val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
+    }
+
+    constructor(e: Element) :
+            this(e.select("a").text(), e.select("a").attr("abs:href")) {
+        _count = e.select("span").text().let {
+            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
+        }
+    }
+}
+
 class Model(name: String, url: String? = null) : Link(name, url) {
     private lateinit var _image: String
     private var _count = 0
     val image get() = _image
     val count get() = _count
+
     companion object {
-        val rgx = "(\\d+)套".toRegex(RegexOption.IGNORE_CASE)
+        val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
     }
+
     constructor(e: Element) :
             this(e.select("p a").text(), e.select("p a").attr("abs:href")) {
         _image = e.select("img").attr("abs:src")
@@ -30,6 +49,7 @@ class Model(name: String, url: String? = null) : Link(name, url) {
         }
     }
 }
+
 class Album(name: String, url: String? = null) : Link(name, url) {
     private lateinit var _image: String
     private lateinit var organ: List<Link>
@@ -44,7 +64,7 @@ class Album(name: String, url: String? = null) : Link(name, url) {
         get() = tags + organ + (model?.takeIf { it.url != null }?.let { listOf(it) } ?: emptyList())
 
     companion object {
-        val rgx = "(\\d+)P".toRegex(RegexOption.IGNORE_CASE)
+        val rgx = "(\\d+)\\s*P".toRegex(RegexOption.IGNORE_CASE)
     }
 
     constructor(e: Element) :
@@ -53,13 +73,13 @@ class Album(name: String, url: String? = null) : Link(name, url) {
         _count = e.select(".shuliang").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
         }
-        model = e.select("p:contains(模特)").takeIf { it.isNotEmpty() }?.let {
+        model = e.select("p:contains(模特：)").takeIf { it.isNotEmpty() }?.let {
             it.select("a").takeIf { it.isNotEmpty() }?.let {
                 Link(it)
             } ?: Link(it.text().substring("模特：".length))
         }
-        organ = e.select("p:contains(机构) a").map { Link(it) }
-        tags = e.select("p:contains(类型) a").map { Link(it) }
+        organ = e.select("p:contains(机构：) a").map { Link(it) }
+        tags = e.select("p:contains(类型：) a").map { Link(it) }
     }
 
 }

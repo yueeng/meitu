@@ -104,10 +104,11 @@ class ListFragment : Fragment() {
         busy * true
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list: List<Link>? = dom?.select(".hezi li,.hezi_t li")?.mapNotNull {
+            val list: List<Link>? = dom?.select(".hezi li,.hezi_t li,.jigou li")?.mapNotNull {
                 when {
                     it.`is`(".hezi li") -> Album(it)
                     it.`is`(".hezi_t li") -> Model(it)
+                    it.`is`(".jigou li") -> Organ(it)
                     else -> null
                 }
             }
@@ -120,7 +121,22 @@ class ListFragment : Fragment() {
         }
     }
 
-    private val adapter = ImageAdapter()
+    private val adapter = ListAdapter()
+
+    inner class OrganHolder(view: View) : DataHolder<Organ>(view) {
+        private val text1 = view.findViewById<TextView>(R.id.text1)!!
+        private val text2 = view.findViewById<TextView>(R.id.text2)!!
+        @SuppressLint("SetTextI18n")
+        override fun bind() {
+            text1.text = value.name
+            text2.text = "${value.count}套"
+            text2.visibility = if (value.count > 0) View.VISIBLE else View.GONE
+        }
+
+        init {
+            view.setOnClickListener { context.startActivity<ListActivity>("url" to value.url!!, "name" to value.name) }
+        }
+    }
 
     inner class ModelHolder(view: View) : DataHolder<Model>(view) {
         private val image = view.findViewById<ImageView>(R.id.image)!!
@@ -131,6 +147,7 @@ class ListFragment : Fragment() {
             glide().load(value.image).into(image)
             text1.text = value.name
             text2.text = "${value.count}套"
+            text2.visibility = if (value.count > 0) View.VISIBLE else View.GONE
         }
 
         init {
@@ -138,7 +155,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class ImageHolder(view: View) : DataHolder<Album>(view) {
+    inner class AlbumHolder(view: View) : DataHolder<Album>(view) {
         private val image = view.findViewById<ImageView>(R.id.image)!!
         private val text1 = view.findViewById<TextView>(R.id.text1)!!
         private val text2 = view.findViewById<TextView>(R.id.text2)!!
@@ -148,6 +165,7 @@ class ListFragment : Fragment() {
             glide().load(value.image).into(image)
             text1.text = value.name
             text3.text = "${value.count}P"
+            text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE
             text2.text = value.info.spannable(" ", { it.name }) {
                 it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
             }
@@ -165,16 +183,18 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class ImageAdapter : DataAdapter<Link, DataHolder<Link>>() {
+    inner class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
         override fun getItemViewType(position: Int): Int = when (get(position)) {
             is Album -> 0
             is Model -> 1
+            is Organ -> 2
             else -> throw IllegalArgumentException()
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link> = when (viewType) {
-            0 -> ImageHolder(parent.inflate(R.layout.list_item))
+            0 -> AlbumHolder(parent.inflate(R.layout.list_album_item))
             1 -> ModelHolder(parent.inflate(R.layout.list_model_item))
+            2 -> OrganHolder(parent.inflate(R.layout.list_organ_item))
             else -> throw IllegalArgumentException()
         }
     }
