@@ -9,8 +9,8 @@ import android.support.v4.app.FragmentStatePagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.StaggeredGridLayoutManager
 import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.View
@@ -21,7 +21,6 @@ import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.uiThread
-import java.lang.IllegalArgumentException
 
 /**
  * Main activity
@@ -79,7 +78,15 @@ class ListFragment : Fragment() {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
+        recycler.layoutManager = GridLayoutManager(context, 2).apply {
+            spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int =
+                        when (adapter.getItemViewType(position)) {
+                            ListType.Title.value -> this@apply.spanCount
+                            else -> 1
+                        }
+            }
+        }
         recycler.adapter = adapter
         recycler.loadMore(2) { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
@@ -105,11 +112,13 @@ class ListFragment : Fragment() {
         busy * true
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list: List<Link>? = dom?.select(".hezi li,.hezi_t li,.jigou li")?.mapNotNull {
+            val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.shoulushuliang")?.mapNotNull {
                 when {
                     it.`is`(".hezi li") -> Album(it)
                     it.`is`(".hezi_t li") -> Model(it)
                     it.`is`(".jigou li") -> Organ(it)
+                    it.`is`(".shoulushuliang") -> Link(it.text())
+                    it.`is`(".hezi .title") -> Link(it.text())
                     else -> null
                 }
             }
@@ -123,6 +132,14 @@ class ListFragment : Fragment() {
     }
 
     private val adapter = ListAdapter()
+
+    inner class TextHolder(view: View) : DataHolder<Link>(view) {
+        private val text1 = view.findViewById<TextView>(R.id.text1)!!
+        @SuppressLint("SetTextI18n")
+        override fun bind() {
+            text1.text = value.name
+        }
+    }
 
     inner class OrganHolder(view: View) : DataHolder<Organ>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)!!
@@ -186,17 +203,22 @@ class ListFragment : Fragment() {
 
     inner class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
         override fun getItemViewType(position: Int): Int = when (get(position)) {
-            is Album -> 0
-            is Model -> 1
-            is Organ -> 2
-            else -> throw IllegalArgumentException()
+            is Album -> ListType.Album.value
+            is Model -> ListType.Model.value
+            is Organ -> ListType.Organ.value
+            else -> ListType.Title.value
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link> = when (viewType) {
-            0 -> AlbumHolder(parent.inflate(R.layout.list_album_item))
-            1 -> ModelHolder(parent.inflate(R.layout.list_model_item))
-            2 -> OrganHolder(parent.inflate(R.layout.list_organ_item))
+            ListType.Album.value -> AlbumHolder(parent.inflate(R.layout.list_album_item))
+            ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
+            ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))
+            ListType.Title.value -> TextHolder(parent.inflate(R.layout.list_text_item))
             else -> throw IllegalArgumentException()
         }
+    }
+
+    enum class ListType(val value: Int) {
+        Album(1), Model(2), Organ(3), Title(0)
     }
 }
