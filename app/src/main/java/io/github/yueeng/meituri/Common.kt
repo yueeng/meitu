@@ -153,11 +153,13 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
     }
 }
 
-open class DataHolder<T : Any>(view: View) : RecyclerView.ViewHolder(view) {
-    protected lateinit var value: T
+open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
+    private lateinit var _value: T
+    val value: T get() = _value
     protected open fun bind() {}
-    fun set(v: T) {
-        value = v
+    @Suppress("UNCHECKED_CAST")
+    fun set(v: Any) {
+        _value = v as T
         bind()
     }
 }

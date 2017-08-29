@@ -14,7 +14,22 @@ open class Link(val name: String, val url: String? = null) {
     constructor(e: Elements) : this(e.text(), e.attr("abs:href"))
     constructor(e: Element) : this(e.text(), e.attr("abs:href"))
 }
-
+class Model(name: String, url: String? = null) : Link(name, url) {
+    private lateinit var _image: String
+    private var _count = 0
+    val image get() = _image
+    val count get() = _count
+    companion object {
+        val rgx = "(\\d+)套".toRegex(RegexOption.IGNORE_CASE)
+    }
+    constructor(e: Element) :
+            this(e.select("p a").text(), e.select("p a").attr("abs:href")) {
+        _image = e.select("img").attr("abs:src")
+        _count = e.select(".shuliang").text().let {
+            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
+        }
+    }
+}
 class Album(name: String, url: String? = null) : Link(name, url) {
     private lateinit var _image: String
     private lateinit var organ: List<Link>

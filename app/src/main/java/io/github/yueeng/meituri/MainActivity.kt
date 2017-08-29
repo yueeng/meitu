@@ -21,6 +21,7 @@ import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.uiThread
+import java.lang.IllegalArgumentException
 
 /**
  * Main activity
@@ -40,8 +41,8 @@ class MainActivity : AppCompatActivity() {
                 "http://www.meituri.com/taiwan/" to "台湾美女",
                 "http://www.meituri.com/hanguo/" to "韩国美女",
                 "http://www.meituri.com/mote/" to "美女库",
-                "http://www.meituri.com/hanguo/" to "写真机构",
-                "http://www.meituri.com/mote/" to "分类")
+                "http://www.meituri.com/jigou/" to "写真机构",
+                "" to "分类")
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
         tabs.setupWithViewPager(pager)
@@ -64,7 +65,7 @@ class ListAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 class ListActivity : AppCompatActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_list)
         setSupportActionBar(findViewById(R.id.toolbar))
         setFragment<ListFragment>(R.id.container) { intent.extras }
     }
@@ -99,11 +100,17 @@ class ListFragment : Fragment() {
     }
 
     private fun query() {
-        if (busy() || uri == null) return
+        if (busy() || uri.isNullOrEmpty()) return
         busy * true
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list = dom?.select(".hezi li")?.map { Album(it) }
+            val list: List<Link>? = dom?.select(".hezi li,.hezi_t li")?.mapNotNull {
+                when {
+                    it.`is`(".hezi li") -> Album(it)
+                    it.`is`(".hezi_t li") -> Model(it)
+                    else -> null
+                }
+            }
             val next = dom?.select("#pages .current+a")?.attr("abs:href")
             uiThread {
                 busy * false
@@ -114,6 +121,22 @@ class ListFragment : Fragment() {
     }
 
     private val adapter = ImageAdapter()
+
+    inner class ModelHolder(view: View) : DataHolder<Model>(view) {
+        private val image = view.findViewById<ImageView>(R.id.image)!!
+        private val text1 = view.findViewById<TextView>(R.id.text1)!!
+        private val text2 = view.findViewById<TextView>(R.id.text2)!!
+        @SuppressLint("SetTextI18n")
+        override fun bind() {
+            glide().load(value.image).into(image)
+            text1.text = value.name
+            text2.text = "${value.count}套"
+        }
+
+        init {
+            view.setOnClickListener { context.startActivity<ListActivity>("url" to value.url!!, "name" to value.name) }
+        }
+    }
 
     inner class ImageHolder(view: View) : DataHolder<Album>(view) {
         private val image = view.findViewById<ImageView>(R.id.image)!!
@@ -142,8 +165,17 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class ImageAdapter : DataAdapter<Album, ImageHolder>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageHolder
-                = ImageHolder(parent.inflate(R.layout.list_item))
+    inner class ImageAdapter : DataAdapter<Link, DataHolder<Link>>() {
+        override fun getItemViewType(position: Int): Int = when (get(position)) {
+            is Album -> 0
+            is Model -> 1
+            else -> throw IllegalArgumentException()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link> = when (viewType) {
+            0 -> ImageHolder(parent.inflate(R.layout.list_item))
+            1 -> ModelHolder(parent.inflate(R.layout.list_model_item))
+            else -> throw IllegalArgumentException()
+        }
     }
 }
