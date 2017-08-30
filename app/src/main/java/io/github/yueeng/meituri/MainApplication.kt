@@ -1,6 +1,7 @@
 package io.github.yueeng.meituri
 
 import android.app.Application
+import android.content.SearchRecentSuggestionsProvider
 import java.lang.ref.WeakReference
 
 
@@ -18,5 +19,16 @@ class MainApplication : Application() {
 
     init {
         app = WeakReference(this)
+    }
+}
+
+class SearchHistoryProvider : SearchRecentSuggestionsProvider() {
+    init {
+        setupSuggestions(SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+    }
+
+    companion object {
+        val AUTHORITY = "${SearchHistoryProvider::class.java.`package`.name}.SuggestionProvider"
+        val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
     }
 }

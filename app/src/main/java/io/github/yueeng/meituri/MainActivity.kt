@@ -1,7 +1,12 @@
 package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
+import android.app.SearchManager
+import android.content.ComponentName
+import android.content.Context
+import android.net.Uri
 import android.os.Bundle
+import android.provider.SearchRecentSuggestions
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
@@ -11,10 +16,9 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.SearchView
 import android.text.method.LinkMovementMethod
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
 import org.jetbrains.anko.bundleOf
@@ -28,8 +32,7 @@ import org.jetbrains.anko.uiThread
  */
 
 class MainActivity : AppCompatActivity() {
-    private val adapter by lazy { ListAdapter(supportFragmentManager) }
-    //    private val pager by lazy { findViewById<ViewPager>(R.id.container) }
+    private val adapter by lazy { MainAdapter(supportFragmentManager) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
@@ -48,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-class ListAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     val data = mutableListOf<Pair<String, String>>()
     override fun getItem(position: Int): Fragment = ListFragment().apply {
         arguments = bundleOf("url" to data[position].first, "name" to data[position].second)
@@ -61,18 +64,32 @@ class ListAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 }
 
 class ListActivity : AppCompatActivity() {
-    private val name by lazy { intent.getStringExtra("name")!! }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_list)
         setSupportActionBar(findViewById(R.id.toolbar))
-        title = name
+        val bundle = if (intent.hasExtra(SearchManager.QUERY)) {
+            val key = intent.getStringExtra(SearchManager.QUERY)
+            val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+            suggestions.saveRecentQuery(key, null)
+            bundleOf("url" to "http://www.meituri.com/search/${Uri.encode(key)}", "name" to key)
+        } else intent.extras
 
-        setFragment<ListFragment>(R.id.container) { intent.extras }
+        title = bundle.getString("name")
+        setFragment<ListFragment>(R.id.container) { bundle }
     }
 }
 
 class ListFragment : Fragment() {
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.search, menu)
+        val search = menu.findItem(R.id.search).actionView as SearchView
+        val manager = context.getSystemService(Context.SEARCH_SERVICE) as SearchManager
+        val info = manager.getSearchableInfo(ComponentName(context, ListActivity::class.java))
+        search.setSearchableInfo(info)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_list, container, false)
 
@@ -103,6 +120,7 @@ class ListFragment : Fragment() {
     private var uri: String? = null
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        setHasOptionsMenu(true)
         uri = url
         query()
     }
