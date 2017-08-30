@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
+import android.support.v4.widget.SlidingPaneLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
@@ -21,10 +22,9 @@ import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.BackgroundColorSpan
 import android.text.style.ClickableSpan
+import android.util.AttributeSet
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import com.bumptech.glide.*
 import com.bumptech.glide.annotation.GlideModule
@@ -276,4 +276,30 @@ fun RequestBuilder<Bitmap>.into(view: SubsamplingScaleImageView) {
             this.view.setImage(ImageSource.bitmap(resource))
         }
     })
+}
+
+class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : SlidingPaneLayout(context, attrs, defStyle) {
+    private var mInitialMotionX: Float = 0F
+    private var mInitialMotionY: Float = 0F
+    private val mEdgeSlop: Float = ViewConfiguration.get(context).scaledEdgeSlop.toFloat()
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.action) {
+            MotionEvent.ACTION_DOWN -> {
+                mInitialMotionX = ev.x
+                mInitialMotionY = ev.y
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val x = ev.x
+                val y = ev.y
+                if (mInitialMotionX > mEdgeSlop && !isOpen && canScroll(this, false,
+                        Math.round(x - mInitialMotionX), Math.round(x), Math.round(y))) {
+                    return super.onInterceptTouchEvent(MotionEvent.obtain(ev).apply {
+                        action = MotionEvent.ACTION_CANCEL
+                    })
+                }
+            }
+        }
+        return super.onInterceptTouchEvent(ev)
+    }
 }

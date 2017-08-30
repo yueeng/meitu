@@ -5,9 +5,12 @@ import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.StaggeredGridLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import org.jetbrains.anko.doAsync
@@ -38,8 +41,13 @@ class PreviewFragment : Fragment() {
     private val adapter = PreviewAdapter()
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
-    private val current get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: -1
-
+    private var current
+        get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: -1
+        set(value) {
+            view?.findViewById<ViewPager>(R.id.pager)?.let { it.currentItem = value }
+        }
+    private val sliding get() = view?.findViewById<PagerSlidingPaneLayout>(R.id.sliding)
+    private val thumb = ThumbAdapter()
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_preview, container, false)
 
@@ -54,6 +62,10 @@ class PreviewFragment : Fragment() {
                 page * position
             }
         })
+        val recycler = view.findViewById<RecyclerView>(R.id.recycler)
+        recycler.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
+        recycler.adapter = thumb
+        recycler.loadMore(2) { query() }
     }
 
     override fun onCreate(state: Bundle?) {
@@ -75,6 +87,7 @@ class PreviewFragment : Fragment() {
                 busy * false
                 uri = if (next?.first == true) next.second else null
                 if (list != null) {
+                    thumb.add(list)
                     adapter.data.addAll(list)
                     adapter.notifyDataSetChanged()
                     page * current
@@ -88,5 +101,25 @@ class PreviewFragment : Fragment() {
             val image = view.findViewById<SubsamplingScaleImageView>(R.id.image)
             glide().asBitmap().load(item).into(image)
         }
+    }
+
+    inner class ThumbHolder(view: View) : DataHolder<String>(view) {
+        val image: ImageView = view.findViewById(R.id.image)
+        override fun bind() {
+            glide().load(value).into(image)
+        }
+
+        init {
+            view.setOnClickListener {
+                current = adapter.data.indexOf(value)
+                sliding?.closePane()
+            }
+        }
+    }
+
+    inner class ThumbAdapter : DataAdapter<String, ThumbHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbHolder =
+                ThumbHolder(parent.inflate(R.layout.preview_thumb_item))
+
     }
 }
