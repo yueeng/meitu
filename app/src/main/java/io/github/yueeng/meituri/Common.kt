@@ -227,10 +227,20 @@ val random = Random(System.currentTimeMillis())
 
 fun randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, arrayOf(random.nextInt(360).toFloat(), 1F, 0.5F).toFloatArray())
 
+class Once {
+    var init = false
+    fun run(call: () -> Unit) {
+        synchronized(init) {
+            if (init) return
+            init = true
+            call()
+        }
+    }
+}
+
 fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
     this.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-        override fun onScrollStateChanged(recycler: RecyclerView, state: Int) {
-            if (state != RecyclerView.SCROLL_STATE_IDLE) return
+        fun load(recycler: RecyclerView) {
             val layout = recycler.layoutManager
             when (layout) {
                 is StaggeredGridLayoutManager ->
@@ -240,6 +250,16 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
                 is LinearLayoutManager ->
                     if (layout.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
             }
+        }
+
+        val once = Once()
+        override fun onScrolled(recycler: RecyclerView, dx: Int, dy: Int) {
+            once.run { load(recycler) }
+        }
+
+        override fun onScrollStateChanged(recycler: RecyclerView, state: Int) {
+            if (state != RecyclerView.SCROLL_STATE_IDLE) return
+            load(recycler)
         }
     })
 }

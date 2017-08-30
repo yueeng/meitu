@@ -52,6 +52,7 @@ class PreviewFragment : Fragment() {
             inflater.inflate(R.layout.fragment_preview, container, false)
 
     override fun onViewCreated(view: View, state: Bundle?) {
+        busy + view.findViewById(R.id.busy)
         val pager = view.findViewById<ViewPager>(R.id.pager)
         page + view.findViewById(R.id.text1)
         pager.adapter = adapter
