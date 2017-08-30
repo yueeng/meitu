@@ -4,7 +4,7 @@
     android:includeInGlobalSearch="false"
     android:label="@string/app_name"
     android:searchSettingsDescription="@string/app_name"
-    android:searchSuggestAuthority="io.github.yueeng.meituri.SuggestionProvider"
+    android:searchSuggestAuthority="io.github.yueeng.meituri.SearchHistoryProvider"
     android:searchSuggestIntentAction="android.intent.action.SEARCH"
     android:searchSuggestSelection=" ? ">
 
