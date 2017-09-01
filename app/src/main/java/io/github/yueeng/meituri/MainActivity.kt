@@ -63,7 +63,7 @@ class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     }
 }
 
-class ListActivity : AppCompatActivity() {
+class ListActivity : BaseSlideCloseActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_list)

@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
-import android.support.v7.app.AppCompatActivity
+import android.support.v4.widget.DrawerLayout
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
 import android.view.LayoutInflater
@@ -23,7 +23,7 @@ import org.jetbrains.anko.uiThread
  */
 
 
-class PreviewActivity : AppCompatActivity() {
+class PreviewActivity : BaseSlideCloseActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -46,7 +46,7 @@ class PreviewFragment : Fragment() {
         set(value) {
             view?.findViewById<ViewPager>(R.id.pager)?.let { it.currentItem = value }
         }
-    private val sliding get() = view?.findViewById<PagerSlidingPaneLayout>(R.id.sliding)
+    private val sliding get() = view?.findViewById<DrawerLayout>(R.id.sliding)
     private val thumb = ThumbAdapter()
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_preview, container, false)
@@ -113,7 +113,7 @@ class PreviewFragment : Fragment() {
         init {
             view.setOnClickListener {
                 current = adapter.data.indexOf(value)
-                sliding?.closePane()
+                sliding?.closeDrawers()
             }
         }
     }
