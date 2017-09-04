@@ -100,6 +100,7 @@ class ListFragment : Fragment() {
                 override fun getSpanSize(position: Int): Int =
                         when (adapter.getItemViewType(position)) {
                             ListType.Title.value -> this@apply.spanCount
+                            ListType.Info.value -> this@apply.spanCount
                             else -> 1
                         }
             }
@@ -130,11 +131,12 @@ class ListFragment : Fragment() {
         busy * true
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.shoulushuliang")?.mapNotNull {
+            val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.shoulushuliang,.renwu")?.mapNotNull {
                 when {
                     it.`is`(".hezi li") -> Album(it)
                     it.`is`(".hezi_t li") -> Model(it)
                     it.`is`(".jigou li") -> Organ(it)
+                    it.`is`(".renwu") -> Info(it)
                     it.`is`(".shoulushuliang") -> Link(it.text())
                     it.`is`(".hezi .title") -> Link(it.text())
                     else -> null
@@ -156,6 +158,23 @@ class ListFragment : Fragment() {
         @SuppressLint("SetTextI18n")
         override fun bind() {
             text1.text = value.name
+        }
+    }
+
+    inner class InfoHolder(view: View) : DataHolder<Info>(view) {
+        private val image = view.findViewById<ImageView>(R.id.image)!!
+        private val text1 = view.findViewById<TextView>(R.id.text1)!!
+        private val text2 = view.findViewById<TextView>(R.id.text2)!!
+        private val text3 = view.findViewById<TextView>(R.id.text3)!!
+        private val text4 = view.findViewById<TextView>(R.id.text4)!!
+        override fun bind() {
+            glide().load(value.image).into(image)
+            text1.text = value.name
+            text2.text = value.attr.joinToString { "${it.first}${it.second}" }
+            text3.text = value.tag.spannable(" ", { it.name }) {
+                it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
+            }
+            text4.text = value.etc
         }
     }
 
@@ -224,6 +243,7 @@ class ListFragment : Fragment() {
             is Album -> ListType.Album.value
             is Model -> ListType.Model.value
             is Organ -> ListType.Organ.value
+            is Info -> ListType.Info.value
             else -> ListType.Title.value
         }
 
@@ -232,11 +252,12 @@ class ListFragment : Fragment() {
             ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
             ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))
             ListType.Title.value -> TextHolder(parent.inflate(R.layout.list_text_item))
+            ListType.Info.value -> InfoHolder(parent.inflate(R.layout.list_info_item))
             else -> throw IllegalArgumentException()
         }
     }
 
     enum class ListType(val value: Int) {
-        Album(1), Model(2), Organ(3), Title(0)
+        Title(0), Album(1), Model(2), Organ(3), Info(4)
     }
 }

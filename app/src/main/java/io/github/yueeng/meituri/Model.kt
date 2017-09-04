@@ -3,6 +3,7 @@
 package io.github.yueeng.meituri
 
 import org.jsoup.nodes.Element
+import org.jsoup.nodes.TextNode
 import org.jsoup.select.Elements
 
 /**
@@ -11,8 +12,8 @@ import org.jsoup.select.Elements
  */
 
 open class Link(val name: String, val url: String? = null) {
-    constructor(e: Elements) : this(e.text(), e.attr("abs:href"))
-    constructor(e: Element) : this(e.text(), e.attr("abs:href"))
+    constructor(e: Elements) : this(e.text(), e.attrs("abs:href"))
+    constructor(e: Element) : this(e.text(), e.attrs("abs:href"))
 }
 
 class Organ(name: String, url: String? = null) : Link(name, url) {
@@ -23,8 +24,8 @@ class Organ(name: String, url: String? = null) : Link(name, url) {
         val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
     }
 
-    constructor(e: Element) :
-            this(e.select("a").text(), e.select("a").attr("abs:href")) {
+    constructor(e: Link) : this(e.name, e.url)
+    constructor(e: Element) : this(Link(e.select("a"))) {
         _count = e.select("span").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
         }
@@ -41,12 +42,35 @@ class Model(name: String, url: String? = null) : Link(name, url) {
         val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
     }
 
-    constructor(e: Element) :
-            this(e.select("p a").text(), e.select("p a").attr("abs:href")) {
+    constructor(e: Link) : this(e.name, e.url)
+    constructor(e: Element) : this(Link(e.select("p a"))) {
         _image = e.select("img").attr("abs:src")
         _count = e.select(".shuliang").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
         }
+    }
+}
+
+class Info(name: String, url: String? = null) : Link(name, url) {
+
+    constructor(e: Link) : this(e.name, e.url)
+
+    lateinit var image: String
+
+    lateinit var attr: List<Pair<String, String>>
+
+    lateinit var tag: List<Link>
+
+    lateinit var etc: String
+
+    constructor(e: Element) : this(Link(e.select(".renwu .right h1"))) {
+        image = e.select(".renwu .left img").attr("abs:src")
+        attr = e.select(".renwu .right span").filter { it.nextSibling() is TextNode }.map {
+            it.text() to (it.nextSibling() as TextNode).text()
+        }
+        tag = e.select(".renwu .shuoming a").map { Link(it) }
+        e.select(".renwu .shuoming p").remove()
+        etc = e.select(".renwu .shuoming").text()
     }
 }
 
@@ -67,8 +91,9 @@ class Album(name: String, url: String? = null) : Link(name, url) {
         val rgx = "(\\d+)\\s*P".toRegex(RegexOption.IGNORE_CASE)
     }
 
-    constructor(e: Element) :
-            this(e.select(".biaoti a").text(), e.select(".biaoti a").attr("abs:href")) {
+    constructor(e: Link) : this(e.name, e.url)
+
+    constructor(e: Element) : this(Link(e.select(".biaoti a"))) {
         _image = e.select("img").attr("abs:src")
         _count = e.select(".shuliang").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0

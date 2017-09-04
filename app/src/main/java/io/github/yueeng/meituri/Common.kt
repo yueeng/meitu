@@ -44,6 +44,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import org.jsoup.select.Elements
 import java.io.InputStream
 import java.lang.ref.WeakReference
 import java.net.CookieManager
@@ -102,6 +104,14 @@ fun Pair<String, String?>.jsoup() = try {
 } catch (e: Exception) {
     e.printStackTrace()
     null
+}
+
+fun Element.attrs(vararg key: String): String? {
+    return key.firstOrNull { hasAttr(it) }?.let { attr(it) }
+}
+
+fun Elements.attrs(vararg key: String): String? {
+    return key.firstOrNull { hasAttr(it) }?.let { attr(it) }
 }
 
 fun Context.asActivity(): Activity? = when (this) {
