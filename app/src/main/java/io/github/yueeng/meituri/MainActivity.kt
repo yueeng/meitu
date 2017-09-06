@@ -95,13 +95,14 @@ class ListFragment : Fragment() {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = GridLayoutManager(context, 2).apply {
+        recycler.layoutManager = GridLayoutManager(context, 4).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                         when (adapter.getItemViewType(position)) {
                             ListType.Title.value -> this@apply.spanCount
                             ListType.Info.value -> this@apply.spanCount
-                            else -> 1
+                            ListType.Category.value -> 1
+                            else -> 2
                         }
             }
         }
@@ -142,10 +143,14 @@ class ListFragment : Fragment() {
                     else -> null
                 }
             }
+            val categories = uri?.takeIf { it == "$website/mote/" }?.let {
+                dom?.select("#tag_ul li a")?.map { Link(it) }
+            }
             val next = dom?.select("#pages .current+a")?.attr("abs:href")
             uiThread {
                 busy * false
                 uri = next
+                if (categories != null) adapter.add(categories)
                 if (list != null) adapter.add(list)
             }
         }
@@ -158,6 +163,14 @@ class ListFragment : Fragment() {
         @SuppressLint("SetTextI18n")
         override fun bind() {
             text1.text = value.name.spannable(value.name.numbers())
+        }
+
+        init {
+            view.setOnClickListener {
+                value.url?.let {
+                    context.startActivity<ListActivity>("url" to value.url!!, "name" to value.name)
+                }
+            }
         }
     }
 
@@ -244,7 +257,7 @@ class ListFragment : Fragment() {
             is Model -> ListType.Model.value
             is Organ -> ListType.Organ.value
             is Info -> ListType.Info.value
-            else -> ListType.Title.value
+            else -> get(position).url?.let { ListType.Category.value } ?: ListType.Title.value
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link> = when (viewType) {
@@ -252,12 +265,13 @@ class ListFragment : Fragment() {
             ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
             ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))
             ListType.Title.value -> TextHolder(parent.inflate(R.layout.list_text_item))
+            ListType.Category.value -> TextHolder(parent.inflate(R.layout.list_text_item))
             ListType.Info.value -> InfoHolder(parent.inflate(R.layout.list_info_item))
             else -> throw IllegalArgumentException()
         }
     }
 
     enum class ListType(val value: Int) {
-        Title(0), Album(1), Model(2), Organ(3), Info(4)
+        Title(0), Album(1), Model(2), Organ(3), Info(4), Category(5)
     }
 }
