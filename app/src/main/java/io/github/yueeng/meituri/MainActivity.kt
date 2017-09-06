@@ -159,8 +159,7 @@ class ListFragment : Fragment() {
     private val adapter = ListAdapter()
 
     inner class TextHolder(view: View) : DataHolder<Link>(view) {
-        private val text1 = view.findViewById<TextView>(R.id.text1)!!
-        @SuppressLint("SetTextI18n")
+        private val text1 = view.findViewById<TextView>(R.id.text1)
         override fun bind() {
             text1.text = value.name.spannable(value.name.numbers())
         }
@@ -175,11 +174,11 @@ class ListFragment : Fragment() {
     }
 
     inner class InfoHolder(view: View) : DataHolder<Info>(view) {
-        private val image = view.findViewById<SimpleDraweeView>(R.id.image)!!
-        private val text1 = view.findViewById<TextView>(R.id.text1)!!
-        private val text2 = view.findViewById<TextView>(R.id.text2)!!
-        private val text3 = view.findViewById<TextView>(R.id.text3)!!
-        private val text4 = view.findViewById<TextView>(R.id.text4)!!
+        private val image = view.findViewById<SimpleDraweeView>(R.id.image)
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        private val text2 = view.findViewById<TextView>(R.id.text2)
+        private val text3 = view.findViewById<TextView>(R.id.text3)
+        private val text4 = view.findViewById<TextView>(R.id.text4)
         override fun bind() {
             image.progress().load(value.image)
             text1.text = value.name
@@ -192,8 +191,8 @@ class ListFragment : Fragment() {
     }
 
     inner class OrganHolder(view: View) : DataHolder<Organ>(view) {
-        private val text1 = view.findViewById<TextView>(R.id.text1)!!
-        private val text2 = view.findViewById<TextView>(R.id.text2)!!
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        private val text2 = view.findViewById<TextView>(R.id.text2)
         @SuppressLint("SetTextI18n")
         override fun bind() {
             text1.text = value.name
@@ -207,9 +206,9 @@ class ListFragment : Fragment() {
     }
 
     inner class ModelHolder(view: View) : DataHolder<Model>(view) {
-        private val image = view.findViewById<SimpleDraweeView>(R.id.image)!!
-        private val text1 = view.findViewById<TextView>(R.id.text1)!!
-        private val text2 = view.findViewById<TextView>(R.id.text2)!!
+        private val image = view.findViewById<SimpleDraweeView>(R.id.image)
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        private val text2 = view.findViewById<TextView>(R.id.text2)
         @SuppressLint("SetTextI18n")
         override fun bind() {
             image.progress().load(value.image)
@@ -224,10 +223,10 @@ class ListFragment : Fragment() {
     }
 
     inner class AlbumHolder(view: View) : DataHolder<Album>(view) {
-        private val image = view.findViewById<SimpleDraweeView>(R.id.image)!!
-        private val text1 = view.findViewById<TextView>(R.id.text1)!!
-        private val text2 = view.findViewById<TextView>(R.id.text2)!!
-        private val text3 = view.findViewById<TextView>(R.id.text3)!!
+        private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        private val text1: TextView = view.findViewById(R.id.text1)
+        private val text2: TextView = view.findViewById(R.id.text2)
+        private val text3: TextView = view.findViewById(R.id.text3)
         @SuppressLint("SetTextI18n")
         override fun bind() {
             image.progress().load(value.image)
