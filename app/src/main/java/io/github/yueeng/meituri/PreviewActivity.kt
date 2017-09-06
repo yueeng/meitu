@@ -109,9 +109,11 @@ class PreviewFragment : Fragment() {
     }
 
     inner class ThumbHolder(view: View) : DataHolder<String>(view) {
+        val text: TextView = view.findViewById(R.id.text1)
         val image: SimpleDraweeView = view.findViewById(R.id.image)
         override fun bind() {
             image.progress().load(value)
+            text.text = "${adapter.data.indexOf(value) + 1}"
         }
 
         init {
