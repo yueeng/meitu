@@ -309,11 +309,11 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
     return span
 }
 
-fun <DH : GenericDraweeHierarchy> DraweeView<DH>.progress() = this.apply {
+fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     hierarchy.setProgressBarImage(ProgressBarDrawable())
 }
 
-fun <DH : GenericDraweeHierarchy> DraweeView<DH>.load(uri: String) = this.apply {
+fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String) = this.apply {
     val weak = WeakReference(this)
     controller = Fresco.getDraweeControllerBuilderSupplier().get()
             .setUri(Uri.parse(uri))

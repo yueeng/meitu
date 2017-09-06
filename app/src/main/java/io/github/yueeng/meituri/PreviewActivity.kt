@@ -97,16 +97,14 @@ class PreviewFragment : Fragment() {
 
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
-            view.findViewById<ZoomableDraweeView>(R.id.image).let {
-                it.setTapListener(object : GestureDetector.SimpleOnGestureListener() {
-                    override fun onSingleTapUp(e: MotionEvent?): Boolean {
-                        current++
-                        return super.onSingleTapUp(e)
-                    }
-                })
-                it.progress().load(item)
-            }
-
+            view.findViewById<ZoomableDraweeView>(R.id.image)
+                    .progress().load(item)
+                    .setTapListener(object : GestureDetector.SimpleOnGestureListener() {
+                        override fun onSingleTapUp(e: MotionEvent?): Boolean {
+                            current++
+                            return super.onSingleTapUp(e)
+                        }
+                    })
         }
     }
 
