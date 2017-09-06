@@ -37,13 +37,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
-        adapter.data += listOf("http://www.meituri.com/" to "首页",
-                "http://www.meituri.com/zhongguo/" to "中国美女",
-                "http://www.meituri.com/riben/" to "日本美女",
-                "http://www.meituri.com/taiwan/" to "台湾美女",
-                "http://www.meituri.com/hanguo/" to "韩国美女",
-                "http://www.meituri.com/mote/" to "美女库",
-                "http://www.meituri.com/jigou/" to "写真机构"/*, "" to "分类"*/)
+        adapter.data += listOf(website to "首页",
+                "$website/zhongguo/" to "中国美女",
+                "$website/riben/" to "日本美女",
+                "$website/taiwan/" to "台湾美女",
+                "$website/hanguo/" to "韩国美女",
+                "$website/mote/" to "美女库",
+                "$website/jigou/" to "写真机构"/*, "" to "分类"*/)
         val pager = findViewById<ViewPager>(R.id.container)
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
@@ -72,7 +72,7 @@ class ListActivity : BaseSlideCloseActivity() {
             val key = intent.getStringExtra(SearchManager.QUERY)
             val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
             suggestions.saveRecentQuery(key, null)
-            bundleOf("url" to "http://www.meituri.com/search/${Uri.encode(key)}", "name" to key)
+            bundleOf("url" to "$website/search/${Uri.encode(key)}", "name" to key)
         } else intent.extras
 
         title = bundle.getString("name")
