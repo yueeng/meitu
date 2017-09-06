@@ -25,8 +25,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top|end"
-                android:layout_margin="2dp"
-                android:gravity="end" />
+                android:gravity="end|top"
+                android:lineSpacingExtra="6dp"
+                android:padding="5dp" />
 
             <TextView
                 android:id="@+id/text3"

@@ -7,6 +7,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -22,8 +25,8 @@ import android.support.v7.widget.StaggeredGridLayoutManager
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
-import android.text.style.BackgroundColorSpan
 import android.text.style.ClickableSpan
+import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.util.Log
 import android.view.*
@@ -240,7 +243,7 @@ val random = Random(System.currentTimeMillis())
 fun randomColor(alpha: Int = 0xFF) = android.graphics.Color.HSVToColor(alpha, arrayOf(random.nextInt(360).toFloat(), 1F, 0.5F).toFloatArray())
 
 class Once {
-    var init = false
+    private var init = false
     fun run(call: () -> Unit) {
         synchronized(init) {
             if (init) return
@@ -288,16 +291,38 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
         }
     }
 
-    val w = " "
-    val tags = this.joinToString(separator) { "$w${string(it)}$w" }
+    class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
+        private var linePadding = 5f // play around with these as needed
+        private var sidePadding = 5f // play around with these as needed
+        private fun MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
+            return paint.measureText(text, start, end)
+        }
+
+        override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int {
+            return Math.round(MeasureText(paint, text, start, end) + (2 * sidePadding))
+        }
+
+        override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
+            System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent-paint.fontMetrics.ascent}")
+            val rect = RectF(x, y + paint.fontMetrics.ascent - linePadding,
+                    x + getSize(paint, text, start, end, paint.fontMetricsInt),
+                    y + paint.fontMetrics.descent + linePadding)
+            paint.color = backgroundColor
+            canvas.drawRoundRect(rect, 5F, 5F, paint)
+            paint.color = 0xFFFFFFFF.toInt()
+            canvas.drawText(text, start, end, x + sidePadding, y * 1F, paint)
+        }
+
+    }
+
+    val tags = this.joinToString(separator) { string(it) }
     val span = SpannableStringBuilder(tags)
-    forEach {
-        val pw = tags.indexOf("$w${string(it)}$w")
-        val p = pw + w.length
+    fold(0) { i, it ->
+        val p = tags.indexOf(string(it), i)
         val e = p + string(it).length
-        val ew = e + w.length
         if (call != null) span.setSpan(TagClickableSpan(it), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        span.setSpan(BackgroundColorSpan(randomColor(0xBF)), pw, ew, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        span.setSpan(RoundedBackgroundColorSpan(randomColor(0xBF)), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        e
     }
     return span
 }
