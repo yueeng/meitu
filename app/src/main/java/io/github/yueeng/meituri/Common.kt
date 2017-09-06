@@ -13,6 +13,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
@@ -28,6 +29,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.util.Log
@@ -51,6 +53,7 @@ import java.net.CookieManager
 import java.net.CookiePolicy
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.buildSequence
 
 /**
  * Common library
@@ -307,6 +310,36 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
         e
     }
     return span
+}
+
+val accentColor
+    get() = MainApplication.current().resources.let {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            it.getColor(R.color.colorAccent, MainApplication.current().theme)
+        } else {
+            it.getColor(R.color.colorAccent)
+        }
+    }
+
+fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
+
+fun String.spannable(tag: List<String>): SpannableStringBuilder = SpannableStringBuilder(this).apply {
+    tag.forEach {
+        indexAllOf(it).forEach { i ->
+            setSpan(ForegroundColorSpan(accentColor), i, i + it.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+}
+
+@Suppress("EXPERIMENTAL_FEATURE_WARNING")
+fun String.indexAllOf(string: String): Sequence<Int> = buildSequence {
+    var i = 0
+    while (i >= 0) {
+        val p = this@indexAllOf.indexOf(string, i)
+        if (p == -1) break
+        yield(p)
+        i = p + string.length
+    }
 }
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {

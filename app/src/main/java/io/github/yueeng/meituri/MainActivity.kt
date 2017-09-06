@@ -157,7 +157,7 @@ class ListFragment : Fragment() {
         private val text1 = view.findViewById<TextView>(R.id.text1)!!
         @SuppressLint("SetTextI18n")
         override fun bind() {
-            text1.text = value.name
+            text1.text = value.name.spannable(value.name.numbers())
         }
     }
 
