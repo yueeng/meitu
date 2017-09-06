@@ -26,6 +26,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation "com.android.support:support-annotations:$android_support_version"
     implementation "com.android.support:appcompat-v7:$android_support_version"
     implementation "com.android.support:design:$android_support_version"
     implementation "com.android.support:cardview-v7:$android_support_version"
@@ -35,12 +36,10 @@ dependencies {
     implementation "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
     implementation "com.squareup.okhttp3:okhttp-android-support:$okhttp_version"
     implementation 'org.jetbrains.anko:anko-sdk15:0.10.1'
-    implementation 'com.github.bumptech.glide:okhttp3-integration:4.0.0'
     implementation 'org.jsoup:jsoup:1.10.3'
-    implementation 'com.davemorrissey.labs:subsampling-scale-image-view:3.6.0'
-    implementation 'com.github.bumptech.glide:annotations:4.0.0'
-    implementation 'com.github.bumptech.glide:glide:4.0.0'
-    kapt 'com.github.bumptech.glide:compiler:4.0.0'
+    implementation 'com.facebook.fresco:fresco:1.5.0'
+    implementation "com.facebook.fresco:imagepipeline-okhttp3:0.12.0"
+    implementation 'com.nineoldandroids:library:2.4.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'

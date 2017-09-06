@@ -10,9 +10,9 @@ import android.support.v7.widget.StaggeredGridLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.facebook.drawee.view.SimpleDraweeView
+import com.facebook.samples.zoomable.ZoomableDraweeView
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
@@ -99,15 +99,15 @@ class PreviewFragment : Fragment() {
 
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
-            val image = view.findViewById<SubsamplingScaleImageView>(R.id.image)
-            glide().asBitmap().load(item).into(image)
+            val image = view.findViewById<ZoomableDraweeView>(R.id.image)
+            image.progress().load(item)
         }
     }
 
     inner class ThumbHolder(view: View) : DataHolder<String>(view) {
-        val image: ImageView = view.findViewById(R.id.image)
+        val image: SimpleDraweeView = view.findViewById(R.id.image)
         override fun bind() {
-            glide().load(value).into(image)
+            image.progress().load(value)
         }
 
         init {

@@ -2,6 +2,8 @@ package io.github.yueeng.meituri
 
 import android.app.Application
 import android.content.SearchRecentSuggestionsProvider
+import com.facebook.drawee.backends.pipeline.Fresco
+import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
 import java.lang.ref.WeakReference
 
 
@@ -19,6 +21,16 @@ class MainApplication : Application() {
 
     init {
         app = WeakReference(this)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        val config = OkHttpImagePipelineConfigFactory
+                .newBuilder(this, okhttp)
+                // . other setters
+                // . setNetworkFetcher is already called for you
+                .build()
+        Fresco.initialize(this, config)
     }
 }
 

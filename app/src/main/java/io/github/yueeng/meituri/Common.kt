@@ -10,7 +10,9 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
@@ -31,17 +33,12 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.*
 import android.widget.ImageView
-import com.bumptech.glide.*
-import com.bumptech.glide.annotation.GlideModule
-import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
-import com.bumptech.glide.load.DecodeFormat
-import com.bumptech.glide.load.model.GlideUrl
-import com.bumptech.glide.module.AppGlideModule
-import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.request.target.ViewTarget
-import com.bumptech.glide.request.transition.Transition
-import com.davemorrissey.labs.subscaleview.ImageSource
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.facebook.drawee.backends.pipeline.Fresco
+import com.facebook.drawee.controller.BaseControllerListener
+import com.facebook.drawee.drawable.ProgressBarDrawable
+import com.facebook.drawee.generic.GenericDraweeHierarchy
+import com.facebook.drawee.view.DraweeView
+import com.facebook.imagepipeline.image.ImageInfo
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -49,7 +46,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
-import java.io.InputStream
 import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -81,19 +77,6 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 
-@GlideModule
-class MmAppGlideModule : AppGlideModule() {
-    override fun applyOptions(context: Context, builder: GlideBuilder) {
-        builder.setDefaultRequestOptions(RequestOptions()
-                .format(DecodeFormat.PREFER_ARGB_8888)
-                .placeholder(R.mipmap.ic_launcher))
-    }
-
-    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
-        registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okhttp))
-    }
-}
-
 fun String.httpGet() = try {
     val html = okhttp.newCall(Request.Builder().url(this).build()).execute().body()?.string()
     Pair(this, html)
@@ -124,7 +107,6 @@ fun Context.asActivity(): Activity? = when (this) {
 }
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
-fun Fragment.glide(): RequestManager = GlideApp.with(this)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
 
 inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle) {
@@ -303,7 +285,7 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
         }
 
         override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
-            System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent-paint.fontMetrics.ascent}")
+            System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
             val rect = RectF(x, y + paint.fontMetrics.ascent - linePadding,
                     x + getSize(paint, text, start, end, paint.fontMetricsInt),
                     y + paint.fontMetrics.descent + linePadding)
@@ -327,12 +309,26 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
     return span
 }
 
-fun RequestBuilder<Bitmap>.into(view: SubsamplingScaleImageView) {
-    into(object : ViewTarget<SubsamplingScaleImageView, Bitmap>(view) {
-        override fun onResourceReady(resource: Bitmap?, transition: Transition<in Bitmap>?) {
-            this.view.setImage(ImageSource.bitmap(resource))
-        }
-    })
+fun <DH : GenericDraweeHierarchy> DraweeView<DH>.progress(): DraweeView<DH> = this.apply {
+    hierarchy.setProgressBarImage(ProgressBarDrawable())
+}
+
+fun <DH : GenericDraweeHierarchy> DraweeView<DH>.load(uri: String): DraweeView<DH> = this.apply {
+    val weak = WeakReference(this)
+    controller = Fresco.getDraweeControllerBuilderSupplier().get()
+            .setUri(Uri.parse(uri))
+            .setCallerContext(null)
+            .setTapToRetryEnabled(true)
+            .setControllerListener(object : BaseControllerListener<ImageInfo>() {
+                override fun onFinalImageSet(id: String, imageInfo: ImageInfo?, animatable: Animatable?) {
+                    imageInfo?.let {
+                        weak.get()?.aspectRatio = 1F * it.width / it.height
+                    }
+
+                }
+            })
+            .setOldController(controller)
+            .build()
 }
 
 class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : SlidingPaneLayout(context, attrs, defStyle) {
