@@ -7,9 +7,7 @@ import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.ZoomableDraweeView
@@ -99,8 +97,16 @@ class PreviewFragment : Fragment() {
 
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
-            val image = view.findViewById<ZoomableDraweeView>(R.id.image)
-            image.progress().load(item)
+            view.findViewById<ZoomableDraweeView>(R.id.image).let {
+                it.setTapListener(object : GestureDetector.SimpleOnGestureListener() {
+                    override fun onSingleTapUp(e: MotionEvent?): Boolean {
+                        current++
+                        return super.onSingleTapUp(e)
+                    }
+                })
+                it.progress().load(item)
+            }
+
         }
     }
 
