@@ -4,6 +4,7 @@ package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DownloadManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
@@ -13,8 +14,9 @@ import android.graphics.RectF
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.os.Handler
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
 import android.support.v4.view.PagerAdapter
@@ -48,6 +50,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
+import java.io.File
 import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -312,14 +315,7 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
     return span
 }
 
-val accentColor
-    get() = MainApplication.current().resources.let {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            it.getColor(R.color.colorAccent, MainApplication.current().theme)
-        } else {
-            it.getColor(R.color.colorAccent)
-        }
-    }
+val accentColor get() = ContextCompat.getColor(MainApplication.current(), R.color.colorAccent)
 
 fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
 
@@ -340,6 +336,35 @@ fun String.indexAllOf(string: String): Sequence<Int> = buildSequence {
         yield(p)
         i = p + string.length
     }
+}
+
+fun String.filePath(): String = """\/:*?"<>|""".fold(this) { r, i ->
+    r.replace(i, ' ')
+}
+
+fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
+fun String.left(c: Char, ignoreCase: Boolean = false) = this.substring(0, this.indexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: this.length - 1)
+
+fun <C : Context> C.download(url: String, name: String) {
+    val path = "${getString(R.string.app_name).filePath()}/$name"
+    val root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+    val file = File(root, path)
+    if (file.exists()) file.delete()
+    val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+    val request = DownloadManager.Request(Uri.parse(url))
+            .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationUri(Uri.fromFile(file))
+//            .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, path)
+    dm.enqueue(request)
+}
+
+fun <C : Context> C.delay(millis: Long, run: () -> Unit) {
+    Handler(mainLooper).postDelayed({ run() }, millis)
+}
+
+fun <C : Fragment> C.delay(millis: Long, run: () -> Unit) {
+    Handler(context.mainLooper).postDelayed({ run() }, millis)
 }
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {

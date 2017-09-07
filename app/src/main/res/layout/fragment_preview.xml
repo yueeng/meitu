@@ -53,4 +53,11 @@
         android:layout_margin="5dp"
         android:background="@drawable/background_list_item_count" />
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:src="@android:drawable/stat_sys_download" />
 </FrameLayout>

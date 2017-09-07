@@ -2,6 +2,7 @@ package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
@@ -33,6 +34,7 @@ class PreviewActivity : BaseSlideCloseActivity() {
 
 @SuppressLint("SetTextI18n")
 class PreviewFragment : Fragment() {
+    private val name by lazy { arguments.getString("name") }
     private val url by lazy { arguments.getString("url") }
     private val count by lazy { arguments.getInt("count") }
     private var uri: String? = null
@@ -62,9 +64,21 @@ class PreviewFragment : Fragment() {
             }
         })
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
+        recycler.layoutManager = StaggeredGridLayoutManager(1, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = thumb
         recycler.loadMore(2) { query() }
+
+        view.findViewById<FloatingActionButton>(R.id.button).run {
+            setOnClickListener {
+                adapter.data[current].let { url ->
+                    context.download(url, "${name.filePath()}/${current + 1}${url.right('.')}")
+                }
+            }
+            setOnLongClickListener {
+                download()
+                true
+            }
+        }
     }
 
     override fun onCreate(state: Bundle?) {
@@ -73,8 +87,25 @@ class PreviewFragment : Fragment() {
         query()
     }
 
-    private fun query() {
-        if (busy() || uri == null) return
+    private fun download() {
+        query {
+            if (uri != null)
+                if (busy())
+                    delay(500) { download() }
+                else
+                    download()
+            else
+                adapter.data.forEachIndexed { i, url ->
+                    context.download(url, "${name.filePath()}/${i + 1}${url.right('.')}")
+                }
+        }
+    }
+
+    private fun query(call: (() -> Unit)? = null): Boolean {
+        if (busy() || uri == null) {
+            call?.invoke()
+            return false
+        }
         busy * true
         doAsync {
             val dom = uri!!.httpGet().jsoup()
@@ -91,8 +122,10 @@ class PreviewFragment : Fragment() {
                     adapter.notifyDataSetChanged()
                     page * current
                 }
+                call?.invoke()
             }
         }
+        return true
     }
 
     inner class PreviewAdapter : DataPagerAdapter<String>() {
