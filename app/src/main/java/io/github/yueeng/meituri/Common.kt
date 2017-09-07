@@ -280,7 +280,7 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
     }
 
     class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
-        private var linePadding = 5f // play around with these as needed
+        private var linePadding = 2f // play around with these as needed
         private var sidePadding = 5f // play around with these as needed
         private fun MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
             return paint.measureText(text, start, end)
@@ -292,9 +292,9 @@ fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String =
 
         override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
             System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
-            val rect = RectF(x, y + paint.fontMetrics.ascent - linePadding,
+            val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
                     x + getSize(paint, text, start, end, paint.fontMetricsInt),
-                    y + paint.fontMetrics.descent + linePadding)
+                    y + paint.fontMetrics.bottom + linePadding)
             paint.color = backgroundColor
             canvas.drawRoundRect(rect, 5F, 5F, paint)
             paint.color = 0xFFFFFFFF.toInt()
