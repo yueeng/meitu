@@ -75,6 +75,10 @@ fun logw(vararg msg: Any?) = debug { Log.w(LOG_TAG, msg.joinToString(", ")) }
 fun logd(vararg msg: Any?) = debug { Log.d(LOG_TAG, msg.joinToString(", ")) }
 fun logv(vararg msg: Any?) = debug { Log.v(LOG_TAG, msg.joinToString(", ")) }
 
+inline fun <reified T : Any> Any.cls(): T? {
+    return this as? T
+}
+
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
@@ -394,7 +398,13 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
     private var mInitialMotionY: Float = 0F
     private val mEdgeSlop: Float = ViewConfiguration.get(context).scaledEdgeSlop.toFloat()
 
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(ev: MotionEvent?): Boolean {
+        return !isSwipeEnabled || super.onTouchEvent(ev)
+    }
+
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        if (!isSwipeEnabled) return false
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 mInitialMotionX = ev.x
@@ -413,54 +423,51 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
         }
         return super.onInterceptTouchEvent(ev)
     }
+
+    var isSwipeEnabled: Boolean = true
 }
 
 @SuppressLint("Registered")
 open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.PanelSlideListener {
 
     override fun onCreate(state: Bundle?) {
-        initSlideBackClose()
+        swipe()
         super.onCreate(state)
     }
 
-    private fun initSlideBackClose() {
-        if (isSupportSwipeBack) {
-            val slidingPaneLayout = PagerSlidingPaneLayout(this)
-            // 通过反射改变mOverhangSize的值为0，
-            // 这个mOverhangSize值为菜单到右边屏幕的最短距离，
-            // 默认是32dp，现在给它改成0
-            try {
-                val overhangSize = SlidingPaneLayout::class.java.getDeclaredField("mOverhangSize")
-                overhangSize.isAccessible = true
-                overhangSize.set(slidingPaneLayout, 0)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
-            slidingPaneLayout.setPanelSlideListener(this)
-            slidingPaneLayout.sliderFadeColor = ContextCompat.getColor(this, android.R.color.transparent)
-
-            // 左侧的透明视图
-            val leftView = View(this)
-            leftView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            slidingPaneLayout.addView(leftView, 0)
-
-            val decorView = window.decorView as ViewGroup
-
-
-            // 右侧的内容视图
-            val decorChild = decorView.getChildAt(0) as ViewGroup
-            decorChild.setBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
-            decorView.removeView(decorChild)
-            decorView.addView(slidingPaneLayout)
-
-            // 为 SlidingPaneLayout 添加内容视图
-            slidingPaneLayout.addView(decorChild, 1)
+    private fun swipe() {
+        val swipe = PagerSlidingPaneLayout(this)
+        // 通过反射改变mOverhangSize的值为0，
+        // 这个mOverhangSize值为菜单到右边屏幕的最短距离，
+        // 默认是32dp，现在给它改成0
+        try {
+            val overhang = SlidingPaneLayout::class.java.getDeclaredField("mOverhangSize")
+            overhang.isAccessible = true
+            overhang.set(swipe, 0)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-    }
 
-    protected val isSupportSwipeBack: Boolean
-        get() = true
+        swipe.setPanelSlideListener(this)
+        swipe.sliderFadeColor = ContextCompat.getColor(this, android.R.color.transparent)
+
+        // 左侧的透明视图
+        val leftView = View(this)
+        leftView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        swipe.addView(leftView, 0)
+
+        val decorView = window.decorView as ViewGroup
+
+
+        // 右侧的内容视图
+        val decorChild = decorView.getChildAt(0) as ViewGroup
+        decorChild.setBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
+        decorView.removeView(decorChild)
+        decorView.addView(swipe)
+
+        // 为 SlidingPaneLayout 添加内容视图
+        swipe.addView(decorChild, 1)
+    }
 
     override fun onPanelSlide(panel: View, slideOffset: Float) {
 
@@ -472,5 +479,12 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
 
     override fun onPanelClosed(panel: View) {
 
+    }
+
+    fun lockSwipe(lock: Boolean) {
+        window.decorView.cls<ViewGroup>()
+                ?.getChildAt(0)
+                ?.cls<PagerSlidingPaneLayout>()
+                ?.isSwipeEnabled = !lock
     }
 }

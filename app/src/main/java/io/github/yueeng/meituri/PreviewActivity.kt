@@ -6,8 +6,8 @@ import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
+import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.StaggeredGridLayoutManager
 import android.view.*
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
@@ -64,10 +64,23 @@ class PreviewFragment : Fragment() {
             }
         })
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = StaggeredGridLayoutManager(1, StaggeredGridLayoutManager.VERTICAL)
+        recycler.layoutManager = LinearLayoutManager(context)
         recycler.adapter = thumb
         recycler.loadMore(2) { query() }
+        recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView?, newState: Int) {
+                sliding?.setDrawerLockMode(if (newState == RecyclerView.SCROLL_STATE_IDLE) DrawerLayout.LOCK_MODE_UNLOCKED else DrawerLayout.LOCK_MODE_LOCKED_OPEN)
+            }
+        })
+        sliding?.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerOpened(drawerView: View?) {
+                activity.cls<BaseSlideCloseActivity>()?.lockSwipe(true)
+            }
 
+            override fun onDrawerClosed(drawerView: View?) {
+                activity.cls<BaseSlideCloseActivity>()?.lockSwipe(false)
+            }
+        })
         view.findViewById<FloatingActionButton>(R.id.button).run {
             setOnClickListener {
                 adapter.data[current].let { url ->
@@ -145,7 +158,7 @@ class PreviewFragment : Fragment() {
         val text: TextView = view.findViewById(R.id.text1)
         val image: SimpleDraweeView = view.findViewById(R.id.image)
         override fun bind() {
-            image.progress().load(value)
+            image.load(value)
             text.text = "${adapter.data.indexOf(value) + 1}"
         }
 
@@ -154,6 +167,7 @@ class PreviewFragment : Fragment() {
                 current = adapter.data.indexOf(value)
                 sliding?.closeDrawers()
             }
+            image.progress()
         }
     }
 
