@@ -9,6 +9,7 @@ import android.support.v4.widget.DrawerLayout
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.*
+import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.ZoomableDraweeView
@@ -20,7 +21,6 @@ import org.jetbrains.anko.uiThread
  * Preview activity
  * Created by Rain on 2017/8/23.
  */
-
 
 class PreviewActivity : BaseSlideCloseActivity() {
 
@@ -84,7 +84,7 @@ class PreviewFragment : Fragment() {
         view.findViewById<FloatingActionButton>(R.id.button).run {
             setOnClickListener {
                 adapter.data[current].let { url ->
-                    context.download(url, "${name.filePath()}/${current + 1}${url.right('.')}")
+                    context.download(url, genname(url, current))
                 }
             }
             setOnLongClickListener {
@@ -94,6 +94,7 @@ class PreviewFragment : Fragment() {
         }
     }
 
+    fun genname(url: String, i: Int) = "${name.filePath()}/${i + 1}${url.right('.')}"
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         uri = url
@@ -109,7 +110,7 @@ class PreviewFragment : Fragment() {
                     download()
             else
                 adapter.data.forEachIndexed { i, url ->
-                    context.download(url, "${name.filePath()}/${i + 1}${url.right('.')}")
+                    context.download(url, genname(url, i))
                 }
         }
     }
@@ -143,6 +144,8 @@ class PreviewFragment : Fragment() {
 
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
+            val image2: ImageView = view.findViewById(R.id.image2)
+            image2.visibility = if (context.save(genname(item, position)).exists()) View.VISIBLE else View.INVISIBLE
             view.findViewById<ZoomableDraweeView>(R.id.image)
                     .progress().load(item)
                     .setTapListener(object : GestureDetector.SimpleOnGestureListener() {
@@ -155,11 +158,13 @@ class PreviewFragment : Fragment() {
     }
 
     inner class ThumbHolder(view: View) : DataHolder<String>(view) {
-        val text: TextView = view.findViewById(R.id.text1)
-        val image: SimpleDraweeView = view.findViewById(R.id.image)
-        override fun bind() {
+        private val text: TextView = view.findViewById(R.id.text1)
+        private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        private val image2: ImageView = view.findViewById(R.id.image2)
+        override fun bind(i: Int) {
             image.load(value)
-            text.text = "${adapter.data.indexOf(value) + 1}"
+            text.text = "${i + 1}"
+            image2.visibility = if (context.save(genname(value, i)).exists()) View.VISIBLE else View.INVISIBLE
         }
 
         init {

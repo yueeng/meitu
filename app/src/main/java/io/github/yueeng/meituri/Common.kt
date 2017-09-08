@@ -164,9 +164,11 @@ open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
     private lateinit var _value: T
     val value: T get() = _value
     protected open fun bind() {}
+    protected open fun bind(i: Int) {}
     @Suppress("UNCHECKED_CAST")
-    fun set(v: Any) {
+    fun set(v: Any, i: Int) {
         _value = v as T
+        bind(i)
         bind()
     }
 }
@@ -198,7 +200,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
     fun get(position: Int) = data[position]
 
     override fun onBindViewHolder(holder: VH?, position: Int) {
-        holder?.set(get(position))
+        holder?.set(get(position), position)
     }
 }
 
@@ -346,13 +348,14 @@ fun String.filePath(): String = """\/:*?"<>|""".fold(this) { r, i ->
     r.replace(i, ' ')
 }
 
+fun <C : Context> C.save(name: String): File =
+        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "${getString(R.string.app_name).filePath()}/$name")
+
 fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
 fun String.left(c: Char, ignoreCase: Boolean = false) = this.substring(0, this.indexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: this.length - 1)
 
 fun <C : Context> C.download(url: String, name: String) {
-    val path = "${getString(R.string.app_name).filePath()}/$name"
-    val root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-    val file = File(root, path)
+    val file = save(name)
     if (file.exists()) file.delete()
     val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     val request = DownloadManager.Request(Uri.parse(url))
