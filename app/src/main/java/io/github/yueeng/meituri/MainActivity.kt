@@ -186,6 +186,7 @@ class ListFragment : Fragment() {
             text3.text = value.tag.spannable(" ", { it.name }) {
                 it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
             }
+            text3.visibility = if (value.tag.isEmpty()) View.GONE else View.VISIBLE
             text4.text = value.etc
         }
     }
