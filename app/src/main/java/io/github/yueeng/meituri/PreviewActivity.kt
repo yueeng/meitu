@@ -6,15 +6,21 @@ import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
+import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
+import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.ZoomableDraweeView
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.uiThread
+import org.jsoup.nodes.Element
+import org.jsoup.nodes.TextNode
 
 
 /**
@@ -81,16 +87,37 @@ class PreviewFragment : Fragment() {
                 activity.cls<BaseSlideCloseActivity>()?.lockSwipe(false)
             }
         })
-        view.findViewById<FloatingActionButton>(R.id.button).run {
-            setOnClickListener {
-                adapter.data[current].let { url ->
-                    context.download(url, genname(url, current))
+        view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
+            adapter.data[current].let { url ->
+                context.download(url, genname(url, current))
+            }
+        }
+        view.findViewById<View>(R.id.button2).setOnClickListener {
+            info?.also {
+                AlertDialog.Builder(context)
+                        .setTitle(name)
+                        .setPositiveButton("OK", null)
+                        .apply {
+                            info?.joinToString("\n") {
+                                "${it.first}: ${it.second.joinToString(", ")}"
+                            }?.spannable(info?.flatMap { it.second }?.filter { it is Link }?.map { it as Link }) {
+                                context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                            }?.let { setMessage(it) }
+                        }
+                        .create()
+                        .apply {
+                            show()
+                            findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
+                        }
+            }
+        }
+        view.findViewById<View>(R.id.button3).setOnClickListener {
+            PopupMenu(context, it).apply {
+                menu.add("下载全部").setOnMenuItemClickListener {
+                    download()
+                    true
                 }
-            }
-            setOnLongClickListener {
-                download()
-                true
-            }
+            }.show()
         }
     }
 
@@ -115,6 +142,8 @@ class PreviewFragment : Fragment() {
         }
     }
 
+    private var info: List<Pair<Any, List<Any>>>? = null
+
     private fun query(call: (() -> Unit)? = null): Boolean {
         if (busy() || uri == null) {
             call?.invoke()
@@ -127,9 +156,27 @@ class PreviewFragment : Fragment() {
             val next = dom?.select("#pages span+a")?.let {
                 !it.`is`(".a1") to it.attr("abs:href")
             }
+            val attr = info ?: dom?.select(".tuji p,.shuoming p, .fenxiang_l")?.map { it.childNodes() }?.flatten()?.mapNotNull {
+                when (it) {
+                    is TextNode -> it.text().trim().split("；").filter { it.isNotBlank() }
+                            .map { it.split("：").joinToString("：") { it.trim() } }
+                    is Element -> listOf(Link(it.text(), it.attr("abs:href")))
+                    else -> emptyList()
+                }
+            }?.flatten()?.fold<Any, MutableList<MutableList<Any>>>(mutableListOf()) { r, t ->
+                r.apply {
+                    when (t) {
+                        is String -> mutableListOf<Any>().apply {
+                            r += apply { addAll(t.split("：").filter { it.isNotBlank() }) }
+                        }
+                        else -> r.last() += t
+                    }
+                }
+            }?.map { it.first() to it.drop(1) }
             uiThread {
                 busy * false
                 uri = if (next?.first == true) next.second else null
+                info = attr
                 if (list != null) {
                     thumb.add(list)
                     adapter.data.addAll(list)

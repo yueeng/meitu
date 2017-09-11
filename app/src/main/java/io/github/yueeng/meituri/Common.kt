@@ -79,6 +79,8 @@ inline fun <reified T : Any> Any.cls(): T? {
     return this as? T
 }
 
+fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
+
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
@@ -273,62 +275,82 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
     })
 }
 
+class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
+    private var linePadding = 2f // play around with these as needed
+    private var sidePadding = 5f // play around with these as needed
+    private fun MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
+        return paint.measureText(text, start, end)
+    }
+
+    override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int {
+        return Math.round(MeasureText(paint, text, start, end) + (2 * sidePadding))
+    }
+
+    override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
+        System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
+        val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
+                x + getSize(paint, text, start, end, paint.fontMetricsInt),
+                y + paint.fontMetrics.bottom + linePadding)
+        paint.color = backgroundColor
+        canvas.drawRoundRect(rect, 5F, 5F, paint)
+        paint.color = 0xFFFFFFFF.toInt()
+        canvas.drawText(text, start, end, x + sidePadding, y * 1F, paint)
+    }
+
+}
+
+class TagClickableSpan<T>(val tag: T, val call: ((T) -> Unit)? = null) : ClickableSpan() {
+    override fun onClick(widget: View) {
+        call?.invoke(tag)
+    }
+
+    override fun updateDrawState(ds: TextPaint) {
+        ds.color = 0xFFFFFFFF.toInt()
+        ds.isUnderlineText = false
+    }
+}
+
 fun <T> List<T>.spannable(separator: CharSequence = " ", string: (T) -> String = { "$it" }, call: ((T) -> Unit)?): SpannableStringBuilder {
-    class TagClickableSpan(val tag: T) : ClickableSpan() {
-        override fun onClick(widget: View) {
-            call?.invoke(tag)
-        }
-
-        override fun updateDrawState(ds: TextPaint) {
-            ds.color = 0xFFFFFFFF.toInt()
-            ds.isUnderlineText = false
-        }
-    }
-
-    class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
-        private var linePadding = 2f // play around with these as needed
-        private var sidePadding = 5f // play around with these as needed
-        private fun MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
-            return paint.measureText(text, start, end)
-        }
-
-        override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int {
-            return Math.round(MeasureText(paint, text, start, end) + (2 * sidePadding))
-        }
-
-        override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
-            System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
-            val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
-                    x + getSize(paint, text, start, end, paint.fontMetricsInt),
-                    y + paint.fontMetrics.bottom + linePadding)
-            paint.color = backgroundColor
-            canvas.drawRoundRect(rect, 5F, 5F, paint)
-            paint.color = 0xFFFFFFFF.toInt()
-            canvas.drawText(text, start, end, x + sidePadding, y * 1F, paint)
-        }
-
-    }
 
     val tags = this.joinToString(separator) { string(it) }
     val span = SpannableStringBuilder(tags)
     fold(0) { i, it ->
         val p = tags.indexOf(string(it), i)
         val e = p + string(it).length
-        if (call != null) span.setSpan(TagClickableSpan(it), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        if (call != null) span.setSpan(TagClickableSpan(it, call), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         span.setSpan(RoundedBackgroundColorSpan(randomColor(0xBF)), p, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         e
     }
     return span
 }
 
+class AccentClickableSpan<in T>(private val t: T, private val call: ((T) -> Unit)?) : ClickableSpan() {
+    override fun onClick(p0: View?) {
+        call?.invoke(t)
+    }
+
+    override fun updateDrawState(ds: TextPaint) {
+        ds.color = accentColor
+        ds.isUnderlineText = false
+    }
+}
+
 val accentColor get() = ContextCompat.getColor(MainApplication.current(), R.color.colorAccent)
 
 fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
 
-fun String.spannable(tag: List<String>): SpannableStringBuilder = SpannableStringBuilder(this).apply {
+fun String.spannable2(tag: List<String>): SpannableStringBuilder = SpannableStringBuilder(this).apply {
     tag.forEach {
         indexAllOf(it).forEach { i ->
             setSpan(ForegroundColorSpan(accentColor), i, i + it.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+}
+
+fun <T> String.spannable(tag: List<T>?, string: ((T) -> String) = { "$it" }, call: ((T) -> Unit)? = null): SpannableStringBuilder = SpannableStringBuilder(this).apply {
+    tag?.forEach {
+        indexAllOf(string(it)).forEach { i ->
+            setSpan(AccentClickableSpan(it, call), i, i + string(it).length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
 }

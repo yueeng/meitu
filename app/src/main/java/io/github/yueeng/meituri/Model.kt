@@ -16,6 +16,8 @@ val website = "http://www.meituri.com"
 open class Link(val name: String, val url: String? = null) {
     constructor(e: Elements) : this(e.text(), e.attrs("abs:href"))
     constructor(e: Element) : this(e.text(), e.attrs("abs:href"))
+
+    override fun toString(): String = name
 }
 
 class Organ(name: String, url: String? = null) : Link(name, url) {

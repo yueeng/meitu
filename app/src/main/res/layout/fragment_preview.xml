@@ -53,11 +53,36 @@
         android:layout_margin="5dp"
         android:background="@drawable/background_list_item_count" />
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/button"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:src="@android:drawable/stat_sys_download" />
+        android:layout_gravity="bottom|center_horizontal">
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_margin="5dp"
+            android:src="@drawable/ic_info"
+            app:fabSize="mini" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/button1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_margin="5dp"
+            android:src="@drawable/ic_download"
+            app:fabSize="normal" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_margin="5dp"
+            android:src="@drawable/ic_more"
+            app:fabSize="mini" />
+    </LinearLayout>
 </FrameLayout>
