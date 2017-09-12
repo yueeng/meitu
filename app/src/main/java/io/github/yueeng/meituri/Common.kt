@@ -46,6 +46,7 @@ import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
+import org.jetbrains.anko.downloadManager
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
@@ -371,13 +372,12 @@ object Save {
         MainApplication.current().run {
             val file = file(url, title)
             if (file.exists()) file.delete()
-            val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val request = DownloadManager.Request(Uri.parse(url))
                     .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     .setDestinationUri(Uri.fromFile(file))
 //            .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, path)
-            dm.enqueue(request)
+            downloadManager.enqueue(request)
         }
     }
 }

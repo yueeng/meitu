@@ -1,6 +1,11 @@
 package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
@@ -17,6 +22,7 @@ import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.ZoomableDraweeView
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.uiThread
 import org.jsoup.nodes.Element
@@ -118,6 +124,28 @@ class PreviewFragment : Fragment() {
                     true
                 }
             }.show()
+        }
+        context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        context.unregisterReceiver(receiver)
+    }
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            context.downloadManager.query(DownloadManager.Query().apply {
+                setFilterById(intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1))
+            }).takeIf { it.moveToFirst() }?.let { c ->
+                c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                        .takeIf { it == DownloadManager.STATUS_SUCCESSFUL }?.let {
+                    view?.findViewById<ViewPager>(R.id.pager)
+                            ?.findViewWithTag<View>(c.getString(c.getColumnIndex(DownloadManager.COLUMN_URI)))
+                            ?.findViewById<ImageView>(R.id.image2)
+                            ?.visibility = View.VISIBLE
+                }
+            }
         }
     }
 

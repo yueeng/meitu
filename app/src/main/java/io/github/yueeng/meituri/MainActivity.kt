@@ -21,10 +21,7 @@ import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
-import org.jetbrains.anko.bundleOf
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.startActivity
-import org.jetbrains.anko.uiThread
+import org.jetbrains.anko.*
 
 /**
  * Main activity
@@ -84,8 +81,7 @@ class ListFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.search, menu)
         val search = menu.findItem(R.id.search).actionView as SearchView
-        val manager = context.getSystemService(Context.SEARCH_SERVICE) as SearchManager
-        val info = manager.getSearchableInfo(ComponentName(context, ListActivity::class.java))
+        val info = context.searchManager.getSearchableInfo(ComponentName(context, ListActivity::class.java))
         search.setSearchableInfo(info)
         super.onCreateOptionsMenu(menu, inflater)
     }
