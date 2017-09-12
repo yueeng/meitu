@@ -89,7 +89,7 @@ class PreviewFragment : Fragment() {
         })
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
             adapter.data[current].let { url ->
-                context.download(url, genname(url, current))
+                Save.download(url, name)
             }
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
@@ -121,7 +121,6 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    fun genname(url: String, i: Int) = "${name.filePath()}/${i + 1}${url.right('.')}"
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         uri = url
@@ -136,9 +135,7 @@ class PreviewFragment : Fragment() {
                 else
                     download()
             else
-                adapter.data.forEachIndexed { i, url ->
-                    context.download(url, genname(url, i))
-                }
+                adapter.data.forEach { Save.download(it, name) }
         }
     }
 
@@ -192,7 +189,7 @@ class PreviewFragment : Fragment() {
     inner class PreviewAdapter : DataPagerAdapter<String>() {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
-            image2.visibility = if (context.save(genname(item, position)).exists()) View.VISIBLE else View.INVISIBLE
+            image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
             view.findViewById<ZoomableDraweeView>(R.id.image)
                     .progress().load(item)
                     .setTapListener(object : GestureDetector.SimpleOnGestureListener() {
@@ -211,7 +208,7 @@ class PreviewFragment : Fragment() {
         override fun bind(i: Int) {
             image.load(value)
             text.text = "${i + 1}"
-            image2.visibility = if (context.save(genname(value, i)).exists()) View.VISIBLE else View.INVISIBLE
+            image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
 
         init {

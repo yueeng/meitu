@@ -31,7 +31,6 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.ClickableSpan
-import android.text.style.ForegroundColorSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.util.Log
@@ -299,7 +298,7 @@ class RoundedBackgroundColorSpan(private val backgroundColor: Int) : Replacement
 
 }
 
-class TagClickableSpan<T>(val tag: T, val call: ((T) -> Unit)? = null) : ClickableSpan() {
+class TagClickableSpan<T>(private val tag: T, private val call: ((T) -> Unit)? = null) : ClickableSpan() {
     override fun onClick(widget: View) {
         call?.invoke(tag)
     }
@@ -339,14 +338,6 @@ val accentColor get() = ContextCompat.getColor(MainApplication.current(), R.colo
 
 fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
 
-fun String.spannable2(tag: List<String>): SpannableStringBuilder = SpannableStringBuilder(this).apply {
-    tag.forEach {
-        indexAllOf(it).forEach { i ->
-            setSpan(ForegroundColorSpan(accentColor), i, i + it.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-    }
-}
-
 fun <T> String.spannable(tag: List<T>?, string: ((T) -> String) = { "$it" }, call: ((T) -> Unit)? = null): SpannableStringBuilder = SpannableStringBuilder(this).apply {
     tag?.forEach {
         indexAllOf(string(it)).forEach { i ->
@@ -366,27 +357,33 @@ fun String.indexAllOf(string: String): Sequence<Int> = buildSequence {
     }
 }
 
-fun String.filePath(): String = """\/:*?"<>|""".fold(this) { r, i ->
-    r.replace(i, ' ')
-}
+object Save {
+    private fun encode(path: String): String = """\/:*?"<>|""".fold(path) { r, i ->
+        r.replace(i, ' ')
+    }
 
-fun <C : Context> C.save(name: String): File =
-        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "${getString(R.string.app_name).filePath()}/$name")
+    fun file(url: String, title: String): File = MainApplication.current().run {
+        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                "${encode(getString(R.string.app_name))}/${encode(title)}${url.right('/')}")
+    }
+
+    fun download(url: String, title: String) {
+        MainApplication.current().run {
+            val file = file(url, title)
+            if (file.exists()) file.delete()
+            val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val request = DownloadManager.Request(Uri.parse(url))
+                    .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationUri(Uri.fromFile(file))
+//            .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, path)
+            dm.enqueue(request)
+        }
+    }
+}
 
 fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
 fun String.left(c: Char, ignoreCase: Boolean = false) = this.substring(0, this.indexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: this.length - 1)
-
-fun <C : Context> C.download(url: String, name: String) {
-    val file = save(name)
-    if (file.exists()) file.delete()
-    val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    val request = DownloadManager.Request(Uri.parse(url))
-            .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationUri(Uri.fromFile(file))
-//            .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, path)
-    dm.enqueue(request)
-}
 
 fun <C : Context> C.delay(millis: Long, run: () -> Unit) {
     Handler(mainLooper).postDelayed({ run() }, millis)
