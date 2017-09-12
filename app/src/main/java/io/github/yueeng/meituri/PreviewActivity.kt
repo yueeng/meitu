@@ -154,7 +154,7 @@ class PreviewFragment : Fragment() {
                     view?.findViewById<ViewPager>(R.id.pager)
                             ?.findViewWithTag<View>(c.getString(c.getColumnIndex(DownloadManager.COLUMN_URI)))
                             ?.findViewById<ImageView>(R.id.image2)
-                            ?.visibility = View.VISIBLE
+                            ?.fadeIn()
                 }
             }
         }

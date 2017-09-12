@@ -36,6 +36,7 @@ import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.util.Log
 import android.view.*
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.controller.BaseControllerListener
@@ -396,6 +397,19 @@ fun Fragment.delay(millis: Long, run: () -> Unit) {
 
 val Fragment.orientation get() = resources.configuration.orientation
 val Fragment.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT
+
+fun View.fadeIn() {
+    visibility = View.VISIBLE
+    scaleX = 5F
+    scaleY = 5F
+    alpha = 0F
+    animate().scaleX(1F)
+            .scaleY(1F)
+            .alpha(1F)
+            .setDuration(300)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+}
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     hierarchy.setProgressBarImage(ProgressBarDrawable())
