@@ -23,5 +23,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
         android:layout_margin="5dp"
-        android:src="@drawable/ic_save" />
+        android:background="@drawable/background_preview_item_saved"
+        android:src="@drawable/ic_saved" />
 </FrameLayout>
