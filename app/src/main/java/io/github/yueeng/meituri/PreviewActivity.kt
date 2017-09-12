@@ -6,15 +6,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.AlertDialog
-import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.StaggeredGridLayoutManager
 import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.ImageView
@@ -82,7 +83,7 @@ class PreviewFragment : Fragment() {
             }
         })
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = LinearLayoutManager(context)
+        recycler.layoutManager = StaggeredGridLayoutManager(if (isPortrait) 2 else 3, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = thumb
         recycler.loadMore(2) { query() }
         recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -162,6 +163,7 @@ class PreviewFragment : Fragment() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         uri = url
+        retainInstance = true
         query()
     }
 

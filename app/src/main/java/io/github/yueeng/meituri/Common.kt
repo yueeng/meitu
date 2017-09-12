@@ -7,6 +7,7 @@ import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -385,13 +386,16 @@ object Save {
 fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
 fun String.left(c: Char, ignoreCase: Boolean = false) = this.substring(0, this.indexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: this.length - 1)
 
-fun <C : Context> C.delay(millis: Long, run: () -> Unit) {
+fun Context.delay(millis: Long, run: () -> Unit) {
     Handler(mainLooper).postDelayed({ run() }, millis)
 }
 
-fun <C : Fragment> C.delay(millis: Long, run: () -> Unit) {
-    Handler(context.mainLooper).postDelayed({ run() }, millis)
+fun Fragment.delay(millis: Long, run: () -> Unit) {
+    context.delay(millis, run)
 }
+
+val Fragment.orientation get() = resources.configuration.orientation
+val Fragment.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     hierarchy.setProgressBarImage(ProgressBarDrawable())

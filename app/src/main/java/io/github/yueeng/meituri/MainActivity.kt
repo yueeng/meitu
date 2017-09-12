@@ -3,7 +3,7 @@ package io.github.yueeng.meituri
 import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.content.ComponentName
-import android.content.Context
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.provider.SearchRecentSuggestions
@@ -91,7 +91,7 @@ class ListFragment : Fragment() {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = GridLayoutManager(context, 4).apply {
+        recycler.layoutManager = GridLayoutManager(context, if (isPortrait) 4 else 6).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                         when (adapter.getItemViewType(position)) {
@@ -118,9 +118,14 @@ class ListFragment : Fragment() {
     private var uri: String? = null
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        retainInstance = true
         setHasOptionsMenu(true)
         uri = url
         query()
+    }
+
+    override fun onSaveInstanceState(state: Bundle?) {
+        super.onSaveInstanceState(state)
     }
 
     private fun query() {
@@ -146,7 +151,11 @@ class ListFragment : Fragment() {
             uiThread {
                 busy * false
                 uri = next
-                if (categories != null) adapter.add(categories)
+                if (categories?.size ?: 0 > 0) {
+                    adapter.add(Link("分类"))
+                    adapter.add(categories!!)
+                    adapter.add(Link("模特"))
+                }
                 if (list != null) adapter.add(list)
             }
         }
