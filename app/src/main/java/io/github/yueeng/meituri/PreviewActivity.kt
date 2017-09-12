@@ -42,6 +42,12 @@ class PreviewActivity : BaseSlideCloseActivity() {
         setSupportActionBar(findViewById(R.id.toolbar))
         setFragment<PreviewFragment>(R.id.container) { intent.extras }
     }
+
+    override fun onBackPressed() {
+        val preview = supportFragmentManager.findFragmentById(R.id.container) as PreviewFragment
+        if (preview.onBackPressed()) return
+        super.onBackPressed()
+    }
 }
 
 @SuppressLint("SetTextI18n")
@@ -132,6 +138,10 @@ class PreviewFragment : Fragment() {
         super.onDestroyView()
         context.unregisterReceiver(receiver)
     }
+
+    fun onBackPressed(): Boolean = sliding?.isDrawerOpen(Gravity.END)?.takeIf { it }?.let {
+        sliding?.closeDrawer(Gravity.END)?.let { true }
+    } ?: false
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
