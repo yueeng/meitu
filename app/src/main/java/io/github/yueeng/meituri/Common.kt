@@ -8,6 +8,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
+import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -360,6 +361,9 @@ fun String.indexAllOf(string: String): Sequence<Int> = buildSequence {
     }
 }
 
+fun Cursor.getString(column: String): String = getString(getColumnIndex(column))
+fun Cursor.getInt(column: String) = getInt(getColumnIndex(column))
+
 object Save {
     private fun encode(path: String): String = """\/:*?"<>|""".fold(path) { r, i ->
         r.replace(i, ' ')
@@ -370,16 +374,33 @@ object Save {
                 "${encode(getString(R.string.app_name))}/${encode(title)}${url.right('/')}")
     }
 
-    fun download(url: String, title: String) {
-        MainApplication.current().run {
-            val file = file(url, title)
-            if (file.exists()) file.delete()
-            val request = DownloadManager.Request(Uri.parse(url))
-                    .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationUri(Uri.fromFile(file))
-//            .setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, path)
-            downloadManager.enqueue(request)
+    fun check(url: String): Int {
+        MainApplication.current().downloadManager.query(DownloadManager.Query()).use { c ->
+            generateSequence(c.moveToFirst().takeIf { it }, { c.moveToNext().takeIf { it } }).forEach {
+                val u = c.getString(DownloadManager.COLUMN_URI)
+                val s = c.getInt(DownloadManager.COLUMN_STATUS)
+                if (u == url) return s
+            }
+            return 0
+        }
+    }
+
+    fun download(url: String, title: String, call: ((Int) -> Unit)? = null) {
+        check(url).let {
+            when (it) {
+                0, DownloadManager.STATUS_FAILED -> {
+                    MainApplication.current().run {
+                        val file = file(url, title)
+                        if (file.exists()) file.delete()
+                        val request = DownloadManager.Request(Uri.parse(url))
+                                .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                .setDestinationUri(Uri.fromFile(file))
+                        downloadManager.enqueue(request)
+                    }
+                }
+                else -> call?.invoke(it)
+            }
         }
     }
 }

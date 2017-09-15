@@ -21,10 +21,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.ZoomableDraweeView
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.downloadManager
-import org.jetbrains.anko.startActivity
-import org.jetbrains.anko.uiThread
+import org.jetbrains.anko.*
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 
@@ -101,20 +98,25 @@ class PreviewFragment : Fragment() {
         })
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
             adapter.data[current].let { url ->
-                Save.download(url, name)
+                Save.download(url, name) {
+                    if (it == DownloadManager.STATUS_SUCCESSFUL)
+                        context.toast("已经下载完成")
+                    else
+                        context.toast("已经在下载队列中")
+                }
             }
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
-            info?.also {
+            info?.also { info ->
                 AlertDialog.Builder(context)
                         .setTitle(name)
                         .setPositiveButton("OK", null)
                         .apply {
-                            info?.joinToString("\n") {
+                            info.joinToString("\n") {
                                 "${it.first}: ${it.second.joinToString(", ")}"
-                            }?.spannable(info?.flatMap { it.second }?.filter { it is Link }?.map { it as Link }) {
+                            }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
                                 context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
-                            }?.let { setMessage(it) }
+                            }.let { setMessage(it) }
                         }
                         .create()
                         .apply {
@@ -148,10 +150,10 @@ class PreviewFragment : Fragment() {
             context.downloadManager.query(DownloadManager.Query().apply {
                 setFilterById(intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1))
             }).takeIf { it.moveToFirst() }?.let { c ->
-                c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                c.getInt(DownloadManager.COLUMN_STATUS)
                         .takeIf { it == DownloadManager.STATUS_SUCCESSFUL }?.let {
                     view?.findViewById<ViewPager>(R.id.pager)
-                            ?.findViewWithTag<View>(c.getString(c.getColumnIndex(DownloadManager.COLUMN_URI)))
+                            ?.findViewWithTag<View>(c.getString(DownloadManager.COLUMN_URI))
                             ?.findViewById<ImageView>(R.id.image2)
                             ?.fadeIn()
                 }
