@@ -3,7 +3,6 @@ package io.github.yueeng.meituri
 import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.content.ComponentName
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.provider.SearchRecentSuggestions

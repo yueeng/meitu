@@ -407,7 +407,7 @@ fun View.fadeIn() {
             .scaleY(1F)
             .alpha(1F)
             .setDuration(300)
-            .setInterpolator(DecelerateInterpolator())
+            .setInterpolator(DecelerateInterpolator(2F))
             .start()
 }
 
