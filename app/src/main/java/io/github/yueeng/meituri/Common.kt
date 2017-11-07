@@ -19,6 +19,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
+import android.support.design.widget.BottomSheetBehavior
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
 import android.support.v4.view.PagerAdapter
@@ -431,6 +432,12 @@ fun View.fadeIn() {
             .setInterpolator(DecelerateInterpolator(2F))
             .start()
 }
+
+var <V : View>BottomSheetBehavior<V>.isOpen: Boolean
+    get() = this.state == BottomSheetBehavior.STATE_EXPANDED
+    set(value) {
+        this.state = if (value) BottomSheetBehavior.STATE_EXPANDED else BottomSheetBehavior.STATE_COLLAPSED
+    }
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     hierarchy.setProgressBarImage(ProgressBarDrawable())
