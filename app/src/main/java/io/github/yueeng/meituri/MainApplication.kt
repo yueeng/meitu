@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.SearchRecentSuggestionsProvider
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
+import com.facebook.stetho.Stetho
+import com.squareup.leakcanary.LeakCanary
 import java.lang.ref.WeakReference
 
 
@@ -31,6 +33,10 @@ class MainApplication : Application() {
                 // . setNetworkFetcher is already called for you
                 .build()
         Fresco.initialize(this, config)
+        Stetho.initializeWithDefaults(this)
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            LeakCanary.install(this)
+        }
     }
 }
 
