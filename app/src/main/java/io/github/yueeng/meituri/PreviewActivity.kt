@@ -16,7 +16,10 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
 import android.text.method.LinkMovementMethod
-import android.view.*
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
@@ -115,8 +118,14 @@ class PreviewFragment : Fragment() {
         }
         view.findViewById<View>(R.id.button3).setOnClickListener {
             PopupMenu(context, it).apply {
-                menu.add("下载全部").setOnMenuItemClickListener {
-                    download()
+                setForceShowIcon(true)
+                inflate(R.menu.preivew_more)
+                setOnMenuItemClickListener {
+                    when (it.itemId) {
+                        R.id.menu_download_all -> download()
+//                        R.id.menu_wallpaper -> TODO()
+                        R.id.menu_thumb -> sliding?.open()
+                    }
                     true
                 }
             }.show()
@@ -130,7 +139,7 @@ class PreviewFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean = sliding?.state?.takeIf { it == BottomSheetBehavior.STATE_EXPANDED }?.let {
-        sliding?.isOpen = false
+        sliding?.close()
         true
     } ?: false
 
@@ -225,7 +234,7 @@ class PreviewFragment : Fragment() {
                     .setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
                         override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
                             if (sliding?.isOpen == true)
-                                sliding?.isOpen = false
+                                sliding?.close()
                             else
                                 current++
                             return true
@@ -247,7 +256,7 @@ class PreviewFragment : Fragment() {
         init {
             view.setOnClickListener {
                 current = adapter.data.indexOf(value)
-                sliding?.isOpen = false
+                sliding?.close()
             }
             image.progress()
         }

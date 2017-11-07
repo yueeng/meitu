@@ -26,10 +26,8 @@ import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.SlidingPaneLayout
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.StaggeredGridLayoutManager
+import android.support.v7.view.menu.MenuPopupHelper
+import android.support.v7.widget.*
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -438,6 +436,25 @@ var <V : View>BottomSheetBehavior<V>.isOpen: Boolean
     set(value) {
         this.state = if (value) BottomSheetBehavior.STATE_EXPANDED else BottomSheetBehavior.STATE_COLLAPSED
     }
+
+fun <V : View> BottomSheetBehavior<V>.open() {
+    this.isOpen = true
+}
+
+fun <V : View> BottomSheetBehavior<V>.close() {
+    this.isOpen = false
+}
+
+@SuppressLint("RestrictedApi")
+fun PopupMenu.setForceShowIcon(show: Boolean) = try {
+    javaClass.getDeclaredField("mPopup").let {
+        it.isAccessible = true
+        (it.get(this) as MenuPopupHelper).setForceShowIcon(show)
+    }
+} catch (e: Exception) {
+    e.printStackTrace()
+}
+
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     hierarchy.setProgressBarImage(ProgressBarDrawable())
