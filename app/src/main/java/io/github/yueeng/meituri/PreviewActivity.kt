@@ -88,12 +88,14 @@ class PreviewFragment : Fragment() {
         recycler.loadMore(2) { query() }
 
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
-            adapter.data[current].let { url ->
-                Save.download(url, name) {
-                    if (it == DownloadManager.STATUS_SUCCESSFUL)
-                        context.toast("已经下载完成")
-                    else
-                        context.toast("已经在下载队列中")
+            activity.permissionWriteExternalStorage {
+                adapter.data[current].let { url ->
+                    Save.download(url, name) {
+                        if (it == DownloadManager.STATUS_SUCCESSFUL)
+                            context.toast("已经下载完成")
+                        else
+                            context.toast("已经在下载队列中")
+                    }
                 }
             }
         }
@@ -122,7 +124,7 @@ class PreviewFragment : Fragment() {
                 inflate(R.menu.preivew_more)
                 setOnMenuItemClickListener {
                     when (it.itemId) {
-                        R.id.menu_download_all -> download()
+                        R.id.menu_download_all -> activity.permissionWriteExternalStorage { download() }
 //                        R.id.menu_wallpaper -> TODO()
                         R.id.menu_thumb -> sliding?.open()
                     }

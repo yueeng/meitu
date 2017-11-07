@@ -2,11 +2,14 @@
 
 package io.github.yueeng.meituri
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.database.Cursor
 import android.graphics.Bitmap
@@ -19,7 +22,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
+import android.provider.Settings
 import android.support.design.widget.BottomSheetBehavior
+import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
 import android.support.v4.view.PagerAdapter
@@ -44,11 +49,13 @@ import com.facebook.drawee.drawable.ProgressBarDrawable
 import com.facebook.drawee.generic.GenericDraweeHierarchy
 import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
+import com.facebook.stetho.okhttp3.StethoInterceptor
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.anko.downloadManager
+import org.jetbrains.anko.toast
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
@@ -88,6 +95,7 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
         .writeTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .cookieJar(JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL)))
+        .addNetworkInterceptor(StethoInterceptor())
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 
@@ -402,6 +410,27 @@ object Save {
             }
         }
     }
+}
+
+fun Activity.permission(permission: String, message: String? = null, call: (() -> Unit)? = null) {
+    if (ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+        call?.invoke()
+    } else {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+            ActivityCompat.requestPermissions(this, arrayOf(permission), permission.hashCode())
+        } else {
+            if (message != null) toast(message)
+            try {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}
+
+fun Activity.permissionWriteExternalStorage(call: (() -> Unit)? = null) {
+    permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, "没有写SD卡权限，将不能保存图片，请在权限管理中打开。", call)
 }
 
 fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
