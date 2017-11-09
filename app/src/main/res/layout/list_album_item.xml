@@ -31,6 +31,14 @@
                 android:lineSpacingExtra="6dp"
                 android:padding="5dp" />
 
+            <CheckBox
+                android:id="@+id/check"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_margin="2dp"
+                android:button="@drawable/cb_fav_selector" />
+
             <TextView
                 android:id="@+id/text3"
                 android:layout_width="wrap_content"

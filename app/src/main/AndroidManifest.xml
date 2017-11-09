@@ -38,6 +38,9 @@
         <activity
             android:name=".PreviewActivity"
             android:theme="@style/AppThemeDarkTranslucent" />
+        <activity
+            android:name=".FavoriteActivity"
+            android:theme="@style/AppThemeTranslucent" />
 
         <provider
             android:name=".SearchHistoryProvider"

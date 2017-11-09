@@ -50,6 +50,8 @@ import com.facebook.drawee.generic.GenericDraweeHierarchy
 import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.stetho.okhttp3.StethoInterceptor
+import io.paperdb.Book
+import io.paperdb.Paper
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -63,6 +65,7 @@ import java.io.File
 import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.buildSequence
@@ -131,7 +134,7 @@ fun Context.asActivity(): Activity? = when (this) {
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
 
-inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle) {
+inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle?) {
     supportFragmentManager.run {
         val fragment = findFragmentById(container) as? T
                 ?: T::class.java.newInstance().apply { arguments = bundle() }
@@ -602,3 +605,19 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
                 ?.isSwipeEnabled = !lock
     }
 }
+
+val String.md5
+    get():String {
+        val md5 = MessageDigest.getInstance("MD5")
+        val bytes = md5.digest(this.toByteArray())
+        return bytes.joinToString("", transform = { String.format("%02x", it) })
+    }
+
+const val DB_FAV = "meituri.fav"
+fun database(name: String): Book = Paper.book(name.md5)
+val dbFav by lazy { database(DB_FAV) }
+fun Book.exists(url: String) = contains(url.md5)
+fun Book.get(url: String): Album? = read(url.md5)
+fun Book.put(album: Album): Book = album.url?.let { write(it.md5, album) } ?: this
+fun Book.del(url: String): Book = also { delete(url.md5) }
+fun Book.albums(): Sequence<Album> = allKeys.reversed().asSequence().map { read<Album>(it) }

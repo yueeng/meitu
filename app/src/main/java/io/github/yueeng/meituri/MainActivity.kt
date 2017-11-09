@@ -18,6 +18,7 @@ import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.SearchView
 import android.text.method.LinkMovementMethod
 import android.view.*
+import android.widget.CheckBox
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import org.jetbrains.anko.*
@@ -76,6 +77,51 @@ class ListActivity : BaseSlideCloseActivity() {
     }
 }
 
+class FavoriteActivity : BaseSlideCloseActivity() {
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        setContentView(R.layout.activity_list)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        title = "收藏"
+        setFragment<FavoriteFragment>(R.id.container) { null }
+    }
+}
+
+class FavoriteFragment : Fragment() {
+    private val adapter = ListAdapter()
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
+            inflater.inflate(R.layout.fragment_list, container, false)
+
+    override fun onViewCreated(view: View, state: Bundle?) {
+        val recycler = view.findViewById<RecyclerView>(R.id.recycler)
+        recycler.layoutManager = GridLayoutManager(context, if (isPortrait) 2 else 3)
+        recycler.adapter = adapter
+        view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
+            setOnRefreshListener {
+                adapter.clear()
+                query()
+            }
+        }
+    }
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        query()
+    }
+
+    private fun query() {
+        adapter.add(dbFav.albums().toList())
+        view?.findViewById<SwipeRefreshLayout>(R.id.swipe)?.isRefreshing = false
+    }
+
+    inner class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Album> {
+            return ListFragment.AlbumHolder(parent.inflate(R.layout.list_album_item))
+        }
+    }
+
+}
+
 class ListFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.search, menu)
@@ -83,6 +129,11 @@ class ListFragment : Fragment() {
         val info = context.searchManager.getSearchableInfo(ComponentName(context, ListActivity::class.java))
         search.setSearchableInfo(info)
         super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.favorite -> context.startActivity<FavoriteActivity>().let { true }
+        else -> super.onOptionsItemSelected(item)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
@@ -121,10 +172,6 @@ class ListFragment : Fragment() {
         setHasOptionsMenu(true)
         uri = url
         query()
-    }
-
-    override fun onSaveInstanceState(state: Bundle?) {
-        super.onSaveInstanceState(state)
     }
 
     private fun query() {
@@ -227,11 +274,12 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class AlbumHolder(view: View) : DataHolder<Album>(view) {
+    class AlbumHolder(view: View) : DataHolder<Album>(view) {
         private val image: SimpleDraweeView = view.findViewById(R.id.image)
         private val text1: TextView = view.findViewById(R.id.text1)
         private val text2: TextView = view.findViewById(R.id.text2)
         private val text3: TextView = view.findViewById(R.id.text3)
+        private val check: CheckBox = view.findViewById(R.id.check)
         @SuppressLint("SetTextI18n")
         override fun bind() {
             image.progress().load(value.image)
@@ -239,18 +287,24 @@ class ListFragment : Fragment() {
             text3.text = "${value.count}P"
             text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE
             text2.text = value.info.spannable(" ", { it.name }) {
-                it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
+                it.url?.run { itemView.context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
             }
+            check.isChecked = value.url?.let { dbFav.exists(it) } ?: false
         }
 
         init {
             text2.movementMethod = LinkMovementMethod.getInstance()
             view.setOnClickListener {
-                context.startActivity<PreviewActivity>(
+                itemView.context.startActivity<PreviewActivity>(
                         "url" to value.url!!,
                         "name" to value.name,
                         "count" to value.count
                 )
+            }
+            check.setOnCheckedChangeListener { _, c ->
+                value.url?.let { url ->
+                    if (c) dbFav.put(value) else dbFav.del(url)
+                }
             }
         }
     }

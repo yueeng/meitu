@@ -6,6 +6,7 @@ import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
 import com.facebook.stetho.Stetho
 import com.squareup.leakcanary.LeakCanary
+import io.paperdb.Paper
 import java.lang.ref.WeakReference
 
 
@@ -27,6 +28,9 @@ class MainApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            return
+        }
         val config = OkHttpImagePipelineConfigFactory
                 .newBuilder(this, okhttp)
                 // . other setters
@@ -34,9 +38,8 @@ class MainApplication : Application() {
                 .build()
         Fresco.initialize(this, config)
         Stetho.initializeWithDefaults(this)
-        if (LeakCanary.isInAnalyzerProcess(this)) {
-            LeakCanary.install(this)
-        }
+        LeakCanary.install(this)
+        Paper.init(this)
     }
 }
 
