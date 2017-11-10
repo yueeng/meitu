@@ -229,7 +229,7 @@ class PreviewFragment : Fragment() {
         return true
     }
 
-    inner class PreviewAdapter : DataPagerAdapter<String>() {
+    inner class PreviewAdapter : DataPagerAdapter<String>(R.layout.preview_item) {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE

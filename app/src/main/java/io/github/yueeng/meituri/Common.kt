@@ -224,7 +224,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
     }
 }
 
-abstract class DataPagerAdapter<T> : PagerAdapter() {
+abstract class DataPagerAdapter<T>(val layout: Int) : PagerAdapter() {
     val data = mutableListOf<T>()
     override fun isViewFromObject(view: View?, `object`: Any?): Boolean = view == `object`
 
@@ -239,7 +239,7 @@ abstract class DataPagerAdapter<T> : PagerAdapter() {
 
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
         val item = data[position]
-        val view = container.inflate(R.layout.preview_item)
+        val view = container.inflate(layout)
         view.tag = item
         bind(view, item, position)
         container.addView(view)
