@@ -2,6 +2,7 @@ package io.github.yueeng.meituri
 
 import android.app.Application
 import android.content.SearchRecentSuggestionsProvider
+import android.graphics.Bitmap
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
 import com.facebook.stetho.Stetho
@@ -33,6 +34,8 @@ class MainApplication : Application() {
         }
         val config = OkHttpImagePipelineConfigFactory
                 .newBuilder(this, okhttp)
+                .setDownsampleEnabled(true)
+                .setBitmapsConfig(Bitmap.Config.RGB_565)
                 // . other setters
                 // . setNetworkFetcher is already called for you
                 .build()

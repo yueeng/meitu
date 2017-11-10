@@ -52,6 +52,7 @@ import com.facebook.drawee.drawable.ProgressBarDrawable
 import com.facebook.drawee.generic.GenericDraweeHierarchy
 import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
+import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.facebook.stetho.okhttp3.StethoInterceptor
 import io.paperdb.Book
 import io.paperdb.Paper
@@ -497,8 +498,11 @@ fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String) = this.apply {
     val weak = WeakReference(this)
+    val request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(uri))
+            .setProgressiveRenderingEnabled(true)
+            .build()
     controller = Fresco.getDraweeControllerBuilderSupplier().get()
-            .setUri(Uri.parse(uri))
+            .setImageRequest(request)
             .setCallerContext(null)
             .setTapToRetryEnabled(true)
             .setControllerListener(object : BaseControllerListener<ImageInfo>() {
