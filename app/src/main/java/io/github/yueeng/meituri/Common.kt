@@ -19,6 +19,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -39,9 +40,11 @@ import android.text.TextPaint
 import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
 import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageView
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.controller.BaseControllerListener
@@ -291,12 +294,12 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
 class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
     private var linePadding = 2f // play around with these as needed
     private var sidePadding = 5f // play around with these as needed
-    private fun MeasureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
+    private fun measureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
         return paint.measureText(text, start, end)
     }
 
     override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int {
-        return Math.round(MeasureText(paint, text, start, end) + (2 * sidePadding))
+        return Math.round(measureText(paint, text, start, end) + (2 * sidePadding))
     }
 
     override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
@@ -572,7 +575,9 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
         val leftView = View(this)
         leftView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         swipe.addView(leftView, 0)
-
+        swipe.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
+            bottomMargin = getSoftButtonsBarHeight()
+        }
         val decorView = window.decorView as ViewGroup
 
 
@@ -585,6 +590,19 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
         // 为 SlidingPaneLayout 添加内容视图
         swipe.addView(decorChild, 1)
     }
+
+    // getRealMetrics is only available with API 17 and +
+    private fun getSoftButtonsBarHeight(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        val metrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(metrics)
+        val usableHeight = metrics.heightPixels
+        windowManager.defaultDisplay.getRealMetrics(metrics)
+        val realHeight = metrics.heightPixels
+        if (realHeight > usableHeight)
+            realHeight - usableHeight
+        else
+            0
+    } else 0
 
     override fun onPanelSlide(panel: View, slideOffset: Float) {
 
