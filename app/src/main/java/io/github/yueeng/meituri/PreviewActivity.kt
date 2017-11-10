@@ -53,9 +53,10 @@ class PreviewActivity : BaseSlideCloseActivity() {
 
 @SuppressLint("SetTextI18n")
 class PreviewFragment : Fragment() {
-    private val name by lazy { arguments.getString("name") }
-    private val url by lazy { arguments.getString("url") }
-    private val count by lazy { arguments.getInt("count") }
+    private val album by lazy { arguments.getParcelable<Album>("data") }
+    private val name by lazy { album.name }
+    private val url by lazy { album.url }
+    private val count by lazy { album.count }
     private var uri: String? = null
     private val adapter = PreviewAdapter()
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
@@ -122,10 +123,11 @@ class PreviewFragment : Fragment() {
             PopupMenu(context, it).apply {
                 setForceShowIcon(true)
                 inflate(R.menu.preivew_more)
+                menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
                 setOnMenuItemClickListener {
                     when (it.itemId) {
                         R.id.menu_download_all -> activity.permissionWriteExternalStorage { download() }
-//                        R.id.menu_wallpaper -> TODO()
+                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else dbFav.put(album)
                         R.id.menu_thumb -> sliding?.open()
                     }
                     true

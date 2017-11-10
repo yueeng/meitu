@@ -4,10 +4,11 @@
         android:id="@+id/menu_download_all"
         android:icon="@drawable/ic_download_all"
         android:title="下载全部" />
-    <!--<item-->
-    <!--android:id="@+id/menu_wallpaper"-->
-    <!--android:icon="@drawable/ic_wallpaper"-->
-    <!--android:title="设为壁纸" />-->
+    <item
+        android:id="@+id/menu_favorite"
+        android:checkable="true"
+        android:icon="@drawable/ic_favorite_border"
+        android:title="收藏" />
     <item
         android:id="@+id/menu_thumb"
         android:icon="@drawable/ic_thumb"

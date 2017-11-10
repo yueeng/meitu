@@ -296,9 +296,7 @@ class ListFragment : Fragment() {
             text2.movementMethod = LinkMovementMethod.getInstance()
             view.setOnClickListener {
                 itemView.context.startActivity<PreviewActivity>(
-                        "url" to value.url!!,
-                        "name" to value.name,
-                        "count" to value.count
+                        "data" to value
                 )
             }
             check.setOnCheckedChangeListener { _, c ->

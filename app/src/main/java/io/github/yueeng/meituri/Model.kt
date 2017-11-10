@@ -2,6 +2,8 @@
 
 package io.github.yueeng.meituri
 
+import android.os.Parcel
+import android.os.Parcelable
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import org.jsoup.select.Elements
@@ -13,11 +15,32 @@ import org.jsoup.select.Elements
 
 val website = "http://www.meituri.com"
 
-open class Link(val name: String, val url: String? = null) {
+open class Link(val name: String, val url: String? = null) : Parcelable {
     constructor(e: Elements) : this(e.text(), e.attrs("abs:href"))
+
     constructor(e: Element) : this(e.text(), e.attrs("abs:href"))
 
     override fun toString(): String = name
+
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    )
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(url)
+    }
+
+    companion object {
+        @JvmField
+        val CREATOR: Parcelable.Creator<Link> = object : Parcelable.Creator<Link> {
+            override fun createFromParcel(source: Parcel): Link = Link(source)
+            override fun newArray(size: Int): Array<Link?> = arrayOfNulls(size)
+        }
+    }
 }
 
 class Organ(name: String, url: String? = null) : Link(name, url) {
@@ -78,22 +101,23 @@ class Info(name: String, url: String? = null) : Link(name, url) {
     }
 }
 
-class Album(name: String, url: String? = null) : Link(name, url) {
+class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     private lateinit var _image: String
+
     private lateinit var organ: List<Link>
+
     private var model: Link? = null
+
     private lateinit var tags: List<Link>
+
     private var _count = 0
 
     val image get() = _image
+
     val count get() = _count
 
     val info: List<Link>
         get() = tags + organ + (model?.takeIf { it.url != null }?.let { listOf(it) } ?: emptyList())
-
-    companion object {
-        val rgx = "(\\d+)\\s*P".toRegex(RegexOption.IGNORE_CASE)
-    }
 
     constructor(e: Link) : this(e.name, e.url)
 
@@ -111,4 +135,38 @@ class Album(name: String, url: String? = null) : Link(name, url) {
         tags = e.select("p:contains(类型：) a").map { Link(it) }
     }
 
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    ) {
+        _image = source.readString()
+        organ = mutableListOf()
+        source.readList(organ, Link::class.java.classLoader)
+        model = source.readParcelable(Link::class.java.classLoader)
+        tags = mutableListOf()
+        source.readList(tags, Link::class.java.classLoader)
+        _count = source.readInt()
+    }
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(url)
+        writeString(_image)
+        writeList(organ)
+        writeParcelable(model, 0)
+        writeList(tags)
+        writeInt(_count)
+    }
+
+    companion object {
+        val rgx = "(\\d+)\\s*P".toRegex(RegexOption.IGNORE_CASE)
+
+        @JvmField
+        val CREATOR: Parcelable.Creator<Album> = object : Parcelable.Creator<Album> {
+            override fun createFromParcel(source: Parcel): Album = Album(source)
+            override fun newArray(size: Int): Array<Album?> = arrayOfNulls(size)
+        }
+    }
 }
