@@ -252,7 +252,7 @@ class PreviewFragment : Fragment() {
         private val image: SimpleDraweeView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
         override fun bind(i: Int) {
-            image.load(value).aspectRatio = 3F/4F
+            image.load(value).aspectRatio = 3F / 4F
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
