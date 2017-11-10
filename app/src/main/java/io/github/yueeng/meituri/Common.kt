@@ -42,6 +42,7 @@ import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.util.Log
+import android.util.TypedValue
 import android.view.*
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -493,7 +494,9 @@ fun PopupMenu.setForceShowIcon(show: Boolean) = try {
 
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
-    hierarchy.setProgressBarImage(ProgressBarDrawable())
+    hierarchy.setProgressBarImage(ProgressBarDrawable().apply {
+        barWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2F, resources.displayMetrics).toInt()
+    })
 }
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String) = this.apply {
@@ -503,7 +506,6 @@ fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String) = this.apply 
             .build()
     controller = Fresco.getDraweeControllerBuilderSupplier().get()
             .setImageRequest(request)
-            .setCallerContext(null)
             .setTapToRetryEnabled(true)
             .setControllerListener(object : BaseControllerListener<ImageInfo>() {
                 override fun onFinalImageSet(id: String, imageInfo: ImageInfo?, animatable: Animatable?) {
