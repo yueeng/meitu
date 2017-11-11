@@ -177,16 +177,18 @@ class ListFragment : Fragment() {
     private fun query() {
         if (busy() || uri.isNullOrEmpty()) return
         busy * true
+        val first = adapter.data.isEmpty()
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.shoulushuliang,.renwu")?.mapNotNull {
+            val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
                 when {
                     it.`is`(".hezi li") -> Album(it)
-                    it.`is`(".hezi_t li") -> Model(it)
-                    it.`is`(".jigou li") -> Organ(it)
-                    it.`is`(".renwu") -> Info(it)
-                    it.`is`(".shoulushuliang") -> Link(it.text())
-                    it.`is`(".hezi .title") -> Link(it.text())
+                    first && it.`is`(".hezi_t li") -> Model(it)
+                    first && it.`is`(".jigou li") -> Organ(it)
+                    first && it.`is`(".renwu") -> Info(it)
+                    first && it.`is`(".shoulushuliang") -> Link(it.text())
+                    first && it.`is`(".hezi .title") -> Link(it.text())
+                    first && it.`is`(".fenlei p") -> Link(it.text())
                     else -> null
                 }
             }

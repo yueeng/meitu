@@ -194,34 +194,35 @@ open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
 }
 
 abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<VH>() {
-    private val data = mutableListOf<T>()
-    override fun getItemCount(): Int = data.size
-    fun add(vararg items: T): DataAdapter<T, VH> {
-        val start = data.size
-        data.addAll(items)
-        notifyItemRangeInserted(start, data.size - start)
+    private val _data = mutableListOf<T>()
+    val data: List<T> get() = _data
+    override fun getItemCount(): Int = _data.size
+    fun add(item: T): DataAdapter<T, VH> {
+        _data.add(item)
+        notifyItemInserted(_data.size - 1)
         return this
     }
 
     fun add(items: Iterable<T>): DataAdapter<T, VH> {
-        val start = data.size
-        data.addAll(items)
-        notifyItemRangeInserted(start, data.size - start)
+        val start = _data.size
+        _data.addAll(items)
+        notifyItemRangeInserted(start, _data.size - start)
         return this
     }
 
     fun clear(): DataAdapter<T, VH> {
-        val size = data.size
-        data.clear()
+        val size = _data.size
+        _data.clear()
         notifyItemRangeRemoved(0, size)
         return this
     }
 
-    fun get(position: Int) = data[position]
+    fun get(position: Int) = _data[position]
 
     override fun onBindViewHolder(holder: VH?, position: Int) {
         holder?.set(get(position), position)
     }
+
 }
 
 abstract class DataPagerAdapter<T>(val layout: Int) : PagerAdapter() {
