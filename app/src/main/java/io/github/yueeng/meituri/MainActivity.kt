@@ -94,7 +94,7 @@ class FavoriteFragment : Fragment() {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = GridLayoutManager(context, if (isPortrait) 2 else 3)
+        recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
         recycler.adapter = adapter
         view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
@@ -141,7 +141,7 @@ class ListFragment : Fragment() {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = GridLayoutManager(context, if (isPortrait) 4 else 6).apply {
+        recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns) * 2).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                         when (adapter.getItemViewType(position)) {

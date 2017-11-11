@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Meituri.iml" filepath="$PROJECT_DIR$/Meituri.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://D:\workspace\java\meituri\app\app.iml" filepath="D:\workspace\java\meituri\app\app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/meituri.iml" filepath="$PROJECT_DIR$/meituri.iml" />
     </modules>
   </component>
 </project>
