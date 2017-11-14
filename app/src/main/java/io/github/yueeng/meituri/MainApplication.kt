@@ -7,7 +7,6 @@ import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
 import com.facebook.stetho.Stetho
 import com.squareup.leakcanary.LeakCanary
-import io.paperdb.Paper
 import java.lang.ref.WeakReference
 
 
@@ -42,7 +41,6 @@ class MainApplication : Application() {
         Fresco.initialize(this, config)
         Stetho.initializeWithDefaults(this)
         LeakCanary.install(this)
-        Paper.init(this)
     }
 }
 

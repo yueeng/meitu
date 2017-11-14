@@ -8,13 +8,16 @@ buildscript {
     ext.android_min_sdk = 16
     ext.android_support_version = '26.0.2'
     ext.okhttp_version = '3.8.1'
+    ext.objectboxVersion = '1.2.1'
     repositories {
         google()
         jcenter()
+        maven { url "http://objectbox.net/beta-repo/" }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.1.0-alpha03'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "io.objectbox:objectbox-gradle-plugin:$objectboxVersion"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -26,6 +29,7 @@ allprojects {
         google()
         jcenter()
         maven { url "https://jitpack.io" }
+        maven { url "http://objectbox.net/beta-repo/" }
     }
 }
 

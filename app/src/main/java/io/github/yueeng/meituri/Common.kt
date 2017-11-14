@@ -55,8 +55,6 @@ import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.facebook.stetho.okhttp3.StethoInterceptor
-import io.paperdb.Book
-import io.paperdb.Paper
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -637,12 +635,3 @@ val String.md5
         val bytes = md5.digest(this.toByteArray())
         return bytes.joinToString("", transform = { String.format("%02x", it) })
     }
-
-const val DB_FAV = "meituri.fav"
-fun database(name: String): Book = Paper.book(name.md5)
-val dbFav by lazy { database(DB_FAV) }
-fun Book.exists(url: String) = contains(url.md5)
-fun Book.get(url: String): Album? = read(url.md5)
-fun Book.put(album: Album): Book = album.url?.let { write(it.md5, album) } ?: this
-fun Book.del(url: String): Book = also { delete(url.md5) }
-fun Book.albums(): Sequence<Album> = allKeys.reversed().asSequence().map { read<Album>(it) }
