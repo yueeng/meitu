@@ -2,6 +2,7 @@
 
 package io.github.yueeng.meituri
 
+import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
 import io.objectbox.annotation.Entity
@@ -23,6 +24,8 @@ import org.jsoup.select.Elements
 
 val website = "http://www.meituri.com"
 
+fun search(key: String) = "$website/search/${Uri.encode(key)}"
+
 open class Link(val name: String, val url: String? = null) : Parcelable {
     constructor(e: Elements) : this(e.text(), e.attrs("abs:href"))
 
@@ -31,6 +34,7 @@ open class Link(val name: String, val url: String? = null) : Parcelable {
     override fun toString(): String = name
 
     val key get() = "$name:${url ?: ""}"
+    val uri get() = url?.takeIf { !url.isNullOrEmpty() } ?: search(name)
 
     constructor(source: Parcel) : this(
             source.readString(),
@@ -127,7 +131,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     val count get() = _count
 
     val info: List<Link>
-        get() = tags + organ + (model?.takeIf { it.url != null }?.let { listOf(it) } ?: emptyList())
+        get() = tags + organ + model.option()
 
     constructor(e: Link) : this(e.name, e.url)
 
@@ -221,8 +225,8 @@ data class ObAlbum(@Id var id: Long = 0) {
 
 object dbFav {
     val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
-    val oba by lazy { ob.boxFor(ObAlbum::class.java) }
-    val obl by lazy { ob.boxFor(ObLink::class.java) }
+    val oba by lazy { ob.boxFor(ObAlbum::class.java).apply { this.removeAll() } }
+    val obl by lazy { ob.boxFor(ObLink::class.java).apply { this.removeAll() } }
     fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null) {
         Observable.create<ObAlbum> {
             if (album.url == "") {
@@ -251,6 +255,9 @@ object dbFav {
                     album.tags.forEach { tags.add(link2info(it, ObLink.TYPE_TAGS, this)) }
                 }
                 oba.put(o)
+                o.model.target.option().forEach { obl.put(it) }
+                o.organ.forEach { obl.put(it) }
+                o.tags.forEach { obl.put(it) }
                 it.onNext(o)
                 it.onComplete()
             }
@@ -264,7 +271,16 @@ object dbFav {
 
     fun albums(offset: Long, limit: Long, fn: (List<Album>) -> Unit) {
         Observable.create<List<Album>> {
-            it.onNext(oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album))
+            val list = oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album)
+            it.onNext(list)
+            it.onComplete()
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+    }
+
+    fun tags(type: Int, fn: (List<ObLink>) -> Unit) {
+        Observable.create<List<ObLink>> {
+            val list = obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }
+            it.onNext(list)
             it.onComplete()
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }

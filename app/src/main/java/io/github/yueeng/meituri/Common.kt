@@ -95,7 +95,7 @@ inline fun <reified T : Any> Any.cls(): T? {
 }
 
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
-fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else listOf()
+fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
 
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)

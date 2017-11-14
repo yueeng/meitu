@@ -3,7 +3,6 @@ package io.github.yueeng.meituri
 import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.content.ComponentName
-import android.net.Uri
 import android.os.Bundle
 import android.provider.SearchRecentSuggestions
 import android.support.design.widget.TabLayout
@@ -61,12 +60,93 @@ class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 }
 
 class FavoriteActivity : BaseSlideCloseActivity() {
+    private val adapter by lazy { FavoriteAdapter(supportFragmentManager) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_list)
+        setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
         title = "收藏"
-        setFragment<FavoriteFragment>(R.id.container) { null }
+        val pager = findViewById<ViewPager>(R.id.container)
+        val tabs: TabLayout = findViewById(R.id.tab)
+        pager.adapter = adapter
+        tabs.setupWithViewPager(pager)
+    }
+
+    class FavoriteAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+        override fun getItem(position: Int): Fragment = when (position) {
+            0 -> FavoriteFragment()
+            else -> FavoriteTagsFragment().apply {
+                arguments = bundleOf("type" to position)
+            }
+        }
+
+        override fun getCount(): Int = 4
+        override fun getPageTitle(position: Int): CharSequence = when (position) {
+            0 -> "图集"
+            1 -> "模特"
+            2 -> "机构"
+            3 -> "标签"
+            else -> throw IllegalArgumentException()
+        }
+    }
+}
+
+class FavoriteTagsFragment : Fragment() {
+    private val type by lazy { arguments.getInt("type") }
+    private val adapter = ListAdapter()
+    private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
+            inflater.inflate(R.layout.fragment_list, container, false)
+
+    override fun onViewCreated(view: View, state: Bundle?) {
+        val recycler = view.findViewById<RecyclerView>(R.id.recycler)
+        recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
+        recycler.adapter = adapter
+        recycler.loadMore { query() }
+        busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
+            setOnRefreshListener {
+                adapter.clear()
+                page = 0L
+                query()
+            }
+        }
+    }
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        query()
+    }
+
+    private var page = 0L
+    private fun query() {
+        if (page == -1L || busy()) return
+        busy * true
+        dbFav.tags(type) {
+            adapter.add(it)
+            page = -1
+            busy * false
+        }
+    }
+
+    class TestHolder(view: View) : DataHolder<ObLink>(view) {
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        override fun bind() {
+            text1.text = "${value.name}(${value.albums.size})"
+        }
+
+        init {
+            view.setOnClickListener {
+                value.url.takeIf { it.isNotEmpty() }?.let {
+                    context.startActivity<ListActivity>("url" to value.url, "name" to value.name)
+                }
+            }
+        }
+    }
+
+    class ListAdapter : DataAdapter<ObLink, DataHolder<ObLink>>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<ObLink> {
+            return TestHolder(parent.inflate(R.layout.list_text_item))
+        }
     }
 }
 
@@ -124,7 +204,7 @@ class ListActivity : BaseSlideCloseActivity() {
             val key = intent.getStringExtra(SearchManager.QUERY)
             val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
             suggestions.saveRecentQuery(key, null)
-            bundleOf("url" to "$website/search/${Uri.encode(key)}", "name" to key)
+            bundleOf("url" to search(key), "name" to key)
         } else intent.extras
 
         title = bundle.getString("name")
@@ -175,6 +255,7 @@ class ListFragment : Fragment() {
 
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments.getString("url")!! }
+    private val title by lazy { arguments.getString("name")!! }
     private var uri: String? = null
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -192,7 +273,10 @@ class ListFragment : Fragment() {
             val dom = uri!!.httpGet().jsoup()
             val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
                 when {
-                    it.`is`(".hezi li") -> Album(it)
+                    it.`is`(".hezi li") -> Album(it).apply {
+                        if (model == null) model = Link(title, url)
+                        else if (organ.isEmpty()) organ = listOf(Link(title, url))
+                    }
                     first && it.`is`(".hezi_t li") -> Model(it)
                     first && it.`is`(".jigou li") -> Organ(it)
                     first && it.`is`(".renwu") -> Info(it)
@@ -229,9 +313,7 @@ class ListFragment : Fragment() {
 
         init {
             view.setOnClickListener {
-                value.url?.let {
-                    context.startActivity<ListActivity>("url" to value.url!!, "name" to value.name)
-                }
+                context.startActivity<ListActivity>("url" to value.uri, "name" to value.name)
             }
         }
     }
@@ -247,7 +329,7 @@ class ListFragment : Fragment() {
             text1.text = value.name
             text2.text = value.attr.joinToString { "${it.first}${it.second}" }
             text3.text = value.tag.spannable(" ", { it.name }) {
-                it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
+                context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
             }
             text3.visibility = if (value.tag.isEmpty()) View.GONE else View.VISIBLE
             text4.text = value.etc
@@ -299,7 +381,7 @@ class ListFragment : Fragment() {
             text3.text = "${value.count}P"
             text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE
             text2.text = value.info.spannable(" ", { it.name }) {
-                it.url?.run { itemView.context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
+                context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
             }
             check.isChecked = value.url?.let { dbFav.exists(it) } ?: false
         }
@@ -311,9 +393,9 @@ class ListFragment : Fragment() {
                         "data" to value
                 )
             }
-            check.setOnCheckedChangeListener { _, c ->
+            check.setOnClickListener {
                 value.url?.let { url ->
-                    if (c) dbFav.put(value) else dbFav.del(url)
+                    if (check.isChecked) dbFav.put(value) else dbFav.del(url)
                 }
             }
         }
