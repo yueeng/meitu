@@ -10,7 +10,6 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.objectbox.relation.ToOne
-import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import org.jsoup.nodes.Element
@@ -225,12 +224,12 @@ data class ObAlbum(@Id var id: Long = 0) {
 
 object dbFav {
     val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
-    val oba by lazy { ob.boxFor(ObAlbum::class.java).apply { this.removeAll() } }
-    val obl by lazy { ob.boxFor(ObLink::class.java).apply { this.removeAll() } }
+    val oba by lazy { ob.boxFor(ObAlbum::class.java) }
+    val obl by lazy { ob.boxFor(ObLink::class.java) }
     fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null) {
-        Observable.create<ObAlbum> {
+        RxMt.create {
             if (album.url == "") {
-                it.onError(IllegalArgumentException("album.url is null."))
+                throw IllegalArgumentException("album.url is null.")
             } else {
                 @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
                 val info = album.info
@@ -258,8 +257,7 @@ object dbFav {
                 o.model.target.option().forEach { obl.put(it) }
                 o.organ.forEach { obl.put(it) }
                 o.tags.forEach { obl.put(it) }
-                it.onNext(o)
-                it.onComplete()
+                o
             }
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn?.invoke(it) }
     }
@@ -270,18 +268,14 @@ object dbFav {
     }
 
     fun albums(offset: Long, limit: Long, fn: (List<Album>) -> Unit) {
-        Observable.create<List<Album>> {
-            val list = oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album)
-            it.onNext(list)
-            it.onComplete()
+        RxMt.create {
+            oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album)
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }
 
     fun tags(type: Int, fn: (List<ObLink>) -> Unit) {
-        Observable.create<List<ObLink>> {
-            val list = obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }
-            it.onNext(list)
-            it.onComplete()
+        RxMt.create {
+            obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }
 }

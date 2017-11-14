@@ -55,6 +55,7 @@ import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.facebook.stetho.okhttp3.StethoInterceptor
+import io.reactivex.Observable
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -637,3 +638,14 @@ val String.md5
         val bytes = md5.digest(this.toByteArray())
         return bytes.joinToString("", transform = { String.format("%02x", it) })
     }
+
+object RxMt {
+    fun <T> create(fn: () -> T): Observable<T> = Observable.create<T> {
+        try {
+            it.onNext(fn())
+            it.onComplete()
+        } catch (e: Exception) {
+            it.onError(e)
+        }
+    }!!
+}
