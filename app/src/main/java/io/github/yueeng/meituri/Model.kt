@@ -9,6 +9,9 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.objectbox.relation.ToOne
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import org.jsoup.select.Elements
@@ -193,7 +196,7 @@ open class ObLink(@Id var id: Long = 0) {
     @Index
     lateinit var url: String
     var type: Int = 0
-    lateinit var album: ToMany<ObAlbum>
+    lateinit var albums: ToMany<ObAlbum>
     val key get() = "$name:$url"
 
     companion object {
@@ -220,37 +223,49 @@ object dbFav {
     val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
     val oba by lazy { ob.boxFor(ObAlbum::class.java) }
     val obl by lazy { ob.boxFor(ObLink::class.java) }
-    fun put(album: Album) {
-        if (album.url == "") return
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        val info = album.info
-                .flatMap { obl.query().equal(ObLink_.name, it.name).and().equal(ObLink_.url, it.url ?: "").build().find() }
-                .map { Pair(it.key, it) }.toMap()
+    fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null) {
+        Observable.create<ObAlbum> {
+            if (album.url == "") {
+                it.onError(IllegalArgumentException("album.url is null."))
+            } else {
+                @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+                val info = album.info
+                        .flatMap { obl.query().equal(ObLink_.name, it.name).and().equal(ObLink_.url, it.url ?: "").build().find() }
+                        .map { Pair(it.key, it) }.toMap()
 
-        fun ifo(link: Link, t: Int, oba: ObAlbum) = (info[link.key] ?: ObLink().apply {
-            name = link.name
-            url = link.url ?: ""
-        }).apply {
-            this.type = t
-            this.album.add(oba)
-        }
+                fun link2info(link: Link, t: Int, oba: ObAlbum) = (info[link.key] ?: ObLink().apply {
+                    name = link.name
+                    url = link.url ?: ""
+                }).apply {
+                    type = t
+                    albums.add(oba)
+                }
 
-        val o = oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()
-        o.apply {
-            name = album.name
-            url = album.url
-            image = album.image
-            count = album.count
-            album.model?.let {
-                model.target = ifo(it, ObLink.TYPE_MODEL, o)
+                val o = (oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()).apply {
+                    name = album.name
+                    url = album.url
+                    image = album.image
+                    count = album.count
+                    album.model?.let { model.target = link2info(it, ObLink.TYPE_MODEL, this) }
+                    album.organ.forEach { organ.add(link2info(it, ObLink.TYPE_ORGAN, this)) }
+                    album.tags.forEach { tags.add(link2info(it, ObLink.TYPE_TAGS, this)) }
+                }
+                oba.put(o)
+                it.onNext(o)
+                it.onComplete()
             }
-            album.organ.forEach { organ.add(ifo(it, ObLink.TYPE_ORGAN, o)) }
-            album.tags.forEach { tags.add(ifo(it, ObLink.TYPE_TAGS, o)) }
-        }
-        oba.put(o)
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn?.invoke(it) }
     }
 
     fun exists(url: String) = !oba.find(ObAlbum_.url, url).isEmpty()
-    fun del(url: String) = oba.find(ObAlbum_.url, url).forEach { oba.remove(it) }
-    fun albums(): List<Album> = oba.query().orderDesc(ObAlbum_.id).build().find().map(::Album)
+    fun del(url: String) = oba.find(ObAlbum_.url, url).forEach {
+        oba.remove(it)
+    }
+
+    fun albums(offset: Long, limit: Long, fn: (List<Album>) -> Unit) {
+        Observable.create<List<Album>> {
+            it.onNext(oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album))
+            it.onComplete()
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+    }
 }

@@ -89,6 +89,7 @@ class FavoriteActivity : BaseSlideCloseActivity() {
 
 class FavoriteFragment : Fragment() {
     private val adapter = ListAdapter()
+    private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_list, container, false)
 
@@ -96,9 +97,11 @@ class FavoriteFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
         recycler.adapter = adapter
-        view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
+        recycler.loadMore { query() }
+        busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
+                page = 0L
                 query()
             }
         }
@@ -109,9 +112,16 @@ class FavoriteFragment : Fragment() {
         query()
     }
 
+    private var page = 0L
+    private val size = 10L
     private fun query() {
-        adapter.add(dbFav.albums().toList())
-        view?.findViewById<SwipeRefreshLayout>(R.id.swipe)?.isRefreshing = false
+        if (page == -1L || busy()) return
+        busy * true
+        dbFav.albums(page * size, size) {
+            adapter.add(it)
+            page = if (it.size.toLong() == size) page + 1 else -1
+            busy * false
+        }
     }
 
     inner class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
