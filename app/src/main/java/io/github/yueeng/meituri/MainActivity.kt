@@ -60,23 +60,6 @@ class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     }
 }
 
-class ListActivity : BaseSlideCloseActivity() {
-    override fun onCreate(state: Bundle?) {
-        super.onCreate(state)
-        setContentView(R.layout.activity_list)
-        setSupportActionBar(findViewById(R.id.toolbar))
-        val bundle = if (intent.hasExtra(SearchManager.QUERY)) {
-            val key = intent.getStringExtra(SearchManager.QUERY)
-            val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
-            suggestions.saveRecentQuery(key, null)
-            bundleOf("url" to "$website/search/${Uri.encode(key)}", "name" to key)
-        } else intent.extras
-
-        title = bundle.getString("name")
-        setFragment<ListFragment>(R.id.container) { bundle }
-    }
-}
-
 class FavoriteActivity : BaseSlideCloseActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -130,6 +113,23 @@ class FavoriteFragment : Fragment() {
         }
     }
 
+}
+
+class ListActivity : BaseSlideCloseActivity() {
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        setContentView(R.layout.activity_list)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        val bundle = if (intent.hasExtra(SearchManager.QUERY)) {
+            val key = intent.getStringExtra(SearchManager.QUERY)
+            val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+            suggestions.saveRecentQuery(key, null)
+            bundleOf("url" to "$website/search/${Uri.encode(key)}", "name" to key)
+        } else intent.extras
+
+        title = bundle.getString("name")
+        setFragment<ListFragment>(R.id.container) { bundle }
+    }
 }
 
 class ListFragment : Fragment() {
@@ -221,7 +221,7 @@ class ListFragment : Fragment() {
 
     private val adapter = ListAdapter()
 
-    inner class TextHolder(view: View) : DataHolder<Link>(view) {
+    class TextHolder(view: View) : DataHolder<Link>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         override fun bind() {
             text1.text = value.name.spannable(value.name.numbers())
@@ -236,7 +236,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class InfoHolder(view: View) : DataHolder<Info>(view) {
+    class InfoHolder(view: View) : DataHolder<Info>(view) {
         private val image = view.findViewById<SimpleDraweeView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
@@ -254,7 +254,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class OrganHolder(view: View) : DataHolder<Organ>(view) {
+    class OrganHolder(view: View) : DataHolder<Organ>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
         @SuppressLint("SetTextI18n")
@@ -269,7 +269,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class ModelHolder(view: View) : DataHolder<Model>(view) {
+    class ModelHolder(view: View) : DataHolder<Model>(view) {
         private val image = view.findViewById<SimpleDraweeView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
@@ -319,7 +319,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
+    class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
         override fun getItemViewType(position: Int): Int = when (get(position)) {
             is Album -> ListType.Album.value
             is Model -> ListType.Model.value

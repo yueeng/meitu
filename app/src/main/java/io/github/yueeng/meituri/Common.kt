@@ -180,6 +180,7 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
 }
 
 open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
+    val context: Context get() = itemView.context
     private lateinit var _value: T
     val value: T get() = _value
     protected open fun bind() {}
