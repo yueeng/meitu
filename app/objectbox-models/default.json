@@ -1,0 +1,95 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:7633906544406478951",
+      "lastPropertyId": "6:2674314320140622871",
+      "name": "ObAlbum",
+      "properties": [
+        {
+          "id": "1:5424137974922851677",
+          "name": "id"
+        },
+        {
+          "id": "2:4375173750737433608",
+          "indexId": "4:909082781688104047",
+          "name": "name"
+        },
+        {
+          "id": "3:1781705315462430940",
+          "indexId": "2:3931739079257059014",
+          "name": "url"
+        },
+        {
+          "id": "4:1489895552308979125",
+          "name": "image"
+        },
+        {
+          "id": "5:7529121501501379010",
+          "name": "count"
+        },
+        {
+          "id": "6:2674314320140622871",
+          "indexId": "1:8213238201253492969",
+          "name": "modelId"
+        }
+      ],
+      "relations": [
+        {
+          "id": "1:1369502543456918948",
+          "name": "organ"
+        },
+        {
+          "id": "2:1964316167033948476",
+          "name": "tags"
+        }
+      ]
+    },
+    {
+      "id": "2:9143510531689563781",
+      "lastPropertyId": "4:8738310189963869625",
+      "name": "ObLink",
+      "properties": [
+        {
+          "id": "1:201529691038669964",
+          "indexId": "3:1082312633335936367",
+          "name": "name"
+        },
+        {
+          "id": "2:8146201920601778528",
+          "indexId": "5:822489952066378268",
+          "name": "url"
+        },
+        {
+          "id": "3:3497972546512314345",
+          "name": "id"
+        },
+        {
+          "id": "4:8738310189963869625",
+          "name": "type"
+        }
+      ],
+      "relations": [
+        {
+          "id": "4:605111434414266547",
+          "name": "albums"
+        }
+      ]
+    }
+  ],
+  "lastEntityId": "2:9143510531689563781",
+  "lastIndexId": "5:822489952066378268",
+  "lastRelationId": "4:605111434414266547",
+  "lastSequenceId": "0:0",
+  "modelVersion": 4,
+  "modelVersionParserMinimum": 4,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [
+    5732241002762759465
+  ],
+  "version": 1
+}
