@@ -55,8 +55,7 @@ import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.facebook.stetho.okhttp3.StethoInterceptor
-import io.paperdb.Book
-import io.paperdb.Paper
+import io.reactivex.Observable
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -97,6 +96,7 @@ inline fun <reified T : Any> Any.cls(): T? {
 }
 
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
+fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
 
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
@@ -181,6 +181,7 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
 }
 
 open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
+    val context: Context get() = itemView.context
     private lateinit var _value: T
     val value: T get() = _value
     protected open fun bind() {}
@@ -638,11 +639,13 @@ val String.md5
         return bytes.joinToString("", transform = { String.format("%02x", it) })
     }
 
-const val DB_FAV = "meituri.fav"
-fun database(name: String): Book = Paper.book(name.md5)
-val dbFav by lazy { database(DB_FAV) }
-fun Book.exists(url: String) = contains(url.md5)
-fun Book.get(url: String): Album? = read(url.md5)
-fun Book.put(album: Album): Book = album.url?.let { write(it.md5, album) } ?: this
-fun Book.del(url: String): Book = also { delete(url.md5) }
-fun Book.albums(): Sequence<Album> = allKeys.reversed().asSequence().map { read<Album>(it) }
+object RxMt {
+    fun <T> create(fn: () -> T): Observable<T> = Observable.create<T> {
+        try {
+            it.onNext(fn())
+            it.onComplete()
+        } catch (e: Exception) {
+            it.onError(e)
+        }
+    }!!
+}

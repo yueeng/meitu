@@ -88,6 +88,21 @@ class PreviewFragment : Fragment() {
         recycler.adapter = thumb
         recycler.loadMore(2) { query() }
 
+        sliding?.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(sheet: View, offset: Float) {
+            }
+
+            var last: Int = BottomSheetBehavior.STATE_COLLAPSED
+            override fun onStateChanged(sheet: View, state: Int) {
+                if (last == BottomSheetBehavior.STATE_COLLAPSED && state == BottomSheetBehavior.STATE_EXPANDED) {
+                    recycler.smoothScrollToPosition(pager.currentItem)
+                }
+                when (state) {
+                    BottomSheetBehavior.STATE_EXPANDED, BottomSheetBehavior.STATE_COLLAPSED -> last = state
+                }
+            }
+        })
+
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
             activity.permissionWriteExternalStorage {
                 adapter.data[current].let { url ->
@@ -104,16 +119,15 @@ class PreviewFragment : Fragment() {
             info?.also { info ->
                 AlertDialog.Builder(context)
                         .setTitle(name)
-                        .setPositiveButton("OK", null)
+                        .setPositiveButton("确定", null)
+                        .create()
                         .apply {
                             info.joinToString("\n") {
                                 "${it.first}: ${it.second.joinToString(", ")}"
                             }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
                                 context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                                dismiss()
                             }.let { setMessage(it) }
-                        }
-                        .create()
-                        .apply {
                             show()
                             findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
                         }
@@ -127,7 +141,7 @@ class PreviewFragment : Fragment() {
                 setOnMenuItemClickListener {
                     when (it.itemId) {
                         R.id.menu_download_all -> activity.permissionWriteExternalStorage { download() }
-                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else dbFav.put(album)
+                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
                         R.id.menu_thumb -> sliding?.open()
                     }
                     true

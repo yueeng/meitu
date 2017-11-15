@@ -41,6 +41,9 @@
         <activity
             android:name=".FavoriteActivity"
             android:theme="@style/AppThemeTranslucent" />
+        <activity
+            android:name=".FavoriteTagActivity"
+            android:theme="@style/AppThemeTranslucent" />
 
         <provider
             android:name=".SearchHistoryProvider"

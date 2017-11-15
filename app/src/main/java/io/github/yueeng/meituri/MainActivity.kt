@@ -3,15 +3,18 @@ package io.github.yueeng.meituri
 import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.content.ComponentName
-import android.net.Uri
 import android.os.Bundle
 import android.provider.SearchRecentSuggestions
+import android.support.design.widget.NavigationView
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentStatePagerAdapter
+import android.support.v4.content.ContextCompat
 import android.support.v4.view.ViewPager
+import android.support.v4.widget.DrawerLayout
 import android.support.v4.widget.SwipeRefreshLayout
+import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -34,17 +37,59 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
-        adapter.data += listOf(website to "首页",
+        val list = listOf(website to "首页",
                 "$website/zhongguo/" to "中国美女",
                 "$website/riben/" to "日本美女",
                 "$website/taiwan/" to "台湾美女",
                 "$website/hanguo/" to "韩国美女",
                 "$website/mote/" to "美女库",
                 "$website/jigou/" to "写真机构"/*, "" to "分类"*/)
+        adapter.data += list
         val pager = findViewById<ViewPager>(R.id.container)
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
         tabs.setupWithViewPager(pager)
+        val drawer = findViewById<DrawerLayout>(R.id.drawer)
+        val toggle = ActionBarDrawerToggle(this, drawer,
+                findViewById(R.id.toolbar),
+                R.string.app_name, R.string.app_name)
+        drawer.addDrawerListener(toggle)
+        toggle.syncState()
+        val navigation = findViewById<NavigationView>(R.id.navigation)
+        list.forEachIndexed { i, it ->
+            navigation.menu.add(when (i) {
+                0 -> 0
+                in 1..4 -> 1
+                else -> 2
+            }, 0x1000 + i, Menu.NONE, it.second).apply {
+                icon = ContextCompat.getDrawable(this@MainActivity, when (i) {
+                    0 -> R.drawable.ic_home
+                    in 1..4 -> R.drawable.ic_girl
+                    else -> R.drawable.ic_category
+                })
+            }
+        }
+        navigation.setNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.menu_favorite -> {
+                    startActivity<FavoriteActivity>()
+                    drawer.closeDrawer(navigation)
+                    true
+                }
+                in 0x1000..0x1000 + list.size -> {
+                    pager.currentItem = it.itemId - 0x1000
+                    drawer.closeDrawer(navigation)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    override fun onBackPressed() {
+        findViewById<DrawerLayout>(R.id.drawer).takeIf { it.isDrawerOpen(Gravity.START) }?.run {
+            closeDrawer(Gravity.START)
+        } ?: { super.onBackPressed() }()
     }
 }
 
@@ -60,35 +105,52 @@ class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     }
 }
 
-class ListActivity : BaseSlideCloseActivity() {
+class FavoriteTagActivity : BaseSlideCloseActivity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_list)
         setSupportActionBar(findViewById(R.id.toolbar))
-        val bundle = if (intent.hasExtra(SearchManager.QUERY)) {
-            val key = intent.getStringExtra(SearchManager.QUERY)
-            val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
-            suggestions.saveRecentQuery(key, null)
-            bundleOf("url" to "$website/search/${Uri.encode(key)}", "name" to key)
-        } else intent.extras
-
-        title = bundle.getString("name")
-        setFragment<ListFragment>(R.id.container) { bundle }
+        title = intent.getStringExtra("name")
+        setFragment<FavoriteFragment>(R.id.container) { intent.extras }
     }
 }
 
 class FavoriteActivity : BaseSlideCloseActivity() {
+    private val adapter by lazy { FavoriteAdapter(supportFragmentManager) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_list)
+        setContentView(R.layout.activity_favorite)
         setSupportActionBar(findViewById(R.id.toolbar))
         title = "收藏"
-        setFragment<FavoriteFragment>(R.id.container) { null }
+        val pager = findViewById<ViewPager>(R.id.container)
+        val tabs: TabLayout = findViewById(R.id.tab)
+        pager.adapter = adapter
+        tabs.setupWithViewPager(pager)
+    }
+
+    class FavoriteAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+        override fun getItem(position: Int): Fragment = when (position) {
+            0 -> FavoriteFragment()
+            else -> FavoriteTagsFragment().apply {
+                arguments = bundleOf("type" to position)
+            }
+        }
+
+        override fun getCount(): Int = 4
+        override fun getPageTitle(position: Int): CharSequence = when (position) {
+            0 -> "图集"
+            1 -> "模特"
+            2 -> "机构"
+            3 -> "标签"
+            else -> throw IllegalArgumentException()
+        }
     }
 }
 
-class FavoriteFragment : Fragment() {
+class FavoriteTagsFragment : Fragment() {
+    private val type by lazy { arguments.getInt("type") }
     private val adapter = ListAdapter()
+    private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_list, container, false)
 
@@ -96,9 +158,11 @@ class FavoriteFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
         recycler.adapter = adapter
-        view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
+        recycler.loadMore { query() }
+        busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
+                page = 0L
                 query()
             }
         }
@@ -109,9 +173,85 @@ class FavoriteFragment : Fragment() {
         query()
     }
 
+    private var page = 0L
     private fun query() {
-        adapter.add(dbFav.albums().toList())
-        view?.findViewById<SwipeRefreshLayout>(R.id.swipe)?.isRefreshing = false
+        if (page == -1L || busy()) return
+        busy * true
+        dbFav.tags(type) {
+            adapter.add(it)
+            page = -1
+            busy * false
+        }
+    }
+
+    class TextHolder(view: View) : DataHolder<ObLink>(view) {
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        private val text2 = view.findViewById<TextView>(R.id.text2)
+        override fun bind() {
+            text1.text = value.name
+            text2.text = "${value.albums.size}套"
+        }
+
+        init {
+            view.setOnClickListener {
+                value.url.takeIf { it.isNotEmpty() }?.let {
+                    context.startActivity<FavoriteTagActivity>("tag" to value.id, "url" to value.url, "name" to value.name)
+                }
+            }
+        }
+    }
+
+    class ListAdapter : DataAdapter<ObLink, DataHolder<ObLink>>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<ObLink> {
+            return TextHolder(parent.inflate(R.layout.list_organ_item))
+        }
+    }
+}
+
+class FavoriteFragment : Fragment() {
+    private val tag by lazy { arguments?.getLong("tag") ?: 0L }
+    private val adapter = ListAdapter()
+    private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
+            inflater.inflate(R.layout.fragment_list, container, false)
+
+    override fun onViewCreated(view: View, state: Bundle?) {
+        val recycler = view.findViewById<RecyclerView>(R.id.recycler)
+        recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
+        recycler.adapter = adapter
+        recycler.loadMore { query() }
+        busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
+            setOnRefreshListener {
+                adapter.clear()
+                page = 0L
+                query()
+            }
+        }
+    }
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        query()
+    }
+
+    private var page = 0L
+    private val size = 10L
+    private fun query() {
+        if (page == -1L || busy()) return
+        busy * true
+        if (tag > 0) {
+            dbFav.albums(tag) {
+                adapter.add(it)
+                page = -1
+                busy * false
+            }
+        } else {
+            dbFav.albums(page * size, size) {
+                adapter.add(it)
+                page = if (it.size.toLong() == size) page + 1 else -1
+                busy * false
+            }
+        }
     }
 
     inner class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
@@ -120,6 +260,23 @@ class FavoriteFragment : Fragment() {
         }
     }
 
+}
+
+class ListActivity : BaseSlideCloseActivity() {
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        setContentView(R.layout.activity_list)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        val bundle = if (intent.hasExtra(SearchManager.QUERY)) {
+            val key = intent.getStringExtra(SearchManager.QUERY)
+            val suggestions = SearchRecentSuggestions(this, SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE)
+            suggestions.saveRecentQuery(key, null)
+            bundleOf("url" to search(key), "name" to key)
+        } else intent.extras
+
+        title = bundle.getString("name")
+        setFragment<ListFragment>(R.id.container) { bundle }
+    }
 }
 
 class ListFragment : Fragment() {
@@ -165,6 +322,7 @@ class ListFragment : Fragment() {
 
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments.getString("url")!! }
+    private val title by lazy { arguments.getString("name")!! }
     private var uri: String? = null
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -211,7 +369,7 @@ class ListFragment : Fragment() {
 
     private val adapter = ListAdapter()
 
-    inner class TextHolder(view: View) : DataHolder<Link>(view) {
+    class TextHolder(view: View) : DataHolder<Link>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         override fun bind() {
             text1.text = value.name.spannable(value.name.numbers())
@@ -219,14 +377,12 @@ class ListFragment : Fragment() {
 
         init {
             view.setOnClickListener {
-                value.url?.let {
-                    context.startActivity<ListActivity>("url" to value.url!!, "name" to value.name)
-                }
+                context.startActivity<ListActivity>("url" to value.uri, "name" to value.name)
             }
         }
     }
 
-    inner class InfoHolder(view: View) : DataHolder<Info>(view) {
+    class InfoHolder(view: View) : DataHolder<Info>(view) {
         private val image = view.findViewById<SimpleDraweeView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
@@ -237,14 +393,14 @@ class ListFragment : Fragment() {
             text1.text = value.name
             text2.text = value.attr.joinToString { "${it.first}${it.second}" }
             text3.text = value.tag.spannable(" ", { it.name }) {
-                it.url?.run { context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
+                context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
             }
             text3.visibility = if (value.tag.isEmpty()) View.GONE else View.VISIBLE
             text4.text = value.etc
         }
     }
 
-    inner class OrganHolder(view: View) : DataHolder<Organ>(view) {
+    class OrganHolder(view: View) : DataHolder<Organ>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
         @SuppressLint("SetTextI18n")
@@ -259,7 +415,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    inner class ModelHolder(view: View) : DataHolder<Model>(view) {
+    class ModelHolder(view: View) : DataHolder<Model>(view) {
         private val image = view.findViewById<SimpleDraweeView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
@@ -289,7 +445,7 @@ class ListFragment : Fragment() {
             text3.text = "${value.count}P"
             text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE
             text2.text = value.info.spannable(" ", { it.name }) {
-                it.url?.run { itemView.context.startActivity<ListActivity>("url" to it.url, "name" to it.name) }
+                context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
             }
             check.isChecked = value.url?.let { dbFav.exists(it) } ?: false
         }
@@ -301,15 +457,19 @@ class ListFragment : Fragment() {
                         "data" to value
                 )
             }
-            check.setOnCheckedChangeListener { _, c ->
+            check.setOnClickListener {
                 value.url?.let { url ->
-                    if (c) dbFav.put(value) else dbFav.del(url)
+                    if (check.isChecked)
+                        Album.from(url, value) {
+                            dbFav.put(it ?: value)
+                        }
+                    else dbFav.del(url)
                 }
             }
         }
     }
 
-    inner class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
+    class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
         override fun getItemViewType(position: Int): Int = when (get(position)) {
             is Album -> ListType.Album.value
             is Model -> ListType.Model.value
