@@ -254,7 +254,7 @@ class FavoriteFragment : Fragment() {
         }
     }
 
-    inner class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
+    class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Album> {
             return ListFragment.AlbumHolder(parent.inflate(R.layout.list_album_item))
         }
