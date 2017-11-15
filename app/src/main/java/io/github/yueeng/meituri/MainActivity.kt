@@ -273,10 +273,7 @@ class ListFragment : Fragment() {
             val dom = uri!!.httpGet().jsoup()
             val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
                 when {
-                    it.`is`(".hezi li") -> Album(it).apply {
-                        if (model == null) model = Link(title, url)
-                        else if (organ.isEmpty()) organ = listOf(Link(title, url))
-                    }
+                    it.`is`(".hezi li") -> Album(it)
                     first && it.`is`(".hezi_t li") -> Model(it)
                     first && it.`is`(".jigou li") -> Organ(it)
                     first && it.`is`(".renwu") -> Info(it)
@@ -395,7 +392,11 @@ class ListFragment : Fragment() {
             }
             check.setOnClickListener {
                 value.url?.let { url ->
-                    if (check.isChecked) dbFav.put(value) else dbFav.del(url)
+                    if (check.isChecked)
+                        Album.from(url, value) {
+                            dbFav.put(it ?: value)
+                        }
+                    else dbFav.del(url)
                 }
             }
         }

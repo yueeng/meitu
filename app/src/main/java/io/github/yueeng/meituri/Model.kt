@@ -189,6 +189,47 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
             override fun createFromParcel(source: Parcel): Album = Album(source)
             override fun newArray(size: Int): Array<Album?> = arrayOfNulls(size)
         }
+
+        fun from(url: String, sample: Album? = null, fn: (Album?) -> Unit) {
+            RxMt.create {
+                val dom = url.httpGet().jsoup()
+                val attr: Map<String, List<Any>>? = dom?.select(".tuji p,.shuoming p, .fenxiang_l")?.map { it.childNodes() }?.flatten()?.mapNotNull {
+                    when (it) {
+                        is TextNode -> it.text().trim().split("；").filter { it.isNotBlank() }
+                                .map { it.split("：").joinToString("：") { it.trim() } }
+                        is Element -> listOf(Link(it.text(), it.attr("abs:href")))
+                        else -> emptyList()
+                    }
+                }?.flatten()?.fold<Any, MutableList<MutableList<Any>>>(mutableListOf()) { r, t ->
+                    r.apply {
+                        when (t) {
+                            is String -> mutableListOf<Any>().apply {
+                                r += apply { addAll(t.split("：").filter { it.isNotBlank() }) }
+                            }
+                            else -> r.last() += t
+                        }
+                    }
+                }?.map { it.first().toString() to it.drop(1) }?.toMap()
+                attr?.let {
+                    fun attr2links(name: String) = attr[name]?.mapNotNull {
+                        when (it) {
+                            is Link -> it
+                            is String -> Link(it)
+                            else -> null
+                        }
+                    } ?: emptyList()
+                    Album(dom.select("h1").text(), url).apply {
+                        model = attr2links("出镜模特").plus(sample?.model.option()).distinctBy { it.key }.firstOrNull()
+                        organ = attr2links("拍摄机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
+                        tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }
+                        _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".content img.tupian_img").firstOrNull()?.attr("abs:src") ?: ""
+                        _count = sample?.count?.takeIf { it != 0 } ?: attr["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
+                            rgx.find(it)?.let { it.groups[1]?.value?.toInt() }
+                        } ?: 0
+                    }
+                }
+            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+        }
     }
 }
 

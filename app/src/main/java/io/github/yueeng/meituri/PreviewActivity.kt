@@ -127,7 +127,7 @@ class PreviewFragment : Fragment() {
                 setOnMenuItemClickListener {
                     when (it.itemId) {
                         R.id.menu_download_all -> activity.permissionWriteExternalStorage { download() }
-                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else dbFav.put(album)
+                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
                         R.id.menu_thumb -> sliding?.open()
                     }
                     true
