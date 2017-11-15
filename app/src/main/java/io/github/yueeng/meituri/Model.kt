@@ -314,6 +314,12 @@ object dbFav {
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }
 
+    fun albums(tag: Long, fn: (List<Album>) -> Unit) {
+        RxMt.create {
+            obl.get(tag).albums.map(::Album)
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+    }
+
     fun tags(type: Int, fn: (List<ObLink>) -> Unit) {
         RxMt.create {
             obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }

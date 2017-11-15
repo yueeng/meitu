@@ -59,6 +59,16 @@ class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     }
 }
 
+class FavoriteTagActivity : BaseSlideCloseActivity() {
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        setContentView(R.layout.activity_list)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        title = intent.getStringExtra("name")
+        setFragment<FavoriteFragment>(R.id.container) { intent.extras }
+    }
+}
+
 class FavoriteActivity : BaseSlideCloseActivity() {
     private val adapter by lazy { FavoriteAdapter(supportFragmentManager) }
     override fun onCreate(state: Bundle?) {
@@ -137,7 +147,7 @@ class FavoriteTagsFragment : Fragment() {
         init {
             view.setOnClickListener {
                 value.url.takeIf { it.isNotEmpty() }?.let {
-                    context.startActivity<ListActivity>("url" to value.url, "name" to value.name)
+                    context.startActivity<FavoriteTagActivity>("tag" to value.id, "url" to value.url, "name" to value.name)
                 }
             }
         }
@@ -151,6 +161,7 @@ class FavoriteTagsFragment : Fragment() {
 }
 
 class FavoriteFragment : Fragment() {
+    private val tag by lazy { arguments?.getLong("tag") ?: 0L }
     private val adapter = ListAdapter()
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
@@ -180,10 +191,18 @@ class FavoriteFragment : Fragment() {
     private fun query() {
         if (page == -1L || busy()) return
         busy * true
-        dbFav.albums(page * size, size) {
-            adapter.add(it)
-            page = if (it.size.toLong() == size) page + 1 else -1
-            busy * false
+        if (tag > 0) {
+            dbFav.albums(tag) {
+                adapter.add(it)
+                page = -1
+                busy * false
+            }
+        } else {
+            dbFav.albums(page * size, size) {
+                adapter.add(it)
+                page = if (it.size.toLong() == size) page + 1 else -1
+                busy * false
+            }
         }
     }
 
