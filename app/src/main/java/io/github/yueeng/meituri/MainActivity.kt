@@ -184,10 +184,12 @@ class FavoriteTagsFragment : Fragment() {
         }
     }
 
-    class TestHolder(view: View) : DataHolder<ObLink>(view) {
+    class TextHolder(view: View) : DataHolder<ObLink>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
+        private val text2 = view.findViewById<TextView>(R.id.text2)
         override fun bind() {
-            text1.text = "${value.name}(${value.albums.size})"
+            text1.text = value.name
+            text2.text = "${value.albums.size}套"
         }
 
         init {
@@ -201,7 +203,7 @@ class FavoriteTagsFragment : Fragment() {
 
     class ListAdapter : DataAdapter<ObLink, DataHolder<ObLink>>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<ObLink> {
-            return TestHolder(parent.inflate(R.layout.list_text_item))
+            return TextHolder(parent.inflate(R.layout.list_organ_item))
         }
     }
 }
