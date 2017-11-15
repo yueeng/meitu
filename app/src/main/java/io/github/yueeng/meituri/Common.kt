@@ -307,7 +307,6 @@ class RoundedBackgroundColorSpan(private val backgroundColor: Int) : Replacement
     }
 
     override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
-        System.out.println("$start, $end, $x, $top, $y, $bottom, ${paint.fontMetrics.top}, ${paint.fontMetrics.bottom}, ${paint.fontMetrics.leading}, ${paint.fontMetrics.ascent}, ${paint.fontMetrics.descent}, ${paint.fontMetrics.descent - paint.fontMetrics.ascent}")
         val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
                 x + getSize(paint, text, start, end, paint.fontMetricsInt),
                 y + paint.fontMetrics.bottom + linePadding)
