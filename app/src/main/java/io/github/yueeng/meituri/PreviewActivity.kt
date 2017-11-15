@@ -88,6 +88,21 @@ class PreviewFragment : Fragment() {
         recycler.adapter = thumb
         recycler.loadMore(2) { query() }
 
+        sliding?.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(sheet: View, offset: Float) {
+            }
+
+            var last: Int = BottomSheetBehavior.STATE_COLLAPSED
+            override fun onStateChanged(sheet: View, state: Int) {
+                if (last == BottomSheetBehavior.STATE_COLLAPSED && state == BottomSheetBehavior.STATE_EXPANDED) {
+                    recycler.smoothScrollToPosition(pager.currentItem)
+                }
+                when (state) {
+                    BottomSheetBehavior.STATE_EXPANDED, BottomSheetBehavior.STATE_COLLAPSED -> last = state
+                }
+            }
+        })
+
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
             activity.permissionWriteExternalStorage {
                 adapter.data[current].let { url ->
