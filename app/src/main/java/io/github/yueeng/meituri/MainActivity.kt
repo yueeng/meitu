@@ -5,12 +5,16 @@ import android.app.SearchManager
 import android.content.ComponentName
 import android.os.Bundle
 import android.provider.SearchRecentSuggestions
+import android.support.design.widget.NavigationView
 import android.support.design.widget.TabLayout
 import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentStatePagerAdapter
+import android.support.v4.content.ContextCompat
 import android.support.v4.view.ViewPager
+import android.support.v4.widget.DrawerLayout
 import android.support.v4.widget.SwipeRefreshLayout
+import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -33,17 +37,59 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
-        adapter.data += listOf(website to "首页",
+        val list = listOf(website to "首页",
                 "$website/zhongguo/" to "中国美女",
                 "$website/riben/" to "日本美女",
                 "$website/taiwan/" to "台湾美女",
                 "$website/hanguo/" to "韩国美女",
                 "$website/mote/" to "美女库",
                 "$website/jigou/" to "写真机构"/*, "" to "分类"*/)
+        adapter.data += list
         val pager = findViewById<ViewPager>(R.id.container)
         val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
         tabs.setupWithViewPager(pager)
+        val drawer = findViewById<DrawerLayout>(R.id.drawer)
+        val toggle = ActionBarDrawerToggle(this, drawer,
+                findViewById(R.id.toolbar),
+                R.string.app_name, R.string.app_name)
+        drawer.addDrawerListener(toggle)
+        toggle.syncState()
+        val navigation = findViewById<NavigationView>(R.id.navigation)
+        list.forEachIndexed { i, it ->
+            navigation.menu.add(when (i) {
+                0 -> 0
+                in 1..4 -> 1
+                else -> 2
+            }, 0x1000 + i, Menu.NONE, it.second).apply {
+                icon = ContextCompat.getDrawable(this@MainActivity, when (i) {
+                    0 -> R.drawable.ic_home
+                    in 1..4 -> R.drawable.ic_girl
+                    else -> R.drawable.ic_category
+                })
+            }
+        }
+        navigation.setNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.menu_favorite -> {
+                    startActivity<FavoriteActivity>()
+                    drawer.closeDrawer(navigation)
+                    true
+                }
+                in 0x1000..0x1000 + list.size -> {
+                    pager.currentItem = it.itemId - 0x1000
+                    drawer.closeDrawer(navigation)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    override fun onBackPressed() {
+        findViewById<DrawerLayout>(R.id.drawer).takeIf { it.isDrawerOpen(Gravity.START) }?.run {
+            closeDrawer(Gravity.START)
+        } ?: { super.onBackPressed() }()
     }
 }
 
@@ -73,7 +119,7 @@ class FavoriteActivity : BaseSlideCloseActivity() {
     private val adapter by lazy { FavoriteAdapter(supportFragmentManager) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_favorite)
         setSupportActionBar(findViewById(R.id.toolbar))
         title = "收藏"
         val pager = findViewById<ViewPager>(R.id.container)

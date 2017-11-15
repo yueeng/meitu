@@ -104,16 +104,15 @@ class PreviewFragment : Fragment() {
             info?.also { info ->
                 AlertDialog.Builder(context)
                         .setTitle(name)
-                        .setPositiveButton("OK", null)
+                        .setPositiveButton("确定", null)
+                        .create()
                         .apply {
                             info.joinToString("\n") {
                                 "${it.first}: ${it.second.joinToString(", ")}"
                             }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
                                 context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                                dismiss()
                             }.let { setMessage(it) }
-                        }
-                        .create()
-                        .apply {
                             show()
                             findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
                         }
