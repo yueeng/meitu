@@ -2,9 +2,9 @@
 
 buildscript {
     ext.kotlin_version = '1.1.60'
-    ext.android_compile_sdk = 27
+    ext.android_compile_sdk = 26
     ext.android_build_tools = '27.0.1'
-    ext.android_target_sdk = 27
+    ext.android_target_sdk = 26
     ext.android_min_sdk = 16
     ext.android_support_version = '27.0.1'
     ext.okhttp_version = '3.8.1'

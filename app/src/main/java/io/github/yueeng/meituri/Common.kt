@@ -352,7 +352,7 @@ fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
 fun <T> String.spannable(tag: List<T>?, string: ((T) -> String) = { "$it" }, call: ((T) -> Unit)? = null): SpannableStringBuilder = SpannableStringBuilder(this).apply {
     tag?.forEach {
         string(it).toRegex().findAll(this).map { it.range }.forEach { i ->
-            setSpan(AccentClickableSpan(it, call), i.first, i.last, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(AccentClickableSpan(it, call), i.first, i.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
 }
