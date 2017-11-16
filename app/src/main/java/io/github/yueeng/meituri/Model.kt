@@ -1,4 +1,4 @@
-@file:Suppress("UNUSED_PARAMETER")
+@file:Suppress("UNUSED_PARAMETER", "unused", "PropertyName", "ClassName")
 
 package io.github.yueeng.meituri
 
@@ -266,9 +266,9 @@ data class ObAlbum(@Id var id: Long = 0) {
 }
 
 object dbFav {
-    val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
-    val oba by lazy { ob.boxFor(ObAlbum::class.java) }
-    val obl by lazy { ob.boxFor(ObLink::class.java) }
+    private val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
+    private val oba by lazy { ob.boxFor(ObAlbum::class.java) }
+    private val obl by lazy { ob.boxFor(ObLink::class.java) }
     fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null) {
         RxMt.create {
             if (album.url == "") {

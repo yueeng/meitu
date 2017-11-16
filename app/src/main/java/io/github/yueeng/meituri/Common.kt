@@ -78,7 +78,6 @@ import java.net.CookiePolicy
 import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.experimental.buildSequence
 
 /**
  * Common library
@@ -352,20 +351,9 @@ fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
 
 fun <T> String.spannable(tag: List<T>?, string: ((T) -> String) = { "$it" }, call: ((T) -> Unit)? = null): SpannableStringBuilder = SpannableStringBuilder(this).apply {
     tag?.forEach {
-        indexAllOf(string(it)).forEach { i ->
-            setSpan(AccentClickableSpan(it, call), i, i + string(it).length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        string(it).toRegex().findAll(this).map { it.range }.forEach { i ->
+            setSpan(AccentClickableSpan(it, call), i.first, i.last, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-    }
-}
-
-@Suppress("EXPERIMENTAL_FEATURE_WARNING")
-fun String.indexAllOf(string: String): Sequence<Int> = buildSequence {
-    var i = 0
-    while (i >= 0) {
-        val p = this@indexAllOf.indexOf(string, i)
-        if (p == -1) break
-        yield(p)
-        i = p + string.length
     }
 }
 
