@@ -53,12 +53,12 @@ class PreviewActivity : BaseSlideCloseActivity() {
 
 @SuppressLint("SetTextI18n")
 class PreviewFragment : Fragment() {
-    private val album by lazy { arguments.getParcelable<Album>("data") }
+    private val album by lazy { arguments?.getParcelable<Album>("data")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url }
     private val count by lazy { album.count }
     private var uri: String? = null
-    private val adapter = PreviewAdapter()
+    private val adapter by lazy { PreviewAdapter(name) }
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
     private var current
@@ -67,7 +67,7 @@ class PreviewFragment : Fragment() {
             view?.findViewById<ViewPager>(R.id.pager)?.let { it.currentItem = value }
         }
     private val sliding get() = view?.findViewById<View>(R.id.sliding)?.let { BottomSheetBehavior.from(it) }
-    private val thumb = ThumbAdapter()
+    private val thumb by lazy { ThumbAdapter(name) }
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_preview, container, false)
 
@@ -104,56 +104,77 @@ class PreviewFragment : Fragment() {
         })
 
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
-            activity.permissionWriteExternalStorage {
+            activity?.permissionWriteExternalStorage {
                 adapter.data[current].let { url ->
                     Save.download(url, name) {
                         if (it == DownloadManager.STATUS_SUCCESSFUL)
-                            context.toast("已经下载完成")
+                            context?.toast("已经下载完成")
                         else
-                            context.toast("已经在下载队列中")
+                            context?.toast("已经在下载队列中")
                     }
                 }
             }
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
-            info?.also { info ->
-                AlertDialog.Builder(context)
-                        .setTitle(name)
-                        .setPositiveButton("确定", null)
-                        .create()
-                        .apply {
-                            info.joinToString("\n") {
-                                "${it.first}: ${it.second.joinToString(", ")}"
-                            }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
-                                context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
-                                dismiss()
-                            }.let { setMessage(it) }
-                            show()
-                            findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
-                        }
+            context?.let { context ->
+                info?.also { info ->
+                    AlertDialog.Builder(context)
+                            .setTitle(name)
+                            .setPositiveButton("确定", null)
+                            .create()
+                            .apply {
+                                info.joinToString("\n") {
+                                    "${it.first}: ${it.second.joinToString(", ")}"
+                                }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
+                                    context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                                    dismiss()
+                                }.let { setMessage(it) }
+                                show()
+                                findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
+                            }
+                }
             }
         }
         view.findViewById<View>(R.id.button3).setOnClickListener {
-            PopupMenu(context, it).apply {
-                setForceShowIcon(true)
-                inflate(R.menu.preivew_more)
-                menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
-                setOnMenuItemClickListener {
-                    when (it.itemId) {
-                        R.id.menu_download_all -> activity.permissionWriteExternalStorage { download() }
-                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
-                        R.id.menu_thumb -> sliding?.open()
+            context?.let { context ->
+                PopupMenu(context, it).apply {
+                    setForceShowIcon(true)
+                    inflate(R.menu.preivew_more)
+                    menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
+                    setOnMenuItemClickListener {
+                        when (it.itemId) {
+                            R.id.menu_download_all -> activity?.permissionWriteExternalStorage { download() }
+                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
+                            R.id.menu_thumb -> sliding?.open()
+                        }
+                        true
                     }
-                    true
-                }
-            }.show()
+                }.show()
+            }
         }
-        context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        context?.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+    }
+
+    private val tapPreview = RxBus.instance.flowable<Int>("tap_preview").subscribe {
+        if (sliding?.isOpen == true)
+            sliding?.close()
+        else
+            current++
+    }
+    private val tapThumb = RxBus.instance.flowable<Int>("tap_thumb").subscribe {
+        current = it
+        sliding?.close()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        context.unregisterReceiver(receiver)
+        context?.unregisterReceiver(receiver)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tapPreview.dispose()
+        tapThumb.dispose()
     }
 
     fun onBackPressed(): Boolean = sliding?.state?.takeIf { it == BottomSheetBehavior.STATE_EXPANDED }?.let {
@@ -243,7 +264,7 @@ class PreviewFragment : Fragment() {
         return true
     }
 
-    inner class PreviewAdapter : DataPagerAdapter<String>(R.layout.preview_item) {
+    class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
@@ -251,17 +272,14 @@ class PreviewFragment : Fragment() {
                     .progress().load(item)
                     .setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
                         override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
-                            if (sliding?.isOpen == true)
-                                sliding?.close()
-                            else
-                                current++
+                            RxBus.instance.post("tap_preview", 1)
                             return true
                         }
                     })
         }
     }
 
-    inner class ThumbHolder(view: View) : DataHolder<String>(view) {
+    class ThumbHolder(view: View, val name: String) : DataHolder<String>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
         private val image: SimpleDraweeView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
@@ -273,16 +291,15 @@ class PreviewFragment : Fragment() {
 
         init {
             view.setOnClickListener {
-                current = adapter.data.indexOf(value)
-                sliding?.close()
+                RxBus.instance.post("tap_thumb", adapterPosition)
             }
             image.progress()
         }
     }
 
-    inner class ThumbAdapter : DataAdapter<String, ThumbHolder>() {
+    class ThumbAdapter(val name: String) : DataAdapter<String, ThumbHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbHolder =
-                ThumbHolder(parent.inflate(R.layout.preview_thumb_item))
+                ThumbHolder(parent.inflate(R.layout.preview_thumb_item), name)
 
     }
 }

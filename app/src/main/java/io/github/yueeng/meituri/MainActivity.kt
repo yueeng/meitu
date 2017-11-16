@@ -46,8 +46,8 @@ class MainActivity : AppCompatActivity() {
                 "$website/jigou/" to "写真机构"/*, "" to "分类"*/)
         adapter.data += list
         val pager = findViewById<ViewPager>(R.id.container)
-        val tabs: TabLayout = findViewById(R.id.tab)
         pager.adapter = adapter
+        val tabs: TabLayout = findViewById(R.id.tab)
         tabs.setupWithViewPager(pager)
         val drawer = findViewById<DrawerLayout>(R.id.drawer)
         val toggle = ActionBarDrawerToggle(this, drawer,
@@ -100,9 +100,7 @@ class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     }
 
     override fun getCount(): Int = data.size
-    override fun getPageTitle(position: Int): CharSequence {
-        return data[position].second
-    }
+    override fun getPageTitle(position: Int): CharSequence = data[position].second
 }
 
 class FavoriteTagActivity : BaseSlideCloseActivity() {
@@ -148,7 +146,7 @@ class FavoriteActivity : BaseSlideCloseActivity() {
 }
 
 class FavoriteTagsFragment : Fragment() {
-    private val type by lazy { arguments.getInt("type") }
+    private val type by lazy { arguments?.getInt("type")!! }
     private val adapter = ListAdapter()
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
@@ -187,6 +185,7 @@ class FavoriteTagsFragment : Fragment() {
     class TextHolder(view: View) : DataHolder<ObLink>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
+        @SuppressLint("SetTextI18n")
         override fun bind() {
             text1.text = value.name
             text2.text = "${value.albums.size}套"
@@ -202,9 +201,8 @@ class FavoriteTagsFragment : Fragment() {
     }
 
     class ListAdapter : DataAdapter<ObLink, DataHolder<ObLink>>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<ObLink> {
-            return TextHolder(parent.inflate(R.layout.list_organ_item))
-        }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<ObLink> =
+                TextHolder(parent.inflate(R.layout.list_organ_item))
     }
 }
 
@@ -255,9 +253,8 @@ class FavoriteFragment : Fragment() {
     }
 
     class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Album> {
-            return ListFragment.AlbumHolder(parent.inflate(R.layout.list_album_item))
-        }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Album> =
+                ListFragment.AlbumHolder(parent.inflate(R.layout.list_album_item))
     }
 
 }
@@ -283,13 +280,13 @@ class ListFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.search, menu)
         val search = menu.findItem(R.id.search).actionView as SearchView
-        val info = context.searchManager.getSearchableInfo(ComponentName(context, ListActivity::class.java))
+        val info = context?.searchManager?.getSearchableInfo(ComponentName(context, ListActivity::class.java))
         search.setSearchableInfo(info)
         super.onCreateOptionsMenu(menu, inflater)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.favorite -> context.startActivity<FavoriteActivity>().let { true }
+        R.id.favorite -> context?.startActivity<FavoriteActivity>().let { true }
         else -> super.onOptionsItemSelected(item)
     }
 
@@ -321,8 +318,7 @@ class ListFragment : Fragment() {
     }
 
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
-    private val url by lazy { arguments.getString("url")!! }
-    private val title by lazy { arguments.getString("name")!! }
+    private val url by lazy { arguments?.getString("url")!! }
     private var uri: String? = null
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -453,9 +449,7 @@ class ListFragment : Fragment() {
         init {
             text2.movementMethod = LinkMovementMethod.getInstance()
             view.setOnClickListener {
-                itemView.context.startActivity<PreviewActivity>(
-                        "data" to value
-                )
+                context.startActivity<PreviewActivity>("data" to value)
             }
             check.setOnClickListener {
                 value.url?.let { url ->

@@ -1,4 +1,4 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "PropertyName", "ObjectPropertyName")
 
 package io.github.yueeng.meituri
 
@@ -55,7 +55,13 @@ import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.facebook.stetho.okhttp3.StethoInterceptor
+import io.reactivex.Flowable
 import io.reactivex.Observable
+import io.reactivex.Scheduler
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.processors.FlowableProcessor
+import io.reactivex.processors.PublishProcessor
+import io.reactivex.subscribers.SerializedSubscriber
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -91,9 +97,7 @@ fun logw(vararg msg: Any?) = debug { Log.w(LOG_TAG, msg.joinToString(", ")) }
 fun logd(vararg msg: Any?) = debug { Log.d(LOG_TAG, msg.joinToString(", ")) }
 fun logv(vararg msg: Any?) = debug { Log.v(LOG_TAG, msg.joinToString(", ")) }
 
-inline fun <reified T : Any> Any.cls(): T? {
-    return this as? T
-}
+inline fun <reified T : Any> Any.cls(): T? = this as? T
 
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
 fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
@@ -122,13 +126,9 @@ fun Pair<String, String?>.jsoup() = try {
     null
 }
 
-fun Element.attrs(vararg key: String): String? {
-    return key.firstOrNull { hasAttr(it) }?.let { attr(it) }
-}
+fun Element.attrs(vararg key: String): String? = key.firstOrNull { hasAttr(it) }?.let { attr(it) }
 
-fun Elements.attrs(vararg key: String): String? {
-    return key.firstOrNull { hasAttr(it) }?.let { attr(it) }
-}
+fun Elements.attrs(vararg key: String): String? = key.firstOrNull { hasAttr(it) }?.let { attr(it) }
 
 fun Context.asActivity(): Activity? = when (this) {
     is Activity -> this
@@ -169,9 +169,7 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
         return this
     }
 
-    operator fun invoke(): T {
-        return value
-    }
+    operator fun invoke(): T = value
 
     fun each(func: (V) -> Unit): ViewBinder<T, V> = synchronized(this) {
         view -= view.filter { it.get() == null }
@@ -228,15 +226,11 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
 
 abstract class DataPagerAdapter<T>(val layout: Int) : PagerAdapter() {
     val data = mutableListOf<T>()
-    override fun isViewFromObject(view: View?, `object`: Any?): Boolean = view == `object`
+    override fun isViewFromObject(view: View, `object`: Any): Boolean = view == `object`
 
     override fun getCount(): Int = data.size
-    override fun destroyItem(container: ViewGroup, position: Int, `object`: Any?) {
+    override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
         container.removeView(`object` as? View)
-    }
-
-    override fun setPrimaryItem(container: ViewGroup?, position: Int, `object`: Any?) {
-        super.setPrimaryItem(container, position, `object`)
     }
 
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
@@ -298,13 +292,11 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
 class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
     private var linePadding = 2f // play around with these as needed
     private var sidePadding = 5f // play around with these as needed
-    private fun measureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float {
-        return paint.measureText(text, start, end)
-    }
+    private fun measureText(paint: Paint, text: CharSequence, start: Int, end: Int): Float =
+            paint.measureText(text, start, end)
 
-    override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int {
-        return Math.round(measureText(paint, text, start, end) + (2 * sidePadding))
-    }
+    override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int, p4: Paint.FontMetricsInt?): Int =
+            Math.round(measureText(paint, text, start, end) + (2 * sidePadding))
 
     override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int, x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
         val rect = RectF(x, y + paint.fontMetrics.top - linePadding,
@@ -380,6 +372,7 @@ fun String.indexAllOf(string: String): Sequence<Int> = buildSequence {
 fun Cursor.getString(column: String): String = getString(getColumnIndex(column))
 fun Cursor.getInt(column: String) = getInt(getColumnIndex(column))
 
+@Suppress("MemberVisibilityCanPrivate")
 object Save {
     private fun encode(path: String): String = """\/:*?"<>|""".fold(path) { r, i ->
         r.replace(i, ' ')
@@ -450,7 +443,7 @@ fun Context.delay(millis: Long, run: () -> Unit) {
 }
 
 fun Fragment.delay(millis: Long, run: () -> Unit) {
-    context.delay(millis, run)
+    context?.delay(millis, run)
 }
 
 val Fragment.orientation get() = resources.configuration.orientation
@@ -526,9 +519,7 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
     private val mEdgeSlop: Float = ViewConfiguration.get(context).scaledEdgeSlop.toFloat()
 
     @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(ev: MotionEvent?): Boolean {
-        return !isSwipeEnabled || super.onTouchEvent(ev)
-    }
+    override fun onTouchEvent(ev: MotionEvent?): Boolean = !isSwipeEnabled || super.onTouchEvent(ev)
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         if (!isSwipeEnabled) return false
@@ -647,4 +638,22 @@ object RxMt {
             it.onError(e)
         }
     }!!
+}
+
+class RxBus {
+    companion object {
+        private val _instance: RxBus by lazy { RxBus() }
+        val instance get() = _instance
+    }
+
+    data class RxMsg(val action: String, val event: Any)
+
+    private val _bus: FlowableProcessor<RxMsg> by lazy { PublishProcessor.create<RxMsg>().toSerialized() }
+    val bus get() = _bus
+
+    fun <T : Any> post(a: String, o: T) = SerializedSubscriber(bus).onNext(RxMsg(a, o))
+
+    inline fun <reified T> flowable(action: String, scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> = bus.ofType(RxMsg::class.java).filter {
+        it.action == action && it.event is T
+    }.map { it.event as T }.observeOn(scheduler)
 }
