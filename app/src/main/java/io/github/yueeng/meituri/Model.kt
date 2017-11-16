@@ -145,7 +145,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
             } ?: Link(it.text().substring("模特：".length))
         }
         organ = e.select("p:contains(机构：) a").map { Link(it) }
-        tags = e.select("p:contains(类型：) a").map { Link(it) }
+        tags = e.select("p:contains(类型：) a,p:contains(标签：) a").map { Link(it) }
     }
 
     constructor(it: ObAlbum) : this(it.name, it.url) {
