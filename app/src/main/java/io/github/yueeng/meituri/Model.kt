@@ -9,7 +9,6 @@ import io.objectbox.annotation.Entity
 import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
-import io.objectbox.relation.ToOne
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import org.jsoup.nodes.Element
@@ -119,7 +118,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     internal lateinit var organ: List<Link>
 
-    internal var model: Link? = null
+    internal lateinit var model: List<Link>
 
     internal lateinit var tags: List<Link>
 
@@ -130,7 +129,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     val count get() = _count
 
     val info: List<Link>
-        get() = tags + organ + model.option()
+        get() = tags + organ + model
 
     constructor(e: Link) : this(e.name, e.url)
 
@@ -139,11 +138,13 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
         _count = e.select(".shuliang").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
         }
-        model = e.select("p:contains(模特：)").takeIf { it.isNotEmpty() }?.let {
-            it.select("a").takeIf { it.isNotEmpty() }?.let {
-                Link(it)
-            } ?: Link(it.text().substring("模特：".length))
-        }
+        model = e.select("p:contains(模特：)").flatMap { it.childNodes() }.mapNotNull {
+            when (it) {
+                is TextNode -> it.text().trim().takeIf { it.isNotEmpty() }?.let { Link(it) }
+                is Element -> Link(it.text(), it.attr("abs:href"))
+                else -> null
+            }
+        }.drop(1).distinctBy { it.key }
         organ = e.select("p:contains(机构：) a").map { Link(it) }
         tags = e.select("p:contains(类型：) a,p:contains(标签：) a").map { Link(it) }
     }
@@ -151,7 +152,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     constructor(it: ObAlbum) : this(it.name, it.url) {
         _image = it.image
         _count = it.count
-        model = it.model.target?.let { Link(it.name, it.url) }
+        model = it.model.map { Link(it.name, it.url) }
         organ = it.organ.map { Link(it.name, it.url) }
         tags = it.tags.map { Link(it.name, it.url) }
     }
@@ -163,7 +164,8 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
         _image = source.readString()
         organ = mutableListOf()
         source.readList(organ, Link::class.java.classLoader)
-        model = source.readParcelable(Link::class.java.classLoader)
+        model = mutableListOf()
+        source.readList(model, Link::class.java.classLoader)
         tags = mutableListOf()
         source.readList(tags, Link::class.java.classLoader)
         _count = source.readInt()
@@ -176,7 +178,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
         writeString(url)
         writeString(_image)
         writeList(organ)
-        writeParcelable(model, 0)
+        writeList(model)
         writeList(tags)
         writeInt(_count)
     }
@@ -219,7 +221,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
                         }
                     } ?: emptyList()
                     Album(dom.select("h1").text(), url).apply {
-                        model = attr2links("出镜模特").plus(sample?.model.option()).distinctBy { it.key }.firstOrNull()
+                        model = attr2links("出镜模特").plus((sample?.model ?: emptyList())).distinctBy { it.key }
                         organ = attr2links("拍摄机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
                         tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }
                         _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".content img.tupian_img").firstOrNull()?.attr("abs:src") ?: ""
@@ -258,7 +260,7 @@ data class ObAlbum(@Id var id: Long = 0) {
     lateinit var url: String
     lateinit var image: String
     lateinit var organ: ToMany<ObLink>
-    lateinit var model: ToOne<ObLink>
+    lateinit var model: ToMany<ObLink>
     lateinit var tags: ToMany<ObLink>
     var count: Int = 0
 }
@@ -285,20 +287,18 @@ object dbFav {
                     albums.add(oba)
                 }
 
-                val o = (oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()).apply {
+                (oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()).apply {
                     name = album.name
                     url = album.url
                     image = album.image
                     count = album.count
-                    album.model?.let { model.target = link2info(it, ObLink.TYPE_MODEL, this) }
+                    album.model.forEach { model.add(link2info(it, ObLink.TYPE_MODEL, this)) }
                     album.organ.forEach { organ.add(link2info(it, ObLink.TYPE_ORGAN, this)) }
                     album.tags.forEach { tags.add(link2info(it, ObLink.TYPE_TAGS, this)) }
+                }.also { o ->
+                    oba.put(o)
+                    obl.put(o.model + o.organ + o.tags)
                 }
-                oba.put(o)
-                o.model.target.option().forEach { obl.put(it) }
-                o.organ.forEach { obl.put(it) }
-                o.tags.forEach { obl.put(it) }
-                o
             }
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn?.invoke(it) }
     }
