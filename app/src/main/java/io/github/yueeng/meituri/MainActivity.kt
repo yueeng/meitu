@@ -349,7 +349,7 @@ class ListFragment : Fragment() {
             val categories = uri?.takeIf { it == "$website/mote/" }?.let {
                 dom?.select("#tag_ul li a")?.map { Link(it) }
             }
-            val next = dom?.select("#pages .current+a")?.attr("abs:href")
+            val next = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
             uiThread {
                 busy * false
                 uri = next
