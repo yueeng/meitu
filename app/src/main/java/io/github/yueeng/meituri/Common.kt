@@ -149,31 +149,29 @@ inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, 
 }
 
 class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> Unit) {
-    private val view = mutableListOf<WeakReference<V>>()
+    private val view = WeakHashMap<V, Boolean>()
     operator fun plus(v: V): ViewBinder<T, V> = synchronized(this) {
-        view += WeakReference(v)
+        view[v] = true
         func(v, value)
-        return this
+        this
     }
 
     operator fun minus(v: V): ViewBinder<T, V> = synchronized(this) {
-        view -= view.filter { it.get() == v || it.get() == null }
-        return this
+        view.remove(v)
+        this
     }
 
     operator fun times(v: T): ViewBinder<T, V> = synchronized(this) {
         value = v
-        view -= view.filter { it.get() == null }
-        view.map { it.get()!! }.forEach { func(it, value) }
-        return this
+        view.forEach { func(it.key, value) }
+        this
     }
 
     operator fun invoke(): T = value
 
     fun each(func: (V) -> Unit): ViewBinder<T, V> = synchronized(this) {
-        view -= view.filter { it.get() == null }
-        view.map { it.get()!! }.forEach { func(it) }
-        return this
+        view.forEach { func(it.key) }
+        this
     }
 }
 
