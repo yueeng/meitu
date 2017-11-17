@@ -31,6 +31,7 @@ import android.support.v4.content.ContextCompat
 import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.support.v4.widget.SlidingPaneLayout
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.view.menu.MenuPopupHelper
 import android.support.v7.widget.*
@@ -431,6 +432,9 @@ fun Context.delay(millis: Long, run: () -> Unit) {
 fun Fragment.delay(millis: Long, run: () -> Unit) {
     context?.delay(millis, run)
 }
+
+fun Context.alert() = AlertDialog.Builder(this)
+fun Context.popupMenu(view: View) = PopupMenu(this, view)
 
 val Fragment.orientation get() = resources.configuration.orientation
 val Fragment.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT

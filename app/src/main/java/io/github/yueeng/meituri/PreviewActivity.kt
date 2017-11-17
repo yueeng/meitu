@@ -11,9 +11,7 @@ import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
 import android.support.v4.view.ViewPager
-import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
 import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
@@ -114,60 +112,56 @@ class PreviewFragment : Fragment() {
                         }
                     }
                     if (Save.check(url) != DownloadManager.STATUS_SUCCESSFUL) save(false) else {
-                        context?.run {
-                            AlertDialog.Builder(this)
-                                    .setMessage("注意")
-                                    .setMessage("似乎下载过该图片")
-                                    .setPositiveButton("仍然下载") { _, _ ->
-                                        save(true)
-                                    }
-                                    .setNegativeButton("取消", null)
-                                    .create().show()
+                        context?.alert()?.apply {
+                            setMessage("注意")
+                            setMessage("似乎下载过该图片")
+                            setPositiveButton("仍然下载") { _, _ ->
+                                save(true)
+                            }
+                            setNegativeButton("取消", null)
+                            create().show()
                         }
                     }
                 }
             }
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
-            context?.let { context ->
-                doAsync {
-                    info = info ?: Album.attr(url.httpGet().jsoup())
-                    uiThread {
-                        info?.let { info ->
-                            AlertDialog.Builder(context)
-                                    .setTitle(name)
-                                    .setPositiveButton("确定", null)
-                                    .create()
-                                    .apply {
-                                        info.joinToString("\n") {
-                                            "${it.first}: ${it.second.joinToString(", ")}"
-                                        }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
-                                            context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
-                                            dismiss()
-                                        }.let { setMessage(it) }
-                                        show()
-                                        findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
-                                    }
-                        } ?: { context.toast("获取信息失败，请稍后重试。") }()
-                    }
+            doAsync {
+                info = info ?: Album.attr(url.httpGet().jsoup())
+                uiThread {
+                    info?.let { info ->
+                        context?.alert()?.apply {
+                            setTitle(name)
+                            setPositiveButton("确定", null)
+                            create().apply {
+                                info.joinToString("\n") {
+                                    "${it.first}: ${it.second.joinToString(", ")}"
+                                }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
+                                    context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                                    dismiss()
+                                }.let { setMessage(it) }
+                                show()
+                                findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
+                            }
+                        }
+                    } ?: { context?.toast("获取信息失败，请稍后重试。") }()
                 }
             }
         }
         view.findViewById<View>(R.id.button3).setOnClickListener {
-            context?.let { context ->
-                PopupMenu(context, it).apply {
-                    setForceShowIcon(true)
-                    inflate(R.menu.preivew_more)
-                    menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
-                    setOnMenuItemClickListener {
-                        when (it.itemId) {
-                            R.id.menu_download_all -> activity?.permissionWriteExternalStorage { download() }
-                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
-                            R.id.menu_thumb -> sliding?.open()
-                        }
-                        true
+            context?.popupMenu(it)?.apply {
+                setForceShowIcon(true)
+                inflate(R.menu.preivew_more)
+                menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
+                setOnMenuItemClickListener {
+                    when (it.itemId) {
+                        R.id.menu_download_all -> activity?.permissionWriteExternalStorage { download() }
+                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
+                        R.id.menu_thumb -> sliding?.open()
                     }
-                }.show()
+                    true
+                }
+                show()
             }
         }
         context?.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
@@ -254,16 +248,15 @@ class PreviewFragment : Fragment() {
                 else
                     download()
             else
-                context?.run {
-                    AlertDialog.Builder(this)
-                            .setTitle(name)
-                            .setMessage("该图集共有${adapter.data.size}张图片，要下载吗")
-                            .setPositiveButton("下载全部") { _, _ ->
-                                adapter.data.forEach { Save.download(it, name) }
-                                toast("添加下载队列完成，从通知栏查看下载进度。")
-                            }
-                            .setNegativeButton("取消", null)
-                            .create().show()
+                context?.alert()?.apply {
+                    setTitle(name)
+                    setMessage("该图集共有${adapter.data.size}张图片，要下载吗")
+                    setPositiveButton("下载全部") { _, _ ->
+                        adapter.data.forEach { Save.download(it, name) }
+                        context.toast("添加下载队列完成，从通知栏查看下载进度。")
+                    }
+                    setNegativeButton("取消", null)
+                    create().show()
                 }
         }
     }
