@@ -26,8 +26,6 @@ import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.DoubleTapGestureListener
 import com.facebook.samples.zoomable.ZoomableDraweeView
 import org.jetbrains.anko.*
-import org.jsoup.nodes.Element
-import org.jsoup.nodes.TextNode
 
 
 /**
@@ -218,7 +216,7 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    private var info: List<Pair<Any, List<Any>>>? = null
+    private var info: List<Pair<String, List<Any>>>? = null
 
     private fun query(call: (() -> Unit)? = null): Boolean {
         if (busy() || uri == null) {
@@ -232,23 +230,7 @@ class PreviewFragment : Fragment() {
             val next = dom?.select("#pages span+a")?.let {
                 !it.`is`(".a1") to it.attr("abs:href")
             }
-            val attr = info ?: dom?.select(".tuji p,.shuoming p, .fenxiang_l")?.map { it.childNodes() }?.flatten()?.mapNotNull {
-                when (it) {
-                    is TextNode -> it.text().trim().split("；").filter { it.isNotBlank() }
-                            .map { it.split("：").joinToString("：") { it.trim() } }
-                    is Element -> listOf(Link(it.text(), it.attr("abs:href")))
-                    else -> emptyList()
-                }
-            }?.flatten()?.fold<Any, MutableList<MutableList<Any>>>(mutableListOf()) { r, t ->
-                r.apply {
-                    when (t) {
-                        is String -> mutableListOf<Any>().apply {
-                            r += apply { addAll(t.split("：").filter { it.isNotBlank() }) }
-                        }
-                        else -> r.last() += t
-                    }
-                }
-            }?.map { it.first() to it.drop(1) }
+            val attr = info ?: Album.attr(dom)
             uiThread {
                 busy * false
                 uri = if (next?.first == true) next.second else null
