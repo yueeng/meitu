@@ -25,6 +25,10 @@ val website = "http://www.meituri.com"
 
 fun search(key: String) = "$website/search/${Uri.encode(key)}"
 open class Name(val name: String) : Parcelable {
+    override fun toString(): String = name
+    override fun equals(other: Any?): Boolean = name == other
+    override fun hashCode(): Int = name.hashCode()
+
     constructor(source: Parcel) : this(
             source.readString()
     )
@@ -50,6 +54,8 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
     constructor(e: Element) : this(e.text(), e.attrs("abs:href"))
 
     override fun toString(): String = name
+    override fun equals(other: Any?): Boolean = key == other
+    override fun hashCode(): Int = key.hashCode()
 
     val key get() = "$name:${url ?: ""}"
     val uri get() = url?.takeIf { !url.isNullOrEmpty() } ?: search(name)
