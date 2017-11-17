@@ -291,7 +291,9 @@ class PreviewFragment : Fragment() {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
             view.findViewById<ZoomableDraweeView>(R.id.image)
-                    .progress().load(item)
+                    .apply { maxScaleFactor = 5F }
+                    .progress()
+                    .load(item)
                     .setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
                         override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
                             RxBus.instance.post("tap_preview", 1)

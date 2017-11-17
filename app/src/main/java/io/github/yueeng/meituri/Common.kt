@@ -55,6 +55,8 @@ import com.facebook.drawee.generic.GenericDraweeHierarchy
 import com.facebook.drawee.view.DraweeView
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
+import com.facebook.samples.zoomable.DefaultZoomableController
+import com.facebook.samples.zoomable.ZoomableDraweeView
 import com.facebook.stetho.okhttp3.StethoInterceptor
 import io.reactivex.Flowable
 import io.reactivex.Observable
@@ -477,6 +479,11 @@ fun PopupMenu.setForceShowIcon(show: Boolean) = try {
     e.printStackTrace()
 }
 
+var ZoomableDraweeView.maxScaleFactor: Float
+    get() = (this.zoomableController as? DefaultZoomableController)?.maxScaleFactor ?: 2F
+    set(value) {
+        (this.zoomableController as? DefaultZoomableController)?.maxScaleFactor = value
+    }
 
 fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     hierarchy.setProgressBarImage(ProgressBarDrawable().apply {

@@ -60,7 +60,7 @@ public class DefaultZoomableController
   private boolean mIsTranslationEnabled = true;
 
   private float mMinScaleFactor = 1.0f;
-  private float mMaxScaleFactor = 5.0f;
+  private float mMaxScaleFactor = 2.0f;
 
   // View bounds, in view-absolute coordinates
   private final RectF mViewBounds = new RectF();
