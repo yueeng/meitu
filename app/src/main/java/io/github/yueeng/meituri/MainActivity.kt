@@ -173,7 +173,16 @@ class FavoriteTagsFragment : Fragment() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        query()
+        state?.let {
+            page = state.getLong("page")
+            adapter.add(state.getParcelableArrayList("data"))
+        } ?: { query() }()
+    }
+
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putLong("page", page)
+        state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
     private var page = 0L
@@ -187,26 +196,26 @@ class FavoriteTagsFragment : Fragment() {
         }
     }
 
-    class TextHolder(view: View) : DataHolder<ObLink>(view) {
+    class TextHolder(view: View) : DataHolder<Link2>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
         @SuppressLint("SetTextI18n")
         override fun bind() {
             text1.text = value.name
-            text2.text = "${value.albums.size}套"
+            text2.text = "${value.size}套"
         }
 
         init {
             view.setOnClickListener {
-                value.url.takeIf { it.isNotEmpty() }?.let {
-                    context.startActivity<FavoriteTagActivity>("tag" to value.id, "url" to value.url, "name" to value.name)
+                value.url?.takeIf { it.isNotEmpty() }?.let {
+                    context.startActivity<FavoriteTagActivity>("tag" to value.id, "url" to it, "name" to value.name)
                 }
             }
         }
     }
 
-    class ListAdapter : DataAdapter<ObLink, DataHolder<ObLink>>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<ObLink> =
+    class ListAdapter : DataAdapter<Link2, DataHolder<Link2>>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link2> =
                 TextHolder(parent.inflate(R.layout.list_organ_item))
     }
 }
@@ -234,7 +243,16 @@ class FavoriteFragment : Fragment() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        query()
+        state?.let {
+            page = state.getLong("page")
+            adapter.add(state.getParcelableArrayList("data"))
+        } ?: { query() }()
+    }
+
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putLong("page", page)
+        state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
     private var page = 0L
@@ -327,6 +345,7 @@ class ListFragment : Fragment() {
         }
     }
 
+    private val adapter = ListAdapter()
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments?.getString("url")!! }
     private var uri: String? = null
@@ -335,7 +354,16 @@ class ListFragment : Fragment() {
         retainInstance = true
         setHasOptionsMenu(true)
         uri = url
-        query()
+        state?.let {
+            uri = state.getString("uri")
+            adapter.add(state.getParcelableArrayList("data"))
+        } ?: { query() }()
+    }
+
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putString("uri", uri)
+        state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
     private fun query() {
@@ -373,7 +401,6 @@ class ListFragment : Fragment() {
         }
     }
 
-    private val adapter = ListAdapter()
 
     class TextHolder(view: View) : DataHolder<Link>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)

@@ -235,6 +235,34 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     }
 }
 
+class Link2(val id: Long, name: String, url: String?, val size: Int) : Link(name, url), Parcelable {
+    constructor(source: Parcel) : this(
+            source.readLong(),
+            source.readString(),
+            source.readString(),
+            source.readInt()
+    )
+
+    constructor(source: ObLink) : this(source.id, source.name, source.url, source.albums.size)
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeLong(id)
+        writeString(name)
+        writeString(url)
+        writeInt(size)
+    }
+
+    companion object {
+        @JvmField
+        val CREATOR: Parcelable.Creator<Link2> = object : Parcelable.Creator<Link2> {
+            override fun createFromParcel(source: Parcel): Link2 = Link2(source)
+            override fun newArray(size: Int): Array<Link2?> = arrayOfNulls(size)
+        }
+    }
+}
+
 @Entity
 open class ObLink(@Id var id: Long = 0) {
     @Index
@@ -320,9 +348,9 @@ object dbFav {
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }
 
-    fun tags(type: Int, fn: (List<ObLink>) -> Unit) {
+    fun tags(type: Int, fn: (List<Link2>) -> Unit) {
         RxMt.create {
-            obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }
+            obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }.map(::Link2)
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }
 }
