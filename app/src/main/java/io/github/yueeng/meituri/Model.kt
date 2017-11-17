@@ -24,8 +24,27 @@ import org.jsoup.select.Elements
 val website = "http://www.meituri.com"
 
 fun search(key: String) = "$website/search/${Uri.encode(key)}"
+open class Name(val name: String) : Parcelable {
+    constructor(source: Parcel) : this(
+            source.readString()
+    )
 
-open class Link(val name: String, val url: String? = null) : Parcelable {
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+    }
+
+    companion object {
+        @JvmField
+        val CREATOR: Parcelable.Creator<Name> = object : Parcelable.Creator<Name> {
+            override fun createFromParcel(source: Parcel): Name = Name(source)
+            override fun newArray(size: Int): Array<Name?> = arrayOfNulls(size)
+        }
+    }
+}
+
+open class Link(name: String, val url: String? = null) : Name(name), Parcelable {
     constructor(e: Elements) : this(e.text(), e.attrs("abs:href"))
 
     constructor(e: Element) : this(e.text(), e.attrs("abs:href"))
@@ -193,20 +212,20 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
             override fun newArray(size: Int): Array<Album?> = arrayOfNulls(size)
         }
 
-        fun attr(dom: Document?) = dom?.select(".tuji p,.shuoming p, .fenxiang_l")?.map { it.childNodes() }?.flatten()?.mapNotNull {
+        fun attr(dom: Document?): List<Pair<String, List<Name>>>? = dom?.select(".tuji p,.shuoming p, .fenxiang_l")?.flatMap { it.childNodes() }?.flatMap {
             when (it) {
                 is TextNode -> it.text().trim().split("；").filter { it.isNotBlank() }
                         .map { it.split("：").joinToString("：") { it.trim() } }
                 is Element -> listOf(Link(it.text(), it.attr("abs:href")))
                 else -> emptyList()
             }
-        }?.flatten()?.fold<Any, MutableList<MutableList<Any>>>(mutableListOf()) { r, t ->
+        }?.fold<Any, MutableList<MutableList<Name>>>(mutableListOf()) { r, t ->
             r.apply {
                 when (t) {
-                    is String -> mutableListOf<Any>().apply {
-                        r += apply { addAll(t.split("：").filter { it.isNotBlank() }) }
+                    is String -> mutableListOf<Name>().apply {
+                        r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
                     }
-                    else -> r.last() += t
+                    is Link -> r.last() += t
                 }
             }
         }?.map { it.first().toString() to it.drop(1) }
@@ -215,11 +234,10 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
             RxMt.create {
                 url.httpGet().jsoup()?.let { dom ->
                     attr(dom)?.toMap()?.let {
-                        fun attr2links(name: String) = it[name]?.mapNotNull {
+                        fun attr2links(name: String) = it[name]?.map {
                             when (it) {
                                 is Link -> it
-                                is String -> Link(it)
-                                else -> null
+                                else -> Link(it.name)
                             }
                         } ?: emptyList()
                         Album(dom.select("h1").text(), url).apply {

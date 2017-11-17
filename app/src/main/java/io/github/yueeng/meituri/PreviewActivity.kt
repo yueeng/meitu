@@ -53,7 +53,7 @@ class PreviewActivity : BaseSlideCloseActivity() {
 class PreviewFragment : Fragment() {
     private val album by lazy { arguments?.getParcelable<Album>("data")!! }
     private val name by lazy { album.name }
-    private val url by lazy { album.url }
+    private val url by lazy { album.url!! }
     private val count by lazy { album.count }
     private var uri: String? = null
     private val adapter by lazy { PreviewAdapter(name) }
@@ -115,21 +115,26 @@ class PreviewFragment : Fragment() {
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
             context?.let { context ->
-                info?.also { info ->
-                    AlertDialog.Builder(context)
-                            .setTitle(name)
-                            .setPositiveButton("确定", null)
-                            .create()
-                            .apply {
-                                info.joinToString("\n") {
-                                    "${it.first}: ${it.second.joinToString(", ")}"
-                                }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
-                                    context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
-                                    dismiss()
-                                }.let { setMessage(it) }
-                                show()
-                                findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
-                            }
+                doAsync {
+                    info = info ?: Album.attr(url.httpGet().jsoup())
+                    uiThread {
+                        info?.let { info ->
+                            AlertDialog.Builder(context)
+                                    .setTitle(name)
+                                    .setPositiveButton("确定", null)
+                                    .create()
+                                    .apply {
+                                        info.joinToString("\n") {
+                                            "${it.first}: ${it.second.joinToString(", ")}"
+                                        }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
+                                            context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                                            dismiss()
+                                        }.let { setMessage(it) }
+                                        show()
+                                        findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
+                                    }
+                        } ?: { context.toast("获取信息失败，请稍后重试。") }()
+                    }
                 }
             }
         }
@@ -201,7 +206,29 @@ class PreviewFragment : Fragment() {
         super.onCreate(state)
         uri = url
         retainInstance = true
-        query()
+        state?.let {
+            page * state.getInt("page")
+            uri = state.getString("uri")
+            adapter.data.addAll(state.getStringArrayList("data"))
+            thumb.add(state.getStringArrayList("thumb"))
+            info = state.getParcelableArrayList<Bundle>("info")?.map {
+                Pair<String, List<Name>>(it.getString("key"), it.getParcelableArrayList("value"))
+            }
+        } ?: { query() }()
+    }
+
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putInt("page", page())
+        state.putString("uri", uri)
+        state.putStringArrayList("data", ArrayList(adapter.data))
+        state.putStringArrayList("thumb", ArrayList(thumb.data))
+
+        state.putParcelableArrayList("info", info?.map {
+            bundleOf("key" to it.first).apply {
+                putParcelableArrayList("value", ArrayList(it.second))
+            }
+        }?.let { ArrayList(it) })
     }
 
     private fun download() {
@@ -216,7 +243,7 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    private var info: List<Pair<String, List<Any>>>? = null
+    private var info: List<Pair<String, List<Name>>>? = null
 
     private fun query(call: (() -> Unit)? = null): Boolean {
         if (busy() || uri == null) {
