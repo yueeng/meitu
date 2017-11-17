@@ -392,9 +392,9 @@ class ListFragment : Fragment() {
                 busy * false
                 uri = next
                 if (categories?.size ?: 0 > 0) {
-                    adapter.add(Link("分类"))
+                    adapter.add(Name("分类"))
                     adapter.add(categories!!)
-                    adapter.add(Link("模特"))
+                    adapter.add(Name("模特"))
                 }
                 if (list != null) adapter.add(list)
             }
