@@ -380,22 +380,22 @@ object Save {
         }
     }
 
-    fun download(url: String, title: String, call: ((Int) -> Unit)? = null) {
+    fun download(url: String, file: File) = MainApplication.current().run {
+        if (file.exists()) file.delete()
+        val request = DownloadManager.Request(Uri.parse(url))
+                .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationUri(Uri.fromFile(file))
+        downloadManager.enqueue(request)
+    }
+
+    fun download(url: String, title: String, override: Boolean = false, call: ((Int) -> Unit)? = null) {
         check(url).let {
             when (it) {
-                0, DownloadManager.STATUS_FAILED -> {
-                    MainApplication.current().run {
-                        val file = file(url, title)
-                        if (file.exists()) file.delete()
-                        val request = DownloadManager.Request(Uri.parse(url))
-                                .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
-                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                .setDestinationUri(Uri.fromFile(file))
-                        downloadManager.enqueue(request)
-                    }
-                }
-                else -> call?.invoke(it)
-            }
+                0, DownloadManager.STATUS_FAILED -> download(url, file(url, title)).let { 0 }
+                DownloadManager.STATUS_SUCCESSFUL -> if (override) download(url, file(url, title)).let { 0 } else it
+                else -> it
+            }.let { call?.invoke(it) }
         }
     }
 }

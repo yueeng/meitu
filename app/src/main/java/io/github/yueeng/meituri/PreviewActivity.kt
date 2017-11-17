@@ -104,11 +104,26 @@ class PreviewFragment : Fragment() {
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
             activity?.permissionWriteExternalStorage {
                 adapter.data[current].let { url ->
-                    Save.download(url, name) {
-                        if (it == DownloadManager.STATUS_SUCCESSFUL)
-                            context?.toast("已经下载完成")
-                        else
-                            context?.toast("已经在下载队列中")
+                    fun save(override: Boolean) {
+                        Save.download(url, name, override) {
+                            when (it) {
+                                0 -> context?.toast("添加下载队列完成，从通知栏查看下载进度。")
+                                DownloadManager.STATUS_SUCCESSFUL -> context?.toast("已经下载过了")
+                                else -> context?.toast("已经在下载队列中")
+                            }
+                        }
+                    }
+                    if (Save.check(url) != DownloadManager.STATUS_SUCCESSFUL) save(false) else {
+                        context?.run {
+                            AlertDialog.Builder(this)
+                                    .setMessage("注意")
+                                    .setMessage("似乎下载过该图片")
+                                    .setPositiveButton("仍然下载") { _, _ ->
+                                        save(true)
+                                    }
+                                    .setNegativeButton("取消", null)
+                                    .create().show()
+                        }
                     }
                 }
             }
@@ -239,7 +254,17 @@ class PreviewFragment : Fragment() {
                 else
                     download()
             else
-                adapter.data.forEach { Save.download(it, name) }
+                context?.run {
+                    AlertDialog.Builder(this)
+                            .setTitle(name)
+                            .setMessage("该图集共有${adapter.data.size}张图片，要下载吗")
+                            .setPositiveButton("下载全部") { _, _ ->
+                                adapter.data.forEach { Save.download(it, name) }
+                                toast("添加下载队列完成，从通知栏查看下载进度。")
+                            }
+                            .setNegativeButton("取消", null)
+                            .create().show()
+                }
         }
     }
 
