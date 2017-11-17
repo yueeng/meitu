@@ -646,17 +646,20 @@ class RxBus {
 
     fun <T : Any> post(a: String, o: T) = SerializedSubscriber(bus).onNext(RxMsg(a, o))
 
-    fun <T> flowable(clazz: Class<T>, action: String, scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> {
+    fun <T> flowable(clazz: Class<T>,
+                     action: String,
+                     scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> {
         return bus.ofType(RxMsg::class.java).filter {
             it.action == action && clazz.isInstance(it.event)
         }.map { clazz.cast(it.event) }.observeOn(scheduler)
     }
 
-    inline fun <reified T> flowable(action: String, scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> =
+    inline fun <reified T> flowable(action: String,
+                                    scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> =
             flowable(T::class.java, action, scheduler)
 
-
-    fun <T> subscribe(clazz: Class<T>, ref: Any,
+    fun <T> subscribe(clazz: Class<T>,
+                      ref: Any,
                       action: String,
                       scheduler: Scheduler = AndroidSchedulers.mainThread(),
                       call: (T) -> Unit): Disposable =
