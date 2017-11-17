@@ -60,6 +60,7 @@ import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.processors.FlowableProcessor
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.subscribers.SerializedSubscriber
@@ -639,11 +640,38 @@ class RxBus {
     data class RxMsg(val action: String, val event: Any)
 
     private val _bus: FlowableProcessor<RxMsg> by lazy { PublishProcessor.create<RxMsg>().toSerialized() }
-    val bus get() = _bus
+    private val bus get() = _bus
+    private val _map = mutableMapOf<Any, MutableList<Disposable>>()
+    private val map get() = _map
 
     fun <T : Any> post(a: String, o: T) = SerializedSubscriber(bus).onNext(RxMsg(a, o))
 
-    inline fun <reified T> flowable(action: String, scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> = bus.ofType(RxMsg::class.java).filter {
-        it.action == action && it.event is T
-    }.map { it.event as T }.observeOn(scheduler)
+    fun <T> flowable(clazz: Class<T>, action: String, scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> {
+        return bus.ofType(RxMsg::class.java).filter {
+            it.action == action && clazz.isInstance(it.event)
+        }.map { clazz.cast(it.event) }.observeOn(scheduler)
+    }
+
+    inline fun <reified T> flowable(action: String, scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> =
+            flowable(T::class.java, action, scheduler)
+
+
+    fun <T> subscribe(clazz: Class<T>, ref: Any,
+                      action: String,
+                      scheduler: Scheduler = AndroidSchedulers.mainThread(),
+                      call: (T) -> Unit): Disposable =
+            flowable(clazz, action, scheduler).subscribe { call(it) }.also { obs ->
+                map[ref]?.add(obs) ?: { map[ref] = mutableListOf(obs) }()
+            }
+
+    inline fun <reified T> subscribe(ref: Any,
+                                     action: String,
+                                     scheduler: Scheduler = AndroidSchedulers.mainThread(),
+                                     noinline call: (T) -> Unit): Disposable =
+            subscribe(T::class.java, ref, action, scheduler, call)
+
+    fun unsubscribe(ref: Any) {
+        map[ref]?.forEach { it.dispose() }
+        map.remove(ref)
+    }
 }

@@ -165,29 +165,23 @@ class PreviewFragment : Fragment() {
             }
         }
         context?.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-    }
-
-    private val tapPreview = RxBus.instance.flowable<Int>("tap_preview").subscribe {
-        if (sliding?.isOpen == true)
+        RxBus.instance.subscribe<Int>(this, "tap_preview") {
+            if (sliding?.isOpen == true)
+                sliding?.close()
+            else
+                current++
+        }
+        RxBus.instance.subscribe<Int>(this, "tap_thumb") {
+            current = it
             sliding?.close()
-        else
-            current++
-    }
-    private val tapThumb = RxBus.instance.flowable<Int>("tap_thumb").subscribe {
-        current = it
-        sliding?.close()
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         context?.unregisterReceiver(receiver)
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        tapPreview.dispose()
-        tapThumb.dispose()
+        RxBus.instance.unsubscribe(this)
     }
 
     fun onBackPressed(): Boolean = sliding?.state?.takeIf { it == BottomSheetBehavior.STATE_EXPANDED }?.let {
