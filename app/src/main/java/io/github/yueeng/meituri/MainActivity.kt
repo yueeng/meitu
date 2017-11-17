@@ -372,15 +372,15 @@ class ListFragment : Fragment() {
         val first = adapter.data.isEmpty()
         doAsync {
             val dom = uri!!.httpGet().jsoup()
-            val list: List<Link>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
+            val list: List<Name>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
                 when {
                     it.`is`(".hezi li") -> Album(it)
                     first && it.`is`(".hezi_t li") -> Model(it)
                     first && it.`is`(".jigou li") -> Organ(it)
                     first && it.`is`(".renwu") -> Info(it)
-                    first && it.`is`(".shoulushuliang") -> Link(it.text())
-                    first && it.`is`(".hezi .title") -> Link(it.text())
-                    first && it.`is`(".fenlei p") -> Link(it.text())
+                    first && it.`is`(".shoulushuliang") -> Name(it.text())
+                    first && it.`is`(".hezi .title") -> Name(it.text())
+                    first && it.`is`(".fenlei p") -> Name(it.text())
                     else -> null
                 }
             }
@@ -401,6 +401,12 @@ class ListFragment : Fragment() {
         }
     }
 
+    class NameHolder(view: View) : DataHolder<Name>(view) {
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        override fun bind() {
+            text1.text = value.name.spannable(value.name.numbers())
+        }
+    }
 
     class TextHolder(view: View) : DataHolder<Link>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
@@ -500,20 +506,21 @@ class ListFragment : Fragment() {
         }
     }
 
-    class ListAdapter : DataAdapter<Link, DataHolder<Link>>() {
+    class ListAdapter : DataAdapter<Name, DataHolder<Name>>() {
         override fun getItemViewType(position: Int): Int = when (get(position)) {
             is Album -> ListType.Album.value
             is Model -> ListType.Model.value
             is Organ -> ListType.Organ.value
             is Info -> ListType.Info.value
-            else -> get(position).url?.let { ListType.Category.value } ?: ListType.Title.value
+            is Link -> ListType.Category.value
+            else -> ListType.Title.value
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link> = when (viewType) {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Name> = when (viewType) {
             ListType.Album.value -> AlbumHolder(parent.inflate(R.layout.list_album_item))
             ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
             ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))
-            ListType.Title.value -> TextHolder(parent.inflate(R.layout.list_text_item))
+            ListType.Title.value -> NameHolder(parent.inflate(R.layout.list_text_item))
             ListType.Category.value -> TextHolder(parent.inflate(R.layout.list_text_item))
             ListType.Info.value -> InfoHolder(parent.inflate(R.layout.list_info_item))
             else -> throw IllegalArgumentException()
