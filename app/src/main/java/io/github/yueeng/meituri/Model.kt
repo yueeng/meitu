@@ -75,43 +75,92 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
     }
 }
 
-class Organ(name: String, url: String? = null) : Link(name, url) {
+class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
     private var _count = 0
+
     val count get() = _count
 
-    companion object {
-        val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
-    }
-
     constructor(e: Link) : this(e.name, e.url)
+
     constructor(e: Element) : this(Link(e.select("a"))) {
         _count = e.select("span").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
         }
     }
-}
 
-class Model(name: String, url: String? = null) : Link(name, url) {
-    private lateinit var _image: String
-    private var _count = 0
-    val image get() = _image
-    val count get() = _count
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    ) {
+        _count = source.readInt()
+    }
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(url)
+        writeInt(_count)
+    }
 
     companion object {
         val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
+
+        @JvmField
+        val CREATOR: Parcelable.Creator<Organ> = object : Parcelable.Creator<Organ> {
+            override fun createFromParcel(source: Parcel): Organ = Organ(source)
+            override fun newArray(size: Int): Array<Organ?> = arrayOfNulls(size)
+        }
     }
+}
+
+class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
+    private lateinit var _image: String
+
+    private var _count = 0
+
+    val image get() = _image
+
+    val count get() = _count
 
     constructor(e: Link) : this(e.name, e.url)
+
     constructor(e: Element) : this(Link(e.select("p a"))) {
         _image = e.select("img").attr("abs:src")
         _count = e.select(".shuliang").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
         }
     }
+
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    ) {
+        _image = source.readString()
+        _count = source.readInt()
+    }
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(url)
+        writeString(_image)
+        writeInt(_count)
+    }
+
+    companion object {
+        val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
+
+        @JvmField
+        val CREATOR: Parcelable.Creator<Model> = object : Parcelable.Creator<Model> {
+            override fun createFromParcel(source: Parcel): Model = Model(source)
+            override fun newArray(size: Int): Array<Model?> = arrayOfNulls(size)
+        }
+    }
 }
 
-class Info(name: String, url: String? = null) : Link(name, url) {
-
+class Info(name: String, url: String? = null) : Link(name, url), Parcelable {
     constructor(e: Link) : this(e.name, e.url)
 
     lateinit var image: String
@@ -130,6 +179,38 @@ class Info(name: String, url: String? = null) : Link(name, url) {
         tag = e.select(".renwu .shuoming a").map { Link(it) }
         e.select(".renwu .shuoming p").remove()
         etc = e.select(".renwu .shuoming").text()
+    }
+
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    ) {
+        image = source.readString()
+        attr = mutableListOf()
+        source.readList(attr, pairClass.classLoader)
+        tag = mutableListOf()
+        source.readList(tag, Link::class.java.classLoader)
+        etc = source.readString()
+    }
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(url)
+        writeString(image)
+        writeList(attr)
+        writeList(tag)
+        writeString(etc)
+    }
+
+    companion object {
+        private val pairClass = Pair("", "").javaClass
+        @JvmField
+        val CREATOR: Parcelable.Creator<Info> = object : Parcelable.Creator<Info> {
+            override fun createFromParcel(source: Parcel): Info = Info(source)
+            override fun newArray(size: Int): Array<Info?> = arrayOfNulls(size)
+        }
     }
 }
 
