@@ -169,6 +169,7 @@ class PreviewFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         context?.unregisterReceiver(receiver)
+        view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
     }
 
     override fun onDestroy() {

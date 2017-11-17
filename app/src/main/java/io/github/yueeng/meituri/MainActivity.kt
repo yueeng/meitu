@@ -152,6 +152,11 @@ class FavoriteTagsFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_list, container, false)
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
+    }
+
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
@@ -292,6 +297,11 @@ class ListFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_list, container, false)
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
+    }
 
     override fun onViewCreated(view: View, state: Bundle?) {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)

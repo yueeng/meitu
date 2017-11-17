@@ -316,7 +316,7 @@ object dbFav {
 
     fun albums(tag: Long, fn: (List<Album>) -> Unit) {
         RxMt.create {
-            obl.get(tag).albums.map(::Album)
+            obl.get(tag).albums.sortedByDescending { it.id }.map(::Album)
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
     }
 
