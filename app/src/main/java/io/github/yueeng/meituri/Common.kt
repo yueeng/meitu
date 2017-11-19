@@ -23,6 +23,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
+import android.preference.PreferenceManager
 import android.provider.Settings
 import android.support.design.widget.BottomSheetBehavior
 import android.support.v4.app.ActivityCompat
@@ -141,6 +142,8 @@ fun Context.asActivity(): Activity? = when (this) {
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
+
+infix fun <A, B> A.to4(that: B): android.support.v4.util.Pair<A, B> = android.support.v4.util.Pair(this, that)
 
 inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle?) {
     supportFragmentManager.run {
@@ -684,4 +687,12 @@ class RxBus {
         map[ref]?.forEach { it.dispose() }
         map.remove(ref)
     }
+}
+
+object Settings {
+    private val config by lazy { PreferenceManager.getDefaultSharedPreferences(MainApplication.current()) }
+    private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
+    var preview_list_column: Int
+        get() = config.getInt(KEY_PREVIEW_LIST_COLUMN, 2)
+        set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
 }

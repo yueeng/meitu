@@ -36,8 +36,9 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name=".PreviewActivity"
-            android:theme="@style/AppThemeDarkTranslucent" />
+            android:name=".PreviewActivity" />
+        <activity
+            android:name=".PreviewListActivity" />
         <activity
             android:name=".FavoriteActivity"
             android:theme="@style/AppThemeTranslucent" />

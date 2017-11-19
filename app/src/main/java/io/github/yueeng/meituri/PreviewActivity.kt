@@ -9,15 +9,17 @@ import android.content.IntentFilter
 import android.os.Bundle
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
+import android.support.transition.TransitionManager
+import android.support.v4.app.ActivityOptionsCompat
 import android.support.v4.app.Fragment
+import android.support.v4.view.ViewCompat
 import android.support.v4.view.ViewPager
+import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.StaggeredGridLayoutManager
 import android.text.method.LinkMovementMethod
-import android.view.LayoutInflater
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
@@ -37,6 +39,7 @@ class PreviewActivity : BaseSlideCloseActivity() {
         super.onCreate(state)
         setContentView(R.layout.activity_preview)
         setSupportActionBar(findViewById(R.id.toolbar))
+        postponeEnterTransition()
         setFragment<PreviewFragment>(R.id.container) { intent.extras }
     }
 
@@ -57,7 +60,8 @@ class PreviewFragment : Fragment() {
     private val adapter by lazy { PreviewAdapter(name) }
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
-    private var current
+    private val current by lazy { ViewBinder(-1, ViewPager::setCurrentItem) }
+    private var current2
         get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: -1
         set(value) {
             view?.findViewById<ViewPager>(R.id.pager)?.let { it.currentItem = value }
@@ -101,7 +105,7 @@ class PreviewFragment : Fragment() {
 
         view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
             activity?.permissionWriteExternalStorage {
-                adapter.data[current].let { url ->
+                adapter.data[current()].let { url ->
                     fun save(override: Boolean) {
                         Save.download(url, name, override) {
                             when (it) {
@@ -169,10 +173,10 @@ class PreviewFragment : Fragment() {
             if (sliding?.isOpen == true)
                 sliding?.close()
             else
-                current++
+                current * (current() + 1)
         }
         RxBus.instance.subscribe<Int>(this, "tap_thumb") {
-            current = it
+            current * it
             sliding?.close()
         }
     }
@@ -207,7 +211,6 @@ class PreviewFragment : Fragment() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        uri = url
         retainInstance = true
         state?.let {
             page * state.getInt("page")
@@ -217,7 +220,18 @@ class PreviewFragment : Fragment() {
             info = state.getParcelableArrayList<Bundle>("info")?.map {
                 Pair<String, List<Name>>(it.getString("key"), it.getParcelableArrayList("value"))
             }
-        } ?: { query() }()
+        } ?: {
+            arguments?.getStringArrayList("list")?.let {
+                adapter.data.addAll(it)
+                thumb.add(it)
+            }
+            uri = arguments?.getString("uri") ?: url
+            arguments?.getInt("index")?.let {
+                page * it
+                current * it
+            }
+            query()
+        }()
     }
 
     override fun onSaveInstanceState(state: Bundle) {
@@ -278,7 +292,7 @@ class PreviewFragment : Fragment() {
                     thumb.add(list)
                     adapter.data.addAll(list)
                     adapter.notifyDataSetChanged()
-                    page * current
+                    page * current()
                 }
                 call?.invoke()
             }
@@ -286,12 +300,15 @@ class PreviewFragment : Fragment() {
         return true
     }
 
-    class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
+    inner class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
             view.findViewById<ZoomableDraweeView>(R.id.image)
-                    .apply { maxScaleFactor = 5F }
+                    .apply {
+                        maxScaleFactor = 5F
+                        ViewCompat.setTransitionName(this, item)
+                    }
                     .progress()
                     .load(item)
                     .setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
@@ -300,7 +317,19 @@ class PreviewFragment : Fragment() {
                             return true
                         }
                     })
+            if (position == current()) setStartPostTransition(view.findViewById<ZoomableDraweeView>(R.id.image))
         }
+    }
+
+    private fun setStartPostTransition(sharedView: View) {
+        sharedView.viewTreeObserver.addOnPreDrawListener(
+                object : ViewTreeObserver.OnPreDrawListener {
+                    override fun onPreDraw(): Boolean {
+                        sharedView.viewTreeObserver.removeOnPreDrawListener(this)
+                        activity?.startPostponedEnterTransition()
+                        return false
+                    }
+                })
     }
 
     class ThumbHolder(view: View, val name: String) : DataHolder<String>(view) {
@@ -324,6 +353,137 @@ class PreviewFragment : Fragment() {
     class ThumbAdapter(val name: String) : DataAdapter<String, ThumbHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbHolder =
                 ThumbHolder(parent.inflate(R.layout.preview_thumb_item), name)
+
+    }
+}
+
+class PreviewListActivity : BaseSlideCloseActivity() {
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        setContentView(R.layout.activity_list)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        setFragment<PreviewListFragment>(R.id.container) { intent.extras }
+    }
+}
+
+class PreviewListFragment : Fragment() {
+    private val album by lazy { arguments?.getParcelable<Album>("data")!! }
+    private val name by lazy { album.name }
+    private val url by lazy { album.url!! }
+    private var uri: String? = null
+    private val thumb by lazy { ThumbAdapter() }
+    private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
+        menu.add(Menu.NONE, 0x1000, Menu.NONE, "视图").setIcon(R.drawable.ic_category).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        0x1000 -> {
+            view?.findViewById<RecyclerView>(R.id.recycler)?.let { view ->
+                TransitionManager.beginDelayedTransition(view)
+                (view.layoutManager as? StaggeredGridLayoutManager)?.let {
+                    it.spanCount = (it.spanCount + 1).takeIf { it <= 4 } ?: 1
+                    Settings.preview_list_column = it.spanCount
+                }
+            }
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
+            inflater.inflate(R.layout.fragment_list, container, false)
+
+    override fun onViewCreated(view: View, state: Bundle?) {
+        super.onViewCreated(view, state)
+        activity?.title = name
+        val recycler = view.findViewById<RecyclerView>(R.id.recycler)
+        recycler.layoutManager = StaggeredGridLayoutManager(Settings.preview_list_column, StaggeredGridLayoutManager.VERTICAL)
+        recycler.adapter = thumb
+        recycler.loadMore { query() }
+        busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
+            setOnRefreshListener {
+                thumb.clear()
+                uri = url
+                query()
+            }
+        }
+    }
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        uri = url
+        retainInstance = true
+        setHasOptionsMenu(true)
+        state?.let {
+            uri = state.getString("uri")
+            thumb.add(state.getStringArrayList("thumb"))
+        } ?: { query() }()
+    }
+
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putString("uri", uri)
+        state.putStringArrayList("thumb", ArrayList(thumb.data))
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
+    }
+
+    private fun query() {
+        if (busy() || uri == null) {
+            return
+        }
+        busy * true
+        doAsync {
+            val dom = uri!!.httpGet().jsoup()
+            val list = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
+            val next = dom?.select("#pages span+a")?.let {
+                !it.`is`(".a1") to it.attr("abs:href")
+            }
+            uiThread {
+                busy * false
+                uri = if (next?.first == true) next.second else null
+                if (list != null) {
+                    thumb.add(list)
+                }
+            }
+        }
+    }
+
+    inner class ThumbHolder(view: View) : DataHolder<String>(view) {
+        private val text: TextView = view.findViewById(R.id.text1)
+        private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        private val image2: ImageView = view.findViewById(R.id.image2)
+        @SuppressLint("SetTextI18n")
+        override fun bind(i: Int) {
+            image.load(value).aspectRatio = 3F / 4F
+            text.text = "${i + 1}"
+            image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
+        }
+
+        init {
+            view.setOnClickListener {
+                activity?.let {
+                    it.startActivity(Intent(it, PreviewActivity::class.java)
+                            .putExtra("data", album)
+                            .putExtra("list", ArrayList(thumb.data))
+                            .putExtra("uri", uri)
+                            .putExtra("index", adapterPosition),
+                            ActivityOptionsCompat.makeSceneTransitionAnimation(it,
+                                    image to4 value).toBundle())
+                }
+            }
+            image.progress()
+        }
+    }
+
+    inner class ThumbAdapter : DataAdapter<String, ThumbHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbHolder =
+                ThumbHolder(parent.inflate(R.layout.preview_list_item))
 
     }
 }

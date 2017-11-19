@@ -492,7 +492,7 @@ class ListFragment : Fragment() {
         init {
             text2.movementMethod = LinkMovementMethod.getInstance()
             view.setOnClickListener {
-                context.startActivity<PreviewActivity>("data" to value)
+                context.startActivity<PreviewListActivity>("data" to value)
             }
             check.setOnClickListener {
                 value.url?.let { url ->
