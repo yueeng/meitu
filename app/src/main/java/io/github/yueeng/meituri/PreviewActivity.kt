@@ -477,7 +477,7 @@ class PreviewListFragment : Fragment() {
             val eindex = data.getIntExtra("exit_index", -1)
             val edata = data.getStringArrayListExtra("exit_data")
             uri = data.getStringExtra("exit_uri")
-            thumb.clear().add(edata)
+            thumb.add(edata.drop(thumb.data.size))
             activity?.exitSharedElementCallback {
                 recycler?.findViewHolderForAdapterPosition2<ThumbHolder>(eindex)?.let {
                     it.image to it.value
