@@ -53,6 +53,7 @@ dependencies {
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
     implementation "io.objectbox:objectbox-android:$objectboxVersion"
     implementation "io.objectbox:objectbox-kotlin:$objectboxVersion"
+//    implementation 'com.squareup.picasso:picasso:2.5.2'
     kapt "io.objectbox:objectbox-processor:$objectboxVersion"
     compile 'io.reactivex.rxjava2:rxjava:2.1.6'
     compile 'io.reactivex.rxjava2:rxkotlin:2.1.0'

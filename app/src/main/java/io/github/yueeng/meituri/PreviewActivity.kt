@@ -1,11 +1,13 @@
 package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
@@ -22,6 +24,8 @@ import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
+import com.facebook.drawee.drawable.ScalingUtils
+import com.facebook.drawee.view.DraweeTransition
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.DoubleTapGestureListener
 import com.facebook.samples.zoomable.ZoomableDraweeView
@@ -32,15 +36,25 @@ import org.jetbrains.anko.*
  * Preview activity
  * Created by Rain on 2017/8/23.
  */
-
 class PreviewActivity : BaseSlideCloseActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         setContentView(R.layout.activity_preview)
         setSupportActionBar(findViewById(R.id.toolbar))
-        postponeEnterTransition()
+        supportPostponeEnterTransition()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.sharedElementEnterTransition = DraweeTransition.createTransitionSet(
+                    ScalingUtils.ScaleType.CENTER_CROP, ScalingUtils.ScaleType.CENTER_CROP)
+            window.sharedElementEnterTransition = DraweeTransition.createTransitionSet(
+                    ScalingUtils.ScaleType.CENTER_CROP, ScalingUtils.ScaleType.CENTER_CROP)
+        }
         setFragment<PreviewFragment>(R.id.container) { intent.extras }
+    }
+
+    override fun finishAfterTransition() {
+        (supportFragmentManager.findFragmentById(R.id.container) as? PreviewFragment)?.finishAfterTransition()
+        super.finishAfterTransition()
     }
 
     override fun onBackPressed() {
@@ -61,11 +75,6 @@ class PreviewFragment : Fragment() {
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
     private val current by lazy { ViewBinder(-1, ViewPager::setCurrentItem) }
-    private var current2
-        get() = view?.findViewById<ViewPager>(R.id.pager)?.currentItem ?: -1
-        set(value) {
-            view?.findViewById<ViewPager>(R.id.pager)?.let { it.currentItem = value }
-        }
     private val sliding get() = view?.findViewById<View>(R.id.sliding)?.let { BottomSheetBehavior.from(it) }
     private val thumb by lazy { ThumbAdapter(name) }
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
@@ -76,11 +85,12 @@ class PreviewFragment : Fragment() {
         val pager = view.findViewById<ViewPager>(R.id.pager)
         page + view.findViewById(R.id.text1)
         pager.adapter = adapter
-//        pager.offscreenPageLimit = 2
+        current + pager
         pager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 if (position >= adapter.data.size - 3) query()
                 page * position
+                current * position
             }
         })
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
@@ -300,36 +310,35 @@ class PreviewFragment : Fragment() {
         return true
     }
 
+    private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
+    fun finishAfterTransition() {
+        activity?.let { activity ->
+            pager?.currentItem?.let {
+                activity.setResult(Activity.RESULT_OK, Intent().putExtra("exit_position", it))
+                pager?.findViewWithTag2<ZoomableDraweeView>(adapter.data[it])?.let { view ->
+                    activity.enterSharedElementCallback { view to ViewCompat.getTransitionName(view) }
+                }
+            }
+        }
+    }
+
     inner class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
-            view.findViewById<ZoomableDraweeView>(R.id.image)
-                    .apply {
-                        maxScaleFactor = 5F
-                        ViewCompat.setTransitionName(this, item)
-                    }
-                    .progress()
-                    .load(item)
-                    .setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
-                        override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
-                            RxBus.instance.post("tap_preview", 1)
-                            return true
-                        }
-                    })
-            if (position == current()) setStartPostTransition(view.findViewById<ZoomableDraweeView>(R.id.image))
+            val image: ZoomableDraweeView = view.findViewById(R.id.image)
+            image.apply {
+                maxScaleFactor = 5F
+            }.progress().load(item).setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
+                override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
+                    RxBus.instance.post("tap_preview", 1)
+                    return true
+                }
+            })
+            image.tag = item
+            ViewCompat.setTransitionName(image, item)
+            if (position == current()) image.startPostponedEnterTransition()
         }
-    }
-
-    private fun setStartPostTransition(sharedView: View) {
-        sharedView.viewTreeObserver.addOnPreDrawListener(
-                object : ViewTreeObserver.OnPreDrawListener {
-                    override fun onPreDraw(): Boolean {
-                        sharedView.viewTreeObserver.removeOnPreDrawListener(this)
-                        activity?.startPostponedEnterTransition()
-                        return false
-                    }
-                })
     }
 
     class ThumbHolder(view: View, val name: String) : DataHolder<String>(view) {
@@ -364,6 +373,11 @@ class PreviewListActivity : BaseSlideCloseActivity() {
         setContentView(R.layout.activity_list)
         setSupportActionBar(findViewById(R.id.toolbar))
         setFragment<PreviewListFragment>(R.id.container) { intent.extras }
+    }
+
+    override fun onActivityReenter(resultCode: Int, data: Intent?) {
+        (supportFragmentManager.findFragmentById(R.id.container) as? PreviewListFragment)?.onActivityReenter(resultCode, data)
+        super.onActivityReenter(resultCode, data)
     }
 }
 
@@ -454,9 +468,26 @@ class PreviewListFragment : Fragment() {
         }
     }
 
+    private val recycler get() = view?.findViewById<RecyclerView>(R.id.recycler)
+    fun onActivityReenter(resultCode: Int, data: Intent?) {
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            val exitPosition = data.getIntExtra("exit_position", -1)
+            activity?.exitSharedElementCallback {
+                recycler?.findViewHolderForAdapterPosition2<ThumbHolder>(exitPosition)?.let {
+                    it.image to it.value
+                } ?: throw IllegalArgumentException()
+            }
+            recycler?.let { recycler ->
+                activity?.supportPostponeEnterTransition()
+                recycler.scrollToPosition(exitPosition)
+                recycler.startPostponedEnterTransition()
+            }
+        }
+    }
+
     inner class ThumbHolder(view: View) : DataHolder<String>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
-        private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        val image: SimpleDraweeView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int) {

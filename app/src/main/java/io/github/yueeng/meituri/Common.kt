@@ -28,6 +28,7 @@ import android.provider.Settings
 import android.support.design.widget.BottomSheetBehavior
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
+import android.support.v4.app.SharedElementCallback
 import android.support.v4.content.ContextCompat
 import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
@@ -71,6 +72,7 @@ import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
+import org.jetbrains.anko.childrenSequence
 import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.toast
 import org.jsoup.Jsoup
@@ -140,6 +142,16 @@ fun Context.asActivity(): Activity? = when (this) {
     else -> null
 }
 
+fun <T : View> View.findViewWithTag2(tag: Any, clazz: Class<T>): T? {
+    while (true) {
+        val v = this.findViewWithTag<View>(tag) ?: return null
+        return if (clazz.isInstance(v)) clazz.cast(v)
+        else v.childrenSequence().mapNotNull { it.findViewWithTag2(tag, clazz) }.firstOrNull()
+    }
+}
+
+inline fun <reified T : View> View.findViewWithTag2(tag: Any): T? = this.findViewWithTag2(tag, T::class.java)
+
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
 
@@ -169,8 +181,10 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
     }
 
     operator fun times(v: T): ViewBinder<T, V> = synchronized(this) {
-        value = v
-        view.forEach { func(it.key, value) }
+        if (value != v) {
+            value = v
+            view.forEach { func(it.key, value) }
+        }
         this
     }
 
@@ -267,18 +281,28 @@ class Once {
     }
 }
 
+fun RecyclerView.findFirstVisibleItemPosition(): Int = layoutManager?.let { layout ->
+    when (layout) {
+        is StaggeredGridLayoutManager -> layout.findFirstVisibleItemPositions(null).min() ?: RecyclerView.NO_POSITION
+        is GridLayoutManager -> layout.findFirstVisibleItemPosition()
+        is LinearLayoutManager -> layout.findFirstVisibleItemPosition()
+        else -> RecyclerView.NO_POSITION
+    }
+} ?: RecyclerView.NO_POSITION
+
+fun RecyclerView.findLastVisibleItemPosition(): Int = layoutManager?.let { layout ->
+    when (layout) {
+        is StaggeredGridLayoutManager -> layout.findLastVisibleItemPositions(null).max() ?: RecyclerView.NO_POSITION
+        is GridLayoutManager -> layout.findLastVisibleItemPosition()
+        is LinearLayoutManager -> layout.findLastVisibleItemPosition()
+        else -> RecyclerView.NO_POSITION
+    }
+} ?: RecyclerView.NO_POSITION
+
 fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
     this.addOnScrollListener(object : RecyclerView.OnScrollListener() {
         fun load(recycler: RecyclerView) {
-            val layout = recycler.layoutManager
-            when (layout) {
-                is StaggeredGridLayoutManager ->
-                    if (layout.findLastVisibleItemPositions(null).max() ?: 0 >= adapter.itemCount - last) call()
-                is GridLayoutManager ->
-                    if (layout.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
-                is LinearLayoutManager ->
-                    if (layout.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
-            }
+            if (recycler.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
         }
 
         val once = Once()
@@ -292,6 +316,9 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
         }
     })
 }
+
+inline fun <reified T : RecyclerView.ViewHolder> RecyclerView.findViewHolderForAdapterPosition2(position: Int): T? =
+        findViewHolderForAdapterPosition(position) as? T
 
 class RoundedBackgroundColorSpan(private val backgroundColor: Int) : ReplacementSpan() {
     private var linePadding = 2f // play around with these as needed
@@ -456,6 +483,46 @@ fun View.fadeIn() {
             .setDuration(300)
             .setInterpolator(DecelerateInterpolator(2F))
             .start()
+}
+
+fun View.startPostponedEnterTransition() {
+    viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    viewTreeObserver.removeOnPreDrawListener(this)
+                    requestLayout()
+                    ActivityCompat.startPostponedEnterTransition(context.asActivity()!!)
+                    return false
+                }
+            })
+}
+
+open class ViewSharedElementCallback(private val call: () -> Pair<View, String>) : SharedElementCallback() {
+    override fun onMapSharedElements(names: MutableList<String>, sharedElements: MutableMap<String, View>) {
+        names.clear()
+        sharedElements.clear()
+        val (view, name) = call()
+        names.add(name)
+        sharedElements.put(name, view)
+    }
+}
+
+fun Activity.enterSharedElementCallback(call: () -> Pair<View, String>) {
+    ActivityCompat.setEnterSharedElementCallback(this, object : ViewSharedElementCallback(call) {
+        override fun onMapSharedElements(names: MutableList<String>, sharedElements: MutableMap<String, View>) {
+            ActivityCompat.setEnterSharedElementCallback(this@enterSharedElementCallback, null)
+            super.onMapSharedElements(names, sharedElements)
+        }
+    })
+}
+
+fun Activity.exitSharedElementCallback(call: () -> Pair<View, String>) {
+    ActivityCompat.setExitSharedElementCallback(this, object : ViewSharedElementCallback(call) {
+        override fun onMapSharedElements(names: MutableList<String>, sharedElements: MutableMap<String, View>) {
+            ActivityCompat.setExitSharedElementCallback(this@exitSharedElementCallback, null)
+            super.onMapSharedElements(names, sharedElements)
+        }
+    })
 }
 
 var <V : View>BottomSheetBehavior<V>.isOpen: Boolean
