@@ -66,7 +66,7 @@ class PreviewActivity : BaseSlideCloseActivity() {
 
 @SuppressLint("SetTextI18n")
 class PreviewFragment : Fragment() {
-    private val album by lazy { arguments?.getParcelable<Album>("data")!! }
+    private val album by lazy { arguments?.getParcelable<Album>("album")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
     private val count by lazy { album.count }
@@ -231,7 +231,7 @@ class PreviewFragment : Fragment() {
                 Pair<String, List<Name>>(it.getString("key"), it.getParcelableArrayList("value"))
             }
         } ?: {
-            arguments?.getStringArrayList("list")?.let {
+            arguments?.getStringArrayList("data")?.let {
                 adapter.data.addAll(it)
                 thumb.add(it)
             }
@@ -314,7 +314,10 @@ class PreviewFragment : Fragment() {
     fun finishAfterTransition() {
         activity?.let { activity ->
             pager?.currentItem?.let {
-                activity.setResult(Activity.RESULT_OK, Intent().putExtra("exit_position", it))
+                activity.setResult(Activity.RESULT_OK, Intent()
+                        .putExtra("exit_index", it)
+                        .putExtra("exit_uri", uri)
+                        .putStringArrayListExtra("exit_data", ArrayList(adapter.data)))
                 pager?.findViewWithTag2<ZoomableDraweeView>(adapter.data[it])?.let { view ->
                     activity.enterSharedElementCallback { view to ViewCompat.getTransitionName(view) }
                 }
@@ -382,7 +385,7 @@ class PreviewListActivity : BaseSlideCloseActivity() {
 }
 
 class PreviewListFragment : Fragment() {
-    private val album by lazy { arguments?.getParcelable<Album>("data")!! }
+    private val album by lazy { arguments?.getParcelable<Album>("album")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
     private var uri: String? = null
@@ -471,15 +474,18 @@ class PreviewListFragment : Fragment() {
     private val recycler get() = view?.findViewById<RecyclerView>(R.id.recycler)
     fun onActivityReenter(resultCode: Int, data: Intent?) {
         if (resultCode == Activity.RESULT_OK && data != null) {
-            val exitPosition = data.getIntExtra("exit_position", -1)
+            val eindex = data.getIntExtra("exit_index", -1)
+            val edata = data.getStringArrayListExtra("exit_data")
+            uri = data.getStringExtra("exit_uri")
+            thumb.clear().add(edata)
             activity?.exitSharedElementCallback {
-                recycler?.findViewHolderForAdapterPosition2<ThumbHolder>(exitPosition)?.let {
+                recycler?.findViewHolderForAdapterPosition2<ThumbHolder>(eindex)?.let {
                     it.image to it.value
                 } ?: throw IllegalArgumentException()
             }
             recycler?.let { recycler ->
                 activity?.supportPostponeEnterTransition()
-                recycler.scrollToPosition(exitPosition)
+                recycler.scrollToPosition(eindex)
                 recycler.startPostponedEnterTransition()
             }
         }
@@ -500,8 +506,8 @@ class PreviewListFragment : Fragment() {
             view.setOnClickListener {
                 activity?.let {
                     it.startActivity(Intent(it, PreviewActivity::class.java)
-                            .putExtra("data", album)
-                            .putExtra("list", ArrayList(thumb.data))
+                            .putExtra("album", album)
+                            .putExtra("data", ArrayList(thumb.data))
                             .putExtra("uri", uri)
                             .putExtra("index", adapterPosition),
                             ActivityOptionsCompat.makeSceneTransitionAnimation(it,
