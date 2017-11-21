@@ -340,7 +340,10 @@ class PreviewFragment : Fragment() {
             })
             image.tag = item
             ViewCompat.setTransitionName(image, item)
-            if (position == current()) image.startPostponedEnterTransition()
+            if (position == current()) {
+                image.startPostponedEnterTransition()
+                image.post { RxBus.instance.post("hack_fresco", position) }
+            }
         }
     }
 
@@ -349,7 +352,7 @@ class PreviewFragment : Fragment() {
         private val image: SimpleDraweeView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
         override fun bind(i: Int) {
-            image.load(value).aspectRatio = 3F / 4F
+            image.load(value).aspectRatio = 2F / 3F
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
@@ -426,6 +429,13 @@ class PreviewListFragment : Fragment() {
                 query()
             }
         }
+        RxBus.instance.subscribe<Int>(this, "hack_fresco") {
+            recycler?.findViewHolderForAdapterPosition2<ThumbHolder>(it)?.let {
+//                it.image.requestLayout()
+//                it.bind()
+            }
+            recycler?.adapter?.notifyDataSetChanged()
+        }
     }
 
     override fun onCreate(state: Bundle?) {
@@ -448,6 +458,7 @@ class PreviewListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
+        RxBus.instance.unsubscribe(this)
     }
 
     private fun query() {
@@ -497,7 +508,7 @@ class PreviewListFragment : Fragment() {
         private val image2: ImageView = view.findViewById(R.id.image2)
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int) {
-            image.load(value).aspectRatio = 3F / 4F
+            image.load(value).aspectRatio = 2F / 3F
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }

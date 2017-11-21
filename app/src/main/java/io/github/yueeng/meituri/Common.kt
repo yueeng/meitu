@@ -154,6 +154,7 @@ inline fun <reified T : View> View.findViewWithTag2(tag: Any): T? = this.findVie
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
+fun View.delay(delay: Long, action: () -> Unit) = this.postDelayed({ action() }, delay)
 
 infix fun <A, B> A.to4(that: B): android.support.v4.util.Pair<A, B> = android.support.v4.util.Pair(this, that)
 
@@ -200,8 +201,8 @@ open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
     val context: Context get() = itemView.context
     private lateinit var _value: T
     val value: T get() = _value
-    protected open fun bind() {}
-    protected open fun bind(i: Int) {}
+    open fun bind() {}
+    open fun bind(i: Int) {}
     @Suppress("UNCHECKED_CAST")
     fun set(v: Any, i: Int) {
         _value = v as T

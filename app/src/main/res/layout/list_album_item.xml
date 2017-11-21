@@ -21,7 +21,7 @@
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/app_name"
                 fresco:placeholderImage="@mipmap/ic_launcher"
-                fresco:viewAspectRatio="1" />
+                fresco:viewAspectRatio="0.75" />
 
             <TextView
                 android:id="@+id/text2"
