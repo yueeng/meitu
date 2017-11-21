@@ -430,10 +430,6 @@ class PreviewListFragment : Fragment() {
             }
         }
         RxBus.instance.subscribe<Int>(this, "hack_fresco") {
-            recycler?.findViewHolderForAdapterPosition2<ThumbHolder>(it)?.let {
-//                it.image.requestLayout()
-//                it.bind()
-            }
             recycler?.adapter?.notifyDataSetChanged()
         }
     }
