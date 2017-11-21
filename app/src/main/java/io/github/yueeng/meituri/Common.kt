@@ -301,9 +301,11 @@ fun RecyclerView.findLastVisibleItemPosition(): Int = layoutManager?.let { layou
 } ?: RecyclerView.NO_POSITION
 
 fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
-    this.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+    addOnScrollListener(object : RecyclerView.OnScrollListener() {
         fun load(recycler: RecyclerView) {
-            if (recycler.findLastVisibleItemPosition() >= adapter.itemCount - last) call()
+            recycler.adapter?.let {
+                if (recycler.findLastVisibleItemPosition() >= it.itemCount - last) call()
+            }
         }
 
         val once = Once()
