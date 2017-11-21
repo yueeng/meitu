@@ -21,7 +21,10 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
 import android.text.method.LinkMovementMethod
-import android.view.*
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.drawable.ScalingUtils
@@ -376,8 +379,7 @@ class PreviewListActivity : BaseSlideCloseActivity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        setContentView(R.layout.activity_list)
-        setSupportActionBar(findViewById(R.id.toolbar))
+        setContentView(R.layout.activity_container)
         setFragment<PreviewListFragment>(R.id.container) { intent.extras }
     }
 
@@ -394,30 +396,14 @@ class PreviewListFragment : Fragment() {
     private var uri: String? = null
     private val thumb by lazy { ThumbAdapter() }
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
-        menu.add(Menu.NONE, 0x1000, Menu.NONE, "视图").setIcon(R.drawable.ic_category).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        0x1000 -> {
-            view?.findViewById<RecyclerView>(R.id.recycler)?.let { view ->
-                TransitionManager.beginDelayedTransition(view)
-                (view.layoutManager as? StaggeredGridLayoutManager)?.let {
-                    it.spanCount = (it.spanCount + 1).takeIf { it <= 4 } ?: 1
-                    Settings.preview_list_column = it.spanCount
-                }
-            }
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
-    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
-            inflater.inflate(R.layout.fragment_list, container, false)
+            inflater.inflate(R.layout.fragment_preview_list, container, false)
 
     override fun onViewCreated(view: View, state: Bundle?) {
         super.onViewCreated(view, state)
-        activity?.title = name
+        setSupportActionBar(view.findViewById(R.id.toolbar))
+        title = name
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = StaggeredGridLayoutManager(Settings.preview_list_column, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = thumb
@@ -427,6 +413,15 @@ class PreviewListFragment : Fragment() {
                 thumb.clear()
                 uri = url
                 query()
+            }
+        }
+        view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
+            recycler?.let { view ->
+                TransitionManager.beginDelayedTransition(view)
+                (view.layoutManager as? StaggeredGridLayoutManager)?.let {
+                    it.spanCount = (it.spanCount + 1).takeIf { it <= 4 } ?: 1
+                    Settings.preview_list_column = it.spanCount
+                }
             }
         }
         RxBus.instance.subscribe<Int>(this, "hack_fresco") {

@@ -142,6 +142,16 @@ fun Context.asActivity(): Activity? = when (this) {
     else -> null
 }
 
+fun Fragment.setSupportActionBar(bar: Toolbar) {
+    (activity as? AppCompatActivity)?.setSupportActionBar(bar)
+}
+
+var Fragment.title: CharSequence?
+    get() = activity?.title
+    set(value) {
+        activity?.title = value
+    }
+
 fun <T : View> View.findViewWithTag2(tag: Any, clazz: Class<T>): T? {
     while (true) {
         val v = this.findViewWithTag<View>(tag) ?: return null
@@ -763,6 +773,6 @@ object Settings {
     private val config by lazy { PreferenceManager.getDefaultSharedPreferences(MainApplication.current()) }
     private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
     var preview_list_column: Int
-        get() = config.getInt(KEY_PREVIEW_LIST_COLUMN, 2)
+        get() = config.getInt(KEY_PREVIEW_LIST_COLUMN, MainApplication.current().resources.getInteger(R.integer.list_columns))
         set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
 }
