@@ -39,7 +39,7 @@
             android:name=".PreviewActivity"
             android:theme="@style/AppThemeDarkTranslucent" />
         <activity
-            android:name=".PreviewListActivity"
+            android:name=".CollectActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
             android:name=".FavoriteActivity"
