@@ -476,6 +476,8 @@ fun Fragment.delay(millis: Long, run: () -> Unit) {
 fun Context.alert() = AlertDialog.Builder(this)
 fun Context.popupMenu(view: View) = PopupMenu(this, view)
 
+val Context.orientation get() = resources.configuration.orientation
+val Context.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT
 val Fragment.orientation get() = resources.configuration.orientation
 val Fragment.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT
 
@@ -764,9 +766,13 @@ class RxBus {
 }
 
 object Settings {
-    private val config by lazy { PreferenceManager.getDefaultSharedPreferences(MainApplication.current()) }
+    private val context: Context get() = MainApplication.current()
+    private val config by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
     private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
-    var preview_list_column: Int
-        get() = config.getInt(KEY_PREVIEW_LIST_COLUMN, MainApplication.current().resources.getInteger(R.integer.list_columns))
+    val LIST_COLUMN: Int get() = context.resources.getInteger(R.integer.list_columns)
+    val MAX_PREVIEW_LIST_COLUMN: Int
+        get() = LIST_COLUMN + if (context.isPortrait) 0 else 1
+    var PREVIEW_LIST_COLUMN: Int
+        get() = Math.min(MAX_PREVIEW_LIST_COLUMN, config.getInt(KEY_PREVIEW_LIST_COLUMN, LIST_COLUMN))
         set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
 }

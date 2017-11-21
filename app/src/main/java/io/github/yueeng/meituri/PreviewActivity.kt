@@ -405,7 +405,7 @@ class PreviewListFragment : Fragment() {
         setSupportActionBar(view.findViewById(R.id.toolbar))
         title = name
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = StaggeredGridLayoutManager(Settings.preview_list_column, StaggeredGridLayoutManager.VERTICAL)
+        recycler.layoutManager = StaggeredGridLayoutManager(Settings.PREVIEW_LIST_COLUMN, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = thumb
         recycler.loadMore { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
@@ -419,8 +419,8 @@ class PreviewListFragment : Fragment() {
             recycler?.let { view ->
                 TransitionManager.beginDelayedTransition(view)
                 (view.layoutManager as? StaggeredGridLayoutManager)?.let {
-                    it.spanCount = (it.spanCount + 1).takeIf { it <= 4 } ?: 1
-                    Settings.preview_list_column = it.spanCount
+                    it.spanCount = (it.spanCount + 1).takeIf { it <= Settings.MAX_PREVIEW_LIST_COLUMN } ?: 1
+                    Settings.PREVIEW_LIST_COLUMN = it.spanCount
                 }
             }
         }
