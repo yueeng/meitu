@@ -83,6 +83,15 @@ class CollectFragment : Fragment() {
             uri = state.getString("uri")
             adapter.add(state.getStringArrayList("data"))
         } ?: { query() }()
+        RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
+            uri = it.first
+            adapter.add(it.second)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        RxBus.instance.unsubscribe(this, "update_collect")
     }
 
     override fun onSaveInstanceState(state: Bundle) {
@@ -94,7 +103,7 @@ class CollectFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
-        RxBus.instance.unsubscribe(this)
+        RxBus.instance.unsubscribe(this, "hack_fresco")
     }
 
     private fun query() {
@@ -121,18 +130,15 @@ class CollectFragment : Fragment() {
     private val recycler get() = view?.findViewById<RecyclerView>(R.id.recycler)
     fun onActivityReenter(resultCode: Int, data: Intent?) {
         if (resultCode == Activity.RESULT_OK && data != null) {
-            val eindex = data.getIntExtra("exit_index", -1)
-            val edata = data.getStringArrayListExtra("exit_data")
-            uri = data.getStringExtra("exit_uri")
-            adapter.add(edata.drop(adapter.data.size))
+            val position = data.getIntExtra("exit_position", -1)
             activity?.exitSharedElementCallback {
-                recycler?.findViewHolderForAdapterPosition2<ImageHolder>(eindex)?.let {
+                recycler?.findViewHolderForAdapterPosition2<ImageHolder>(position)?.let {
                     it.image to it.value
                 } ?: throw IllegalArgumentException()
             }
             recycler?.let { recycler ->
                 activity?.supportPostponeEnterTransition()
-                recycler.scrollToPosition(eindex)
+                recycler.scrollToPosition(position)
                 recycler.startPostponedEnterTransition()
             }
         }

@@ -727,7 +727,7 @@ class RxBus {
 
     private val _bus: FlowableProcessor<RxMsg> by lazy { PublishProcessor.create<RxMsg>().toSerialized() }
     private val bus get() = _bus
-    private val _map = mutableMapOf<Any, MutableList<Disposable>>()
+    private val _map = mutableMapOf<Any, MutableMap<String, MutableList<Disposable>>>()
     private val map get() = _map
 
     fun <T : Any> post(a: String, o: T) = SerializedSubscriber(bus).onNext(RxMsg(a, o))
@@ -745,23 +745,26 @@ class RxBus {
             flowable(T::class.java, action, scheduler)
 
     fun <T> subscribe(clazz: Class<T>,
-                      ref: Any,
+                      target: Any,
                       action: String,
                       scheduler: Scheduler = AndroidSchedulers.mainThread(),
                       call: (T) -> Unit): Disposable =
             flowable(clazz, action, scheduler).subscribe { call(it) }.also { obs ->
-                map[ref]?.add(obs) ?: { map[ref] = mutableListOf(obs) }()
+                map.getOrPut(target, { mutableMapOf() }).getOrPut(action, { mutableListOf() }).add(obs)
             }
 
-    inline fun <reified T> subscribe(ref: Any,
+    inline fun <reified T> subscribe(target: Any,
                                      action: String,
                                      scheduler: Scheduler = AndroidSchedulers.mainThread(),
                                      noinline call: (T) -> Unit): Disposable =
-            subscribe(T::class.java, ref, action, scheduler, call)
+            subscribe(T::class.java, target, action, scheduler, call)
 
-    fun unsubscribe(ref: Any) {
-        map[ref]?.forEach { it.dispose() }
-        map.remove(ref)
+    fun unsubscribe(target: Any, action: String? = null) {
+        map[target]?.let {
+            if (action != null) it.remove(action)?.onEach { it.dispose() }
+            else it.onEach { it.value.forEach { it.dispose() } }.clear()
+            if (it.isEmpty()) map.remove(target)
+        }
     }
 }
 

@@ -301,6 +301,7 @@ class PreviewFragment : Fragment() {
                     thumb.add(list)
                     adapter.data.addAll(list)
                     adapter.notifyDataSetChanged()
+                    RxBus.instance.post("update_collect", uri to list)
                     page * current()
                 }
                 call?.invoke()
@@ -314,9 +315,7 @@ class PreviewFragment : Fragment() {
         activity?.let { activity ->
             pager?.currentItem?.let {
                 activity.setResult(Activity.RESULT_OK, Intent()
-                        .putExtra("exit_index", it)
-                        .putExtra("exit_uri", uri)
-                        .putStringArrayListExtra("exit_data", ArrayList(adapter.data)))
+                        .putExtra("exit_position", it))
                 pager?.findViewWithTag2<ZoomableDraweeView>(adapter.data[it])?.let { view ->
                     activity.enterSharedElementCallback { view to ViewCompat.getTransitionName(view) }
                 }
