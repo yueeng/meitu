@@ -311,21 +311,15 @@ fun RecyclerView.findLastVisibleItemPosition(): Int = layoutManager?.let { layou
 } ?: RecyclerView.NO_POSITION
 
 fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
+    fun load(recycler: RecyclerView) {
+        recycler.adapter?.let {
+            if (recycler.findLastVisibleItemPosition() >= it.itemCount - last) recycler.post { call() }
+        }
+    }
+    addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ -> load(v as RecyclerView) }
     addOnScrollListener(object : RecyclerView.OnScrollListener() {
-        fun load(recycler: RecyclerView) {
-            recycler.adapter?.let {
-                if (recycler.findLastVisibleItemPosition() >= it.itemCount - last) call()
-            }
-        }
-
-        val once = Once()
-        override fun onScrolled(recycler: RecyclerView, dx: Int, dy: Int) {
-            once.run { load(recycler) }
-        }
-
         override fun onScrollStateChanged(recycler: RecyclerView, state: Int) {
-            if (state != RecyclerView.SCROLL_STATE_IDLE) return
-            load(recycler)
+            if (state == RecyclerView.SCROLL_STATE_IDLE) load(recycler)
         }
     })
 }
