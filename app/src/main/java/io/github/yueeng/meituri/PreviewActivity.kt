@@ -194,6 +194,7 @@ class PreviewFragment : Fragment() {
         super.onDestroyView()
         context?.unregisterReceiver(receiver)
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
+        pager?.adapter = null
         RxBus.instance.unsubscribe(this)
     }
 

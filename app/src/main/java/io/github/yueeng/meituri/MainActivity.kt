@@ -239,6 +239,15 @@ class FavoriteFragment : Fragment() {
                 query()
             }
         }
+        RxBus.instance.subscribe<String>(this, "favorite") { uri ->
+            adapter.data.asSequence().mapIndexed { i, v -> i to v }
+                    .filter { it.second.url == uri }.forEach { adapter.notifyItemChanged(it.first) }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        RxBus.instance.unsubscribe(this)
     }
 
     override fun onCreate(state: Bundle?) {
@@ -319,6 +328,7 @@ class ListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
+        RxBus.instance.unsubscribe(this)
     }
 
     override fun onViewCreated(view: View, state: Bundle?) {
@@ -342,6 +352,11 @@ class ListFragment : Fragment() {
                 uri = url
                 query()
             }
+        }
+        RxBus.instance.subscribe<String>(this, "favorite") { uri ->
+            adapter.data.asSequence().mapIndexed { i, v -> i to v }
+                    .filter { it.second is Album }.map { it.first to it.second as Album }
+                    .filter { it.second.url == uri }.forEach { adapter.notifyItemChanged(it.first) }
         }
     }
 

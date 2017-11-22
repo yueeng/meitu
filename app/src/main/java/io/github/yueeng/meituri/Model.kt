@@ -10,6 +10,7 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -405,60 +406,58 @@ object dbFav {
     private val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
     private val oba by lazy { ob.boxFor(ObAlbum::class.java) }
     private val obl by lazy { ob.boxFor(ObLink::class.java) }
-    fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null) {
-        RxMt.create {
-            if (album.url == "") {
-                throw IllegalArgumentException("album.url is null.")
-            } else {
-                @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-                val info = album.info
-                        .flatMap { obl.query().equal(ObLink_.name, it.name).and().equal(ObLink_.url, it.url ?: "").build().find() }
-                        .map { Pair(it.key, it) }.toMap()
+    fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null): Disposable = RxMt.create {
+        if (album.url == "") {
+            throw IllegalArgumentException("album.url is null.")
+        } else {
+            @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+            val info = album.info
+                    .flatMap { obl.query().equal(ObLink_.name, it.name).and().equal(ObLink_.url, it.url ?: "").build().find() }
+                    .map { Pair(it.key, it) }.toMap()
 
-                fun link2info(link: Link, t: Int, oba: ObAlbum) = (info[link.key] ?: ObLink().apply {
-                    name = link.name
-                    url = link.url ?: ""
-                }).apply {
-                    type = t
-                    albums.add(oba)
-                }
-
-                (oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()).apply {
-                    name = album.name
-                    url = album.url
-                    image = album.image
-                    count = album.count
-                    album.model.forEach { model.add(link2info(it, ObLink.TYPE_MODEL, this)) }
-                    album.organ.forEach { organ.add(link2info(it, ObLink.TYPE_ORGAN, this)) }
-                    album.tags.forEach { tags.add(link2info(it, ObLink.TYPE_TAGS, this)) }
-                }.also { o ->
-                    oba.put(o)
-                    obl.put(o.model + o.organ + o.tags)
-                }
+            fun link2info(link: Link, t: Int, oba: ObAlbum) = (info[link.key] ?: ObLink().apply {
+                name = link.name
+                url = link.url ?: ""
+            }).apply {
+                type = t
+                albums.add(oba)
             }
-        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn?.invoke(it) }
+
+            (oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()).apply {
+                name = album.name
+                url = album.url
+                image = album.image
+                count = album.count
+                album.model.forEach { model.add(link2info(it, ObLink.TYPE_MODEL, this)) }
+                album.organ.forEach { organ.add(link2info(it, ObLink.TYPE_ORGAN, this)) }
+                album.tags.forEach { tags.add(link2info(it, ObLink.TYPE_TAGS, this)) }
+            }.also { o ->
+                oba.put(o)
+                obl.put(o.model + o.organ + o.tags)
+            }
+        }
+    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe {
+        fn?.invoke(it)
+        RxBus.instance.post("favorite", it.url)
     }
 
     fun exists(url: String) = !oba.find(ObAlbum_.url, url).isEmpty()
-    fun del(url: String) = oba.find(ObAlbum_.url, url).forEach {
-        oba.remove(it)
+    fun del(url: String, fn: ((List<ObAlbum>) -> Unit)? = null): Disposable = RxMt.create {
+        oba.find(ObAlbum_.url, url).onEach { oba.remove(it) }
+    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe {
+        fn?.invoke(it)
+        RxBus.instance.post("favorite", url)
     }
 
-    fun albums(offset: Long, limit: Long, fn: (List<Album>) -> Unit) {
-        RxMt.create {
-            oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album)
-        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
-    }
+    fun albums(offset: Long, limit: Long, fn: (List<Album>) -> Unit): Disposable = RxMt.create {
+        oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album)
+    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
 
-    fun albums(tag: Long, fn: (List<Album>) -> Unit) {
-        RxMt.create {
-            obl.get(tag).albums.sortedByDescending { it.id }.map(::Album)
-        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
-    }
+    fun albums(tag: Long, fn: (List<Album>) -> Unit): Disposable = RxMt.create {
+        obl.get(tag).albums.sortedByDescending { it.id }.map(::Album)
+    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
 
-    fun tags(type: Int, fn: (List<Link2>) -> Unit) {
-        RxMt.create {
-            obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }.map(::Link2)
-        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
-    }
+    fun tags(type: Int, fn: (List<Link2>) -> Unit): Disposable = RxMt.create {
+        obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }.map(::Link2)
+    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
 }
