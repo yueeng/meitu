@@ -392,36 +392,6 @@ class ListFragment : Fragment() {
             busy * false
             adapter.add(list)
         }
-//        val first = adapter.data.isEmpty()
-//        doAsync {
-//            val dom = uri!!.httpGet().jsoup()
-//            val list: List<Name>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
-//                when {
-//                    it.`is`(".hezi li") -> Album(it)
-//                    first && it.`is`(".hezi_t li") -> Model(it)
-//                    first && it.`is`(".jigou li") -> Organ(it)
-//                    first && it.`is`(".renwu") -> Info(it)
-//                    first && it.`is`(".shoulushuliang") -> Name(it.text())
-//                    first && it.`is`(".hezi .title") -> Name(it.text())
-//                    first && it.`is`(".fenlei p") -> Name(it.text())
-//                    else -> null
-//                }
-//            }
-//            val categories = uri?.takeIf { it == "$website/mote/" }?.let {
-//                dom?.select("#tag_ul li a")?.map { Link(it) }
-//            }
-//            val next = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
-//            uiThread {
-//                busy * false
-//                uri = next
-//                if (categories?.size ?: 0 > 0) {
-//                    adapter.add(Name("分类"))
-//                    adapter.add(categories!!)
-//                    adapter.add(Name("模特"))
-//                }
-//                if (list != null) adapter.add(list)
-//            }
-//        }
     }
 
     class NameHolder(view: View) : DataHolder<Name>(view) {
