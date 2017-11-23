@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="FAM">
+        <attr name="fam_src" format="reference" />
+    </declare-styleable>
+    <declare-styleable name="FAB">
+        <attr name="fab_src" format="reference" />
+        <attr name="fab_label" format="string" />
+    </declare-styleable>
+</resources>

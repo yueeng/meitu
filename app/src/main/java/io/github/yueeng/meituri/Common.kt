@@ -18,6 +18,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -26,6 +27,11 @@ import android.os.Handler
 import android.preference.PreferenceManager
 import android.provider.Settings
 import android.support.design.widget.BottomSheetBehavior
+import android.support.design.widget.FloatingActionButton
+import android.support.transition.Fade
+import android.support.transition.Slide
+import android.support.transition.TransitionManager
+import android.support.transition.TransitionSet
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v4.app.SharedElementCallback
@@ -50,6 +56,8 @@ import android.view.*
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.controller.BaseControllerListener
 import com.facebook.drawee.drawable.ProgressBarDrawable
@@ -776,4 +784,78 @@ object Settings {
     var PREVIEW_LIST_COLUMN: Int
         get() = Math.min(MAX_PREVIEW_LIST_COLUMN, config.getInt(KEY_PREVIEW_LIST_COLUMN, LIST_COLUMN))
         set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
+}
+
+inline fun <reified T : View> ViewParent.children() = (this as? ViewGroup)?.let { view ->
+    (0..view.childCount).asSequence().mapNotNull { view.getChildAt(it) as? T }
+} ?: emptySequence()
+
+@SuppressLint("WrongViewCast")
+class FAB @JvmOverloads constructor(
+        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
+) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
+    init {
+        LayoutInflater.from(context).inflate(R.layout.fab, this, true).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val a = context.obtainStyledAttributes(
+                    attrs, R.styleable.FAB, defStyleAttr, defStyleRes)
+            fabSrc = a.getDrawable(R.styleable.FAB_fab_src)
+            fabLabel = a.getString(R.styleable.FAB_fab_label)
+            a.recycle()
+        }
+    }
+
+    var fabSrc: Drawable?
+        get() = findViewById<FloatingActionButton>(R.id.fab_button)?.drawable
+        set(value) {
+            findViewById<FloatingActionButton>(R.id.fab_button).setImageDrawable(value)
+        }
+    var fabLabel: CharSequence?
+        get() = findViewById<TextView>(R.id.fab_label).text
+        set(value) {
+            findViewById<TextView>(R.id.fab_label).apply {
+                text = value
+                visibility = if (value == null) View.GONE else View.VISIBLE
+            }
+        }
+}
+
+class FAM @JvmOverloads constructor(
+        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
+) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
+    var famSrc: Drawable? = null
+        set(value) {
+            findViewById<FloatingActionButton>(R.id.fam_button)?.setImageDrawable(value)
+            field = value
+        }
+
+    init {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.END
+        val a = context.obtainStyledAttributes(
+                attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
+        famSrc = a.getDrawable(R.styleable.FAM_fam_src)
+        a.recycle()
+    }
+
+    override fun onFinishInflate() {
+        super.onFinishInflate()
+        children<LinearLayout>().forEach { it.visibility = View.INVISIBLE }
+        addView(LayoutInflater.from(context).inflate(R.layout.fam, this, false).also { fab ->
+            (fab as FloatingActionButton).setImageDrawable(famSrc)
+            fab.setOnClickListener {
+                TransitionManager.beginDelayedTransition(this, TransitionSet().apply {
+                    addTransition(Fade())
+                    addTransition(Slide(Gravity.BOTTOM))
+                })
+                if (fab.rotation == 135F) {
+                    fab.animate().rotation(0F).start()
+                    children<FAB>().forEach { it.visibility = View.INVISIBLE }
+                } else {
+                    fab.animate().rotation(135F).start()
+                    children<FAB>().forEach { it.visibility = View.VISIBLE }
+                }
+            }
+        })
+    }
 }

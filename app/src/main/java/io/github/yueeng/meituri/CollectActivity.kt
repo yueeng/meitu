@@ -4,10 +4,10 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.FloatingActionButton
 import android.support.transition.TransitionManager
 import android.support.v4.app.ActivityOptionsCompat
 import android.support.v4.app.Fragment
+import android.support.v4.content.ContextCompat
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.StaggeredGridLayoutManager
@@ -60,17 +60,36 @@ class CollectFragment : Fragment() {
                 query()
             }
         }
-        view.findViewById<FloatingActionButton>(R.id.button1).setOnClickListener {
-            recycler?.let { view ->
-                TransitionManager.beginDelayedTransition(view)
-                (view.layoutManager as? StaggeredGridLayoutManager)?.let {
-                    it.spanCount = (it.spanCount + 1).takeIf { it <= Settings.MAX_PREVIEW_LIST_COLUMN } ?: 1
-                    Settings.PREVIEW_LIST_COLUMN = it.spanCount
-                }
+        view.findViewById<FAB>(R.id.button1).setOnClickListener {
+            TransitionManager.beginDelayedTransition(recycler)
+            (recycler.layoutManager as? StaggeredGridLayoutManager)?.let {
+                it.spanCount = (it.spanCount + 1).takeIf { it <= Settings.MAX_PREVIEW_LIST_COLUMN } ?: 1
+                Settings.PREVIEW_LIST_COLUMN = it.spanCount
             }
         }
+        fun favStat(anim: Boolean = true) {
+            val fab = view.findViewById<FAB>(R.id.button2)
+            if (anim) TransitionManager.beginDelayedTransition(fab.findViewById<View>(R.id.fab_label).parent as ViewGroup)
+            if (dbFav.exists(album.url!!)) {
+                fab.fabLabel = "已收藏"
+                fab.fabSrc = ContextCompat.getDrawable(context!!, R.drawable.ic_favorite_white)
+            } else {
+                fab.fabLabel = "收藏"
+                fab.fabSrc = ContextCompat.getDrawable(context!!, R.drawable.ic_favorite_border)
+            }
+        }
+        favStat(false)
+        view.findViewById<FAB>(R.id.button2).setOnClickListener {
+            if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) {
+                dbFav.put(it ?: album)
+            }
+        }
+
         RxBus.instance.subscribe<Int>(this, "hack_shared_elements") {
             recycler?.adapter?.notifyItemChanged(it)
+        }
+        RxBus.instance.subscribe<String>(this, "favorite") {
+            favStat()
         }
     }
 
@@ -104,6 +123,7 @@ class CollectFragment : Fragment() {
         super.onDestroyView()
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
         RxBus.instance.unsubscribe(this, "hack_shared_elements")
+        RxBus.instance.unsubscribe(this, "favorite")
     }
 
     private fun query() {
