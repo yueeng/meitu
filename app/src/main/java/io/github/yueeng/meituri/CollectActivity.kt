@@ -43,7 +43,7 @@ class CollectFragment : Fragment() {
     private val mtseq by lazy { mtCollectSequence(url) }
     private val adapter by lazy { ImageAdapter() }
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
-
+    private var info: List<Pair<String, List<Name>>>? = null
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View? =
             inflater.inflate(R.layout.fragment_collect, container, false)
 
@@ -92,6 +92,9 @@ class CollectFragment : Fragment() {
                 query(true) { context?.downloadAll(name, adapter.data) }
             }
         }
+        view.findViewById<FAB>(R.id.button4).setOnClickListener {
+            context?.showInfo(name, url, info) { info = it }
+        }
         RxBus.instance.subscribe<Int>(this, "hack_shared_elements") {
             recycler?.adapter?.notifyItemChanged(it)
         }
@@ -107,7 +110,7 @@ class CollectFragment : Fragment() {
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getStringArrayList("data"))
-        } ?: { query() }()
+        } ?: query()
         RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
             mtseq.url = it.first
             adapter.add(it.second)

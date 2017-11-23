@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         findViewById<DrawerLayout>(R.id.drawer).takeIf { it.isDrawerOpen(Gravity.START) }?.run {
             closeDrawer(Gravity.START)
-        } ?: { super.onBackPressed() }()
+        } ?: super.onBackPressed()
     }
 }
 
@@ -181,7 +181,7 @@ class FavoriteTagsFragment : Fragment() {
         state?.let {
             page = state.getLong("page")
             adapter.add(state.getParcelableArrayList("data"))
-        } ?: { query() }()
+        } ?: query()
     }
 
     override fun onSaveInstanceState(state: Bundle) {
@@ -260,7 +260,7 @@ class FavoriteFragment : Fragment() {
         state?.let {
             page = state.getLong("page")
             adapter.add(state.getParcelableArrayList("data"))
-        } ?: { query() }()
+        } ?: query()
     }
 
     override fun onSaveInstanceState(state: Bundle) {
@@ -376,7 +376,7 @@ class ListFragment : Fragment() {
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getParcelableArrayList("data"))
-        } ?: { query() }()
+        } ?: query()
     }
 
     override fun onSaveInstanceState(state: Bundle) {

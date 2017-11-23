@@ -53,6 +53,13 @@
             app:fab_src="@drawable/ic_favorite_border" />
 
         <io.github.yueeng.meituri.FAB
+            android:id="@+id/button4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:fab_label="信息"
+            app:fab_src="@drawable/ic_info" />
+
+        <io.github.yueeng.meituri.FAB
             android:id="@+id/button1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -16,7 +16,6 @@ import android.support.v4.view.ViewCompat
 import android.support.v4.view.ViewPager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -31,7 +30,9 @@ import com.facebook.samples.zoomable.ZoomableDraweeView
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
-import org.jetbrains.anko.*
+import org.jetbrains.anko.bundleOf
+import org.jetbrains.anko.downloadManager
+import org.jetbrains.anko.toast
 
 
 /**
@@ -142,27 +143,7 @@ class PreviewFragment : Fragment() {
             }
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
-            doAsync {
-                info = info ?: Album.attr(url.httpGet().jsoup())
-                uiThread {
-                    info?.let { info ->
-                        context?.alert()?.apply {
-                            setTitle(name)
-                            setPositiveButton("确定", null)
-                            create().apply {
-                                info.joinToString("\n") {
-                                    "${it.first}: ${it.second.joinToString(", ")}"
-                                }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
-                                    context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
-                                    dismiss()
-                                }.let { setMessage(it) }
-                                show()
-                                findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
-                            }
-                        }
-                    } ?: { context?.toast("获取信息失败，请稍后重试。") }()
-                }
-            }
+            context?.showInfo(name, url, info) { info = it }
         }
         view.findViewById<View>(R.id.button3).setOnClickListener {
             context?.popupMenu(it)?.apply {
@@ -236,18 +217,18 @@ class PreviewFragment : Fragment() {
             info = state.getParcelableArrayList<Bundle>("info")?.map {
                 Pair<String, List<Name>>(it.getString("key"), it.getParcelableArrayList("value"))
             }
-        } ?: {
-            arguments?.getStringArrayList("data")?.let {
+        } ?: arguments?.let {
+            it.getStringArrayList("data")?.let {
                 adapter.data.addAll(it)
                 thumb.add(it)
             }
-            mtseq.url = arguments?.getString("uri") ?: url
-            arguments?.getInt("index")?.let {
+            mtseq.url = it.getString("uri") ?: url
+            it.getInt("index").let {
                 page * it
                 current * it
             }
             query()
-        }()
+        }
     }
 
     override fun onSaveInstanceState(state: Bundle) {

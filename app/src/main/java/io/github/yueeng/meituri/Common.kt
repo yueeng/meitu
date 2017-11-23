@@ -46,6 +46,7 @@ import android.support.v7.widget.*
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
+import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
@@ -75,6 +76,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.processors.FlowableProcessor
 import io.reactivex.processors.PublishProcessor
+import io.reactivex.schedulers.Schedulers
 import io.reactivex.subscribers.SerializedSubscriber
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
@@ -82,6 +84,7 @@ import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.anko.childrenSequence
 import org.jetbrains.anko.downloadManager
+import org.jetbrains.anko.startActivity
 import org.jetbrains.anko.toast
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -857,6 +860,30 @@ class FAM @JvmOverloads constructor(
                 }
             }
         })
+    }
+}
+
+fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Name>>>?, fn: (List<Pair<String, List<Name>>>?) -> Unit) {
+    RxMt.create {
+        info ?: Album.attr(url.httpGet().jsoup())
+    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe {
+        it?.let { info ->
+            alert().apply {
+                setTitle(name)
+                setPositiveButton("确定", null)
+                create().apply {
+                    info.joinToString("\n") {
+                        "${it.first}: ${it.second.joinToString(", ")}"
+                    }.spannable(info.flatMap { it.second }.filter { it is Link }.map { it as Link }) {
+                        context.startActivity<ListActivity>("url" to it.url!!, "name" to it.name)
+                        dismiss()
+                    }.let { setMessage(it) }
+                    show()
+                    findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
+                }
+            }
+        } ?: toast("获取信息失败，请稍后重试。")
+        fn.invoke(it)
     }
 }
 
