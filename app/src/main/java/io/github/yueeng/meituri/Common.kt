@@ -725,10 +725,8 @@ class RxBus {
 
     data class RxMsg(val action: String, val event: Any)
 
-    private val _bus: FlowableProcessor<RxMsg> by lazy { PublishProcessor.create<RxMsg>().toSerialized() }
-    private val bus get() = _bus
-    private val _map = mutableMapOf<Any, MutableMap<String, MutableList<Disposable>>>()
-    private val map get() = _map
+    private val bus: FlowableProcessor<RxMsg> by lazy { PublishProcessor.create<RxMsg>().toSerialized() }
+    private val map = mutableMapOf<Any, MutableMap<String, MutableList<Disposable>>>()
 
     fun <T : Any> post(a: String, o: T) = SerializedSubscriber(bus).onNext(RxMsg(a, o))
 
