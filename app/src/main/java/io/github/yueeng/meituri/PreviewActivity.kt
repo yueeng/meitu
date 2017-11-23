@@ -69,7 +69,7 @@ class PreviewFragment : Fragment() {
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
     private val count by lazy { album.count }
-    private var uri: String? = null
+    private val sseq by lazy { MtCollectSequence(url) }
     private val adapter by lazy { PreviewAdapter(name) }
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
@@ -168,7 +168,10 @@ class PreviewFragment : Fragment() {
                 menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
                 setOnMenuItemClickListener {
                     when (it.itemId) {
-                        R.id.menu_download_all -> activity?.permissionWriteExternalStorage { download() }
+                        R.id.menu_download_all -> if (busy()) context?.toast("正在请求数据，请稍后重试。")
+                        else activity?.permissionWriteExternalStorage {
+                            query(true) { context?.downloadAll(name, adapter.data) }
+                        }
                         R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
                         R.id.menu_thumb -> sliding?.open()
                     }
@@ -224,7 +227,7 @@ class PreviewFragment : Fragment() {
         retainInstance = true
         state?.let {
             page * state.getInt("page")
-            uri = state.getString("uri")
+            sseq.url = state.getString("uri")
             adapter.data.addAll(state.getStringArrayList("data"))
             thumb.add(state.getStringArrayList("thumb"))
             info = state.getParcelableArrayList<Bundle>("info")?.map {
@@ -235,7 +238,7 @@ class PreviewFragment : Fragment() {
                 adapter.data.addAll(it)
                 thumb.add(it)
             }
-            uri = arguments?.getString("uri") ?: url
+            sseq.url = arguments?.getString("uri") ?: url
             arguments?.getInt("index")?.let {
                 page * it
                 current * it
@@ -247,7 +250,7 @@ class PreviewFragment : Fragment() {
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
         state.putInt("page", page())
-        state.putString("uri", uri)
+        state.putString("uri", sseq.url)
         state.putStringArrayList("data", ArrayList(adapter.data))
         state.putStringArrayList("thumb", ArrayList(thumb.data))
 
@@ -258,51 +261,23 @@ class PreviewFragment : Fragment() {
         }?.let { ArrayList(it) })
     }
 
-    private fun download() {
-        query {
-            if (uri != null)
-                if (busy())
-                    delay(500) { download() }
-                else
-                    download()
-            else
-                context?.alert()?.apply {
-                    setTitle(name)
-                    setMessage("该图集共有${adapter.data.size}张图片，要下载吗")
-                    setPositiveButton("下载全部") { _, _ ->
-                        adapter.data.forEach { Save.download(it, name) }
-                        context.toast("添加下载队列完成，从通知栏查看下载进度。")
-                    }
-                    setNegativeButton("取消", null)
-                    create().show()
-                }
-        }
-    }
-
     private var info: List<Pair<String, List<Name>>>? = null
 
-    private fun query(call: (() -> Unit)? = null): Boolean {
-        if (busy() || uri == null) {
-            call?.invoke()
+    private fun query(all: Boolean = false, call: (() -> Unit)? = null): Boolean {
+        if (busy() || sseq.url == null) {
+            if (sseq.url == null) call?.invoke()
             return false
         }
         busy * true
         doAsync {
-            val dom = uri!!.httpGet().jsoup()
-            val list = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
-            val next = dom?.select("#pages span+a")?.let {
-                !it.`is`(".a1") to it.attr("abs:href")
-            }
-            val attr = info ?: Album.attr(dom)
+            val list = if (all) sseq.flatten().toList() else sseq.take(2).flatten().toList()
             uiThread {
                 busy * false
-                uri = if (next?.first == true) next.second else null
-                info = attr
-                if (list != null) {
+                if (list.isNotEmpty()) {
                     thumb.add(list)
                     adapter.data.addAll(list)
                     adapter.notifyDataSetChanged()
-                    RxBus.instance.post("update_collect", uri to list)
+                    RxBus.instance.post("update_collect", sseq.url to list)
                     page * current()
                 }
                 call?.invoke()

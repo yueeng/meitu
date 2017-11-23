@@ -39,11 +39,11 @@
         app:fam_src="@drawable/ic_add">
 
         <io.github.yueeng.meituri.FAB
-            android:id="@+id/button1"
+            android:id="@+id/button3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:fab_label="布局"
-            app:fab_src="@drawable/ic_thumb" />
+            app:fab_label="下载全部"
+            app:fab_src="@drawable/ic_download_all" />
 
         <io.github.yueeng.meituri.FAB
             android:id="@+id/button2"
@@ -51,5 +51,12 @@
             android:layout_height="wrap_content"
             app:fab_label="收藏"
             app:fab_src="@drawable/ic_favorite_border" />
+
+        <io.github.yueeng.meituri.FAB
+            android:id="@+id/button1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:fab_label="布局"
+            app:fab_src="@drawable/ic_thumb" />
     </io.github.yueeng.meituri.FAM>
 </android.support.design.widget.CoordinatorLayout>

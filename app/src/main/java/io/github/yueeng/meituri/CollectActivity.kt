@@ -18,6 +18,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
 import org.jetbrains.anko.uiThread
 
 class CollectActivity : BaseSlideCloseActivity() {
@@ -38,7 +39,7 @@ class CollectFragment : Fragment() {
     private val album by lazy { arguments?.getParcelable<Album>("album")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
-    private var uri: String? = null
+    private val sseq by lazy { MtCollectSequence(url) }
     private val adapter by lazy { ImageAdapter() }
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
 
@@ -56,7 +57,7 @@ class CollectFragment : Fragment() {
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
-                uri = url
+                sseq.url = url
                 query()
             }
         }
@@ -84,7 +85,12 @@ class CollectFragment : Fragment() {
                 dbFav.put(it ?: album)
             }
         }
-
+        view.findViewById<FAB>(R.id.button3).setOnClickListener {
+            if (busy()) context?.toast("正在请求数据，请稍后重试。")
+            else activity?.permissionWriteExternalStorage {
+                query(true) { context?.downloadAll(name, adapter.data) }
+            }
+        }
         RxBus.instance.subscribe<Int>(this, "hack_shared_elements") {
             recycler?.adapter?.notifyItemChanged(it)
         }
@@ -95,15 +101,14 @@ class CollectFragment : Fragment() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        uri = url
         retainInstance = true
         setHasOptionsMenu(true)
         state?.let {
-            uri = state.getString("uri")
+            sseq.url = state.getString("uri")
             adapter.add(state.getStringArrayList("data"))
         } ?: { query() }()
         RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
-            uri = it.first
+            sseq.url = it.first
             adapter.add(it.second)
         }
     }
@@ -115,7 +120,7 @@ class CollectFragment : Fragment() {
 
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
-        state.putString("uri", uri)
+        state.putString("uri", sseq.url)
         state.putStringArrayList("data", ArrayList(adapter.data))
     }
 
@@ -126,23 +131,18 @@ class CollectFragment : Fragment() {
         RxBus.instance.unsubscribe(this, "favorite")
     }
 
-    private fun query() {
-        if (busy() || uri == null) {
+    private fun query(all: Boolean = false, fn: (() -> Unit)? = null) {
+        if (busy() || sseq.url == null) {
+            if (sseq.url == null) fn?.invoke()
             return
         }
         busy * true
         doAsync {
-            val dom = uri!!.httpGet().jsoup()
-            val list = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
-            val next = dom?.select("#pages span+a")?.let {
-                !it.`is`(".a1") to it.attr("abs:href")
-            }
+            val list = if (all) sseq.flatten().toList() else sseq.take(2).flatten().toList()
             uiThread {
                 busy * false
-                uri = if (next?.first == true) next.second else null
-                if (list != null) {
-                    adapter.add(list)
-                }
+                adapter.add(list)
+                fn?.invoke()
             }
         }
     }
@@ -181,7 +181,7 @@ class CollectFragment : Fragment() {
                     it.startActivity(Intent(it, PreviewActivity::class.java)
                             .putExtra("album", album)
                             .putExtra("data", ArrayList(adapter.data))
-                            .putExtra("uri", uri)
+                            .putExtra("uri", sseq.url)
                             .putExtra("index", adapterPosition),
                             ActivityOptionsCompat.makeSceneTransitionAnimation(it,
                                     image to4 value).toBundle())
