@@ -28,6 +28,9 @@ import com.facebook.drawee.view.DraweeTransition
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.DoubleTapGestureListener
 import com.facebook.samples.zoomable.ZoomableDraweeView
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.rxkotlin.toObservable
+import io.reactivex.schedulers.Schedulers
 import org.jetbrains.anko.*
 
 
@@ -269,19 +272,18 @@ class PreviewFragment : Fragment() {
             return false
         }
         busy * true
-        doAsync {
-            val list = if (all) sseq.flatten().toList() else sseq.take(2).flatten().toList()
-            uiThread {
-                busy * false
-                if (list.isNotEmpty()) {
-                    thumb.add(list)
-                    adapter.data.addAll(list)
-                    adapter.notifyDataSetChanged()
-                    RxBus.instance.post("update_collect", sseq.url to list)
-                    page * current()
-                }
-                call?.invoke()
+        sseq.toObservable().let {
+            if (all) it else it.take(2)
+        }.flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
+            busy * false
+            if (list.isNotEmpty()) {
+                thumb.add(list)
+                adapter.data.addAll(list)
+                adapter.notifyDataSetChanged()
+                RxBus.instance.post("update_collect", sseq.url to list)
+                page * current()
             }
+            call?.invoke()
         }
         return true
     }

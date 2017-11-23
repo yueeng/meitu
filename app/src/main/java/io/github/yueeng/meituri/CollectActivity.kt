@@ -17,9 +17,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
-import org.jetbrains.anko.doAsync
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.rxkotlin.toObservable
+import io.reactivex.schedulers.Schedulers
 import org.jetbrains.anko.toast
-import org.jetbrains.anko.uiThread
 
 class CollectActivity : BaseSlideCloseActivity() {
 
@@ -137,13 +138,12 @@ class CollectFragment : Fragment() {
             return
         }
         busy * true
-        doAsync {
-            val list = if (all) sseq.flatten().toList() else sseq.take(2).flatten().toList()
-            uiThread {
-                busy * false
-                adapter.add(list)
-                fn?.invoke()
-            }
+        sseq.toObservable().let {
+            if (all) it else it.take(2)
+        }.flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
+            busy * false
+            adapter.add(list)
+            fn?.invoke()
         }
     }
 
