@@ -466,10 +466,11 @@ class ListFragment : Fragment() {
 
     class AlbumHolder(view: View) : DataHolder<Album>(view) {
         private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        private val check: CheckBox = view.findViewById(R.id.check)
         private val text1: TextView = view.findViewById(R.id.text1)
         private val text2: TextView = view.findViewById(R.id.text2)
         private val text3: TextView = view.findViewById(R.id.text3)
-        private val check: CheckBox = view.findViewById(R.id.check)
+
         @SuppressLint("SetTextI18n")
         override fun bind() {
             image.progress().load(value.image)
