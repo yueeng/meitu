@@ -341,7 +341,7 @@ class PreviewFragment : Fragment() {
             ViewCompat.setTransitionName(image, item)
             if (position == current()) {
                 image.startPostponedEnterTransition()
-                image.post { RxBus.instance.post("hack_fresco", position) }
+                image.post { RxBus.instance.post("hack_shared_elements", position) }
             }
         }
     }

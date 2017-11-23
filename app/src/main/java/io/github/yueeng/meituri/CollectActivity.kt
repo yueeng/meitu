@@ -69,8 +69,8 @@ class CollectFragment : Fragment() {
                 }
             }
         }
-        RxBus.instance.subscribe<Int>(this, "hack_fresco") {
-            recycler?.adapter?.notifyDataSetChanged()
+        RxBus.instance.subscribe<Int>(this, "hack_shared_elements") {
+            recycler?.adapter?.notifyItemChanged(it)
         }
     }
 
@@ -103,7 +103,7 @@ class CollectFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         view?.findViewById<RecyclerView>(R.id.recycler)?.adapter = null
-        RxBus.instance.unsubscribe(this, "hack_fresco")
+        RxBus.instance.unsubscribe(this, "hack_shared_elements")
     }
 
     private fun query() {
