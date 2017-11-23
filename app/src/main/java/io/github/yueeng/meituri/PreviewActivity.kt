@@ -72,7 +72,7 @@ class PreviewFragment : Fragment() {
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
     private val count by lazy { album.count }
-    private val sseq by lazy { MtCollectSequence(url) }
+    private val mtseq by lazy { mtCollectSequence(url) }
     private val adapter by lazy { PreviewAdapter(name) }
     private val busy = ViewBinder<Boolean, View>(false) { v, vt -> v.visibility = if (vt) View.VISIBLE else View.INVISIBLE }
     private val page by lazy { ViewBinder<Int, TextView>(-1) { v, vt -> v.text = "${vt + 1}/$count" } }
@@ -230,7 +230,7 @@ class PreviewFragment : Fragment() {
         retainInstance = true
         state?.let {
             page * state.getInt("page")
-            sseq.url = state.getString("uri")
+            mtseq.url = state.getString("uri")
             adapter.data.addAll(state.getStringArrayList("data"))
             thumb.add(state.getStringArrayList("thumb"))
             info = state.getParcelableArrayList<Bundle>("info")?.map {
@@ -241,7 +241,7 @@ class PreviewFragment : Fragment() {
                 adapter.data.addAll(it)
                 thumb.add(it)
             }
-            sseq.url = arguments?.getString("uri") ?: url
+            mtseq.url = arguments?.getString("uri") ?: url
             arguments?.getInt("index")?.let {
                 page * it
                 current * it
@@ -253,7 +253,7 @@ class PreviewFragment : Fragment() {
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
         state.putInt("page", page())
-        state.putString("uri", sseq.url)
+        state.putString("uri", mtseq.url)
         state.putStringArrayList("data", ArrayList(adapter.data))
         state.putStringArrayList("thumb", ArrayList(thumb.data))
 
@@ -267,12 +267,12 @@ class PreviewFragment : Fragment() {
     private var info: List<Pair<String, List<Name>>>? = null
 
     private fun query(all: Boolean = false, call: (() -> Unit)? = null): Boolean {
-        if (busy() || sseq.url == null) {
-            if (sseq.url == null) call?.invoke()
+        if (busy() || mtseq.url == null) {
+            if (mtseq.url == null) call?.invoke()
             return false
         }
         busy * true
-        sseq.toObservable().let {
+        mtseq.toObservable().let {
             if (all) it else it.take(2)
         }.flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
             busy * false
@@ -280,7 +280,7 @@ class PreviewFragment : Fragment() {
                 thumb.add(list)
                 adapter.data.addAll(list)
                 adapter.notifyDataSetChanged()
-                RxBus.instance.post("update_collect", sseq.url to list)
+                RxBus.instance.post("update_collect", mtseq.url to list)
                 page * current()
             }
             call?.invoke()

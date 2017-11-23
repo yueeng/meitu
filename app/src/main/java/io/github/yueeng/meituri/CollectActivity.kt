@@ -40,7 +40,7 @@ class CollectFragment : Fragment() {
     private val album by lazy { arguments?.getParcelable<Album>("album")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
-    private val sseq by lazy { MtCollectSequence(url) }
+    private val mtseq by lazy { mtCollectSequence(url) }
     private val adapter by lazy { ImageAdapter() }
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
 
@@ -58,7 +58,7 @@ class CollectFragment : Fragment() {
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
-                sseq.url = url
+                mtseq.url = url
                 query()
             }
         }
@@ -105,11 +105,11 @@ class CollectFragment : Fragment() {
         retainInstance = true
         setHasOptionsMenu(true)
         state?.let {
-            sseq.url = state.getString("uri")
+            mtseq.url = state.getString("uri")
             adapter.add(state.getStringArrayList("data"))
         } ?: { query() }()
         RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
-            sseq.url = it.first
+            mtseq.url = it.first
             adapter.add(it.second)
         }
     }
@@ -121,7 +121,7 @@ class CollectFragment : Fragment() {
 
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
-        state.putString("uri", sseq.url)
+        state.putString("uri", mtseq.url)
         state.putStringArrayList("data", ArrayList(adapter.data))
     }
 
@@ -133,12 +133,12 @@ class CollectFragment : Fragment() {
     }
 
     private fun query(all: Boolean = false, fn: (() -> Unit)? = null) {
-        if (busy() || sseq.url == null) {
-            if (sseq.url == null) fn?.invoke()
+        if (busy() || mtseq.url == null) {
+            if (mtseq.url == null) fn?.invoke()
             return
         }
         busy * true
-        sseq.toObservable().let {
+        mtseq.toObservable().let {
             if (all) it else it.take(2)
         }.flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
             busy * false
@@ -181,7 +181,7 @@ class CollectFragment : Fragment() {
                     it.startActivity(Intent(it, PreviewActivity::class.java)
                             .putExtra("album", album)
                             .putExtra("data", ArrayList(adapter.data))
-                            .putExtra("uri", sseq.url)
+                            .putExtra("uri", mtseq.url)
                             .putExtra("index", adapterPosition),
                             ActivityOptionsCompat.makeSceneTransitionAnimation(it,
                                     image to4 value).toBundle())

@@ -24,7 +24,12 @@ import android.view.*
 import android.widget.CheckBox
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
-import org.jetbrains.anko.*
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.rxkotlin.toObservable
+import io.reactivex.schedulers.Schedulers
+import org.jetbrains.anko.bundleOf
+import org.jetbrains.anko.searchManager
+import org.jetbrains.anko.startActivity
 
 /**
  * Main activity
@@ -349,7 +354,7 @@ class ListFragment : Fragment() {
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
-                uri = url
+                mtseq.url = url
                 query()
             }
         }
@@ -363,57 +368,60 @@ class ListFragment : Fragment() {
     private val adapter = ListAdapter()
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments?.getString("url")!! }
-    private var uri: String? = null
+    private val mtseq by lazy { mtAlbumSequence(url) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         retainInstance = true
         setHasOptionsMenu(true)
-        uri = url
         state?.let {
-            uri = state.getString("uri")
+            mtseq.url = state.getString("uri")
             adapter.add(state.getParcelableArrayList("data"))
         } ?: { query() }()
     }
 
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
-        state.putString("uri", uri)
+        state.putString("uri", mtseq.url)
         state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
     private fun query() {
-        if (busy() || uri.isNullOrEmpty()) return
+        if (busy() || mtseq.url.isNullOrEmpty()) return
         busy * true
-        val first = adapter.data.isEmpty()
-        doAsync {
-            val dom = uri!!.httpGet().jsoup()
-            val list: List<Name>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
-                when {
-                    it.`is`(".hezi li") -> Album(it)
-                    first && it.`is`(".hezi_t li") -> Model(it)
-                    first && it.`is`(".jigou li") -> Organ(it)
-                    first && it.`is`(".renwu") -> Info(it)
-                    first && it.`is`(".shoulushuliang") -> Name(it.text())
-                    first && it.`is`(".hezi .title") -> Name(it.text())
-                    first && it.`is`(".fenlei p") -> Name(it.text())
-                    else -> null
-                }
-            }
-            val categories = uri?.takeIf { it == "$website/mote/" }?.let {
-                dom?.select("#tag_ul li a")?.map { Link(it) }
-            }
-            val next = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
-            uiThread {
-                busy * false
-                uri = next
-                if (categories?.size ?: 0 > 0) {
-                    adapter.add(Name("分类"))
-                    adapter.add(categories!!)
-                    adapter.add(Name("模特"))
-                }
-                if (list != null) adapter.add(list)
-            }
+        mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
+            busy * false
+            adapter.add(list)
         }
+//        val first = adapter.data.isEmpty()
+//        doAsync {
+//            val dom = uri!!.httpGet().jsoup()
+//            val list: List<Name>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
+//                when {
+//                    it.`is`(".hezi li") -> Album(it)
+//                    first && it.`is`(".hezi_t li") -> Model(it)
+//                    first && it.`is`(".jigou li") -> Organ(it)
+//                    first && it.`is`(".renwu") -> Info(it)
+//                    first && it.`is`(".shoulushuliang") -> Name(it.text())
+//                    first && it.`is`(".hezi .title") -> Name(it.text())
+//                    first && it.`is`(".fenlei p") -> Name(it.text())
+//                    else -> null
+//                }
+//            }
+//            val categories = uri?.takeIf { it == "$website/mote/" }?.let {
+//                dom?.select("#tag_ul li a")?.map { Link(it) }
+//            }
+//            val next = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
+//            uiThread {
+//                busy * false
+//                uri = next
+//                if (categories?.size ?: 0 > 0) {
+//                    adapter.add(Name("分类"))
+//                    adapter.add(categories!!)
+//                    adapter.add(Name("模特"))
+//                }
+//                if (list != null) adapter.add(list)
+//            }
+//        }
     }
 
     class NameHolder(view: View) : DataHolder<Name>(view) {

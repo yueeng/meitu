@@ -461,3 +461,50 @@ object dbFav {
         obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }.map(::Link2)
     }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
 }
+
+open class MtSequence<T>(var url: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<List<T>> {
+    override fun iterator(): Iterator<List<T>> = object : Iterator<List<T>> {
+        lateinit var data: List<T>
+        override fun hasNext(): Boolean = url?.let {
+            val result = fn(it)
+            url = result.first
+            data = result.second
+            data.isNotEmpty()
+        } ?: false
+
+        override fun next(): List<T> = data
+    }
+}
+
+fun mtAlbumSequence(uri: String) = MtSequence(uri) {
+    val first = it == uri
+    val dom = it.httpGet().jsoup()
+    val url = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
+    val list: List<Name>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
+        when {
+            it.`is`(".hezi li") -> Album(it)
+            first && it.`is`(".hezi_t li") -> Model(it)
+            first && it.`is`(".jigou li") -> Organ(it)
+            first && it.`is`(".renwu") -> Info(it)
+            first && it.`is`(".shoulushuliang") -> Name(it.text())
+            first && it.`is`(".hezi .title") -> Name(it.text())
+            first && it.`is`(".fenlei p") -> Name(it.text())
+            else -> null
+        }
+    }
+    val categories = it.takeIf { first && it == "$website/mote/" }?.let {
+        dom?.select("#tag_ul li a")?.map { Link(it) }
+    }
+    url to categories?.takeIf { it.isNotEmpty() }?.let {
+        listOf(Name("分类")) + it + Name("模特")
+    }.orEmpty() + list.orEmpty()
+}
+
+fun mtCollectSequence(uri: String) = MtSequence(uri) {
+    val dom = it.httpGet().jsoup()
+    val data = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
+    val url = dom?.select("#pages span+a")?.let {
+        !it.`is`(".a1") to it.attr("abs:href")
+    }?.takeIf { it.first }?.second
+    url to data.orEmpty()
+}

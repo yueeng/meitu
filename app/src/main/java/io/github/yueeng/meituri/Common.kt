@@ -860,23 +860,6 @@ class FAM @JvmOverloads constructor(
     }
 }
 
-class MtCollectSequence(var url: String?) : Sequence<List<String>> {
-    override fun iterator(): Iterator<List<String>> = object : Iterator<List<String>> {
-        var data: List<String>? = null
-        override fun hasNext(): Boolean = url?.let {
-            val dom = it.httpGet().jsoup()
-            data = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
-            url = dom?.select("#pages span+a")?.let {
-                !it.`is`(".a1") to it.attr("abs:href")
-            }?.takeIf { it.first }?.second
-            data?.isNotEmpty() ?: false
-        } ?: false
-
-        override fun next(): List<String> = data ?: emptyList()
-
-    }
-}
-
 fun Context.downloadAll(name: String, data: List<String>) = alert().apply {
     setTitle(name)
     setMessage("该图集共有${data.size}张图片，要下载吗")
