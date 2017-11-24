@@ -455,6 +455,10 @@ object dbFav {
         obl.get(tag).albums.sortedByDescending { it.id }.map(::Album)
     }.io2main().subscribe { fn(it) }
 
+    fun tag(tag: Long, fn: (Link?) -> Unit): Disposable = RxMt.create {
+        obl.get(tag)?.let { Link(it.name, it.url) }
+    }.io2main().subscribe { fn(it) }
+
     fun tags(type: Int, fn: (List<Link2>) -> Unit): Disposable = RxMt.create {
         obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }.map(::Link2)
     }.io2main().subscribe { fn(it) }

@@ -74,15 +74,13 @@ class MainActivity : AppCompatActivity() {
         }
         navigation.setNavigationItemSelectedListener {
             when (it.itemId) {
-                R.id.menu_favorite -> {
+                R.id.menu_favorite -> consumer {
                     startActivity<FavoriteActivity>()
                     drawer.closeDrawer(navigation)
-                    true
                 }
-                in 0x1000..0x1000 + list.size -> {
+                in 0x1000..0x1000 + list.size -> consumer {
                     pager.currentItem = it.itemId - 0x1000
                     drawer.closeDrawer(navigation)
-                    true
                 }
                 else -> false
             }
@@ -251,8 +249,25 @@ class FavoriteFragment : Fragment() {
         RxBus.instance.unsubscribe(this)
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
+        menu.add(Menu.NONE, 0x1000, Menu.NONE, "打开").setIcon(R.drawable.ic_open).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        0x1000 -> consumer {
+            dbFav.tag(tag) {
+                it?.let {
+                    context?.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
+                }
+            }
+        }
+        else -> super.onOptionsItemSelected(item)
+    }
+
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        if (tag > 0) setHasOptionsMenu(true)
         state?.let {
             page = state.getLong("page")
             adapter.add(state.getParcelableArrayList("data"))
@@ -319,7 +334,7 @@ class ListFragment : Fragment() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.favorite -> context?.startActivity<FavoriteActivity>().let { true }
+        R.id.favorite -> consumer { context?.startActivity<FavoriteActivity>() }
         else -> super.onOptionsItemSelected(item)
     }
 
@@ -485,30 +500,32 @@ class ListFragment : Fragment() {
                 context.startActivity<CollectActivity>("album" to value)
             }
             view.setOnLongClickListener {
-                val album = value
-                context.asActivity()?.let { activity ->
-                    ContextThemeWrapper(activity, R.style.AppThemeDark).popupMenu(image, res = R.style.Widget_AppCompat_Light_PopupMenu).apply {
-                        setForceShowIcon(true)
-                        inflate(R.menu.preivew_more)
-                        menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
-                        setOnMenuItemClickListener {
-                            when (it.itemId) {
-                                R.id.menu_download_all -> activity.permissionWriteExternalStorage {
-                                    mtCollectSequence(album.url).toObservable()
-                                            .flatMap { it.toObservable() }.toList()
-                                            .io2main().subscribe { list ->
-                                        activity.downloadAll(album.name, list)
+                consumer {
+                    val album = value
+                    context.asActivity()?.let { activity ->
+                        ContextThemeWrapper(activity, R.style.AppThemeDark).popupMenu(image, res = R.style.Widget_AppCompat_Light_PopupMenu).apply {
+                            setForceShowIcon(true)
+                            inflate(R.menu.preivew_more)
+                            menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
+                            setOnMenuItemClickListener {
+                                consumer {
+                                    when (it.itemId) {
+                                        R.id.menu_download_all -> activity.permissionWriteExternalStorage {
+                                            mtCollectSequence(album.url).toObservable()
+                                                    .flatMap { it.toObservable() }.toList()
+                                                    .io2main().subscribe { list ->
+                                                activity.downloadAll(album.name, list)
+                                            }
+                                        }
+                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else Album.from(album.url, album) { dbFav.put(it ?: album) }
+                                        R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
                                     }
                                 }
-                                R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else Album.from(album.url, album) { dbFav.put(it ?: album) }
-                                R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
                             }
-                            true
+                            show()
                         }
-                        show()
                     }
                 }
-                true
             }
             check.setOnClickListener {
                 value.url?.let { url ->

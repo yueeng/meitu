@@ -408,6 +408,11 @@ fun <T> String.spannable(tag: List<T>?, string: ((T) -> String) = { "$it" }, cal
     }
 }
 
+fun consumer(fn: () -> Unit): Boolean {
+    fn()
+    return true
+}
+
 fun Cursor.getString(column: String): String = getString(getColumnIndex(column))
 fun Cursor.getInt(column: String) = getInt(getColumnIndex(column))
 

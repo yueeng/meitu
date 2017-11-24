@@ -149,15 +149,16 @@ class PreviewFragment : Fragment() {
                 inflate(R.menu.preivew_more)
                 menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
                 setOnMenuItemClickListener {
-                    when (it.itemId) {
-                        R.id.menu_download_all -> if (busy()) context?.toast("正在请求数据，请稍后重试。")
-                        else activity?.permissionWriteExternalStorage {
-                            query(true) { context?.downloadAll(name, adapter.data) }
+                    consumer {
+                        when (it.itemId) {
+                            R.id.menu_download_all -> if (busy()) context?.toast("正在请求数据，请稍后重试。")
+                            else activity?.permissionWriteExternalStorage {
+                                query(true) { context?.downloadAll(name, adapter.data) }
+                            }
+                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
+                            R.id.menu_thumb -> sliding?.open()
                         }
-                        R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
-                        R.id.menu_thumb -> sliding?.open()
                     }
-                    true
                 }
                 show()
             }
@@ -184,8 +185,7 @@ class PreviewFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean = sliding?.state?.takeIf { it == BottomSheetBehavior.STATE_EXPANDED }?.let {
-        sliding?.close()
-        true
+        sliding?.close()?.let { true }
     } ?: false
 
     private val receiver = object : BroadcastReceiver() {
@@ -245,10 +245,10 @@ class PreviewFragment : Fragment() {
 
     private var info: List<Pair<String, List<Name>>>? = null
 
-    private fun query(all: Boolean = false, call: (() -> Unit)? = null): Boolean {
+    private fun query(all: Boolean = false, call: (() -> Unit)? = null) {
         if (busy() || mtseq.url == null) {
             if (mtseq.url == null) call?.invoke()
-            return false
+            return
         }
         busy * true
         mtseq.toObservable().let {
@@ -264,7 +264,6 @@ class PreviewFragment : Fragment() {
             }
             call?.invoke()
         }
-        return true
     }
 
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
@@ -288,9 +287,8 @@ class PreviewFragment : Fragment() {
             image.apply {
                 maxScaleFactor = 5F
             }.progress().load(item).setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
-                override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
+                override fun onSingleTapConfirmed(e: MotionEvent?): Boolean = consumer {
                     RxBus.instance.post("tap_preview", 1)
-                    return true
                 }
             })
             image.tag = item
