@@ -163,6 +163,7 @@ class FavoriteTagsFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
         recycler.adapter = adapter
+        recycler.supportsChangeAnimations = false
         recycler.loadMore { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
@@ -231,6 +232,7 @@ class FavoriteFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = GridLayoutManager(context, resources.getInteger(R.integer.list_columns))
         recycler.adapter = adapter
+        recycler.supportsChangeAnimations = false
         recycler.loadMore { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
@@ -241,7 +243,7 @@ class FavoriteFragment : Fragment() {
         }
         RxBus.instance.subscribe<String>(this, "favorite") { uri ->
             adapter.data.asSequence().mapIndexed { i, v -> i to v }
-                    .filter { it.second.url == uri }.forEach { adapter.notifyItemChanged(it.first) }
+                    .filter { it.second.url == uri }.forEach { adapter.notifyItemChanged(it.first, "favorite") }
         }
     }
 
@@ -382,6 +384,7 @@ class ListFragment : Fragment() {
             }
         }
         recycler.adapter = adapter
+        recycler.supportsChangeAnimations = false
         recycler.loadMore(2) { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
@@ -393,7 +396,9 @@ class ListFragment : Fragment() {
         RxBus.instance.subscribe<String>(this, "favorite") { uri ->
             adapter.data.asSequence().mapIndexed { i, v -> i to v }
                     .filter { it.second is Album }.map { it.first to it.second as Album }
-                    .filter { it.second.url == uri }.forEach { adapter.notifyItemChanged(it.first) }
+                    .filter { it.second.url == uri }.forEach {
+                adapter.notifyItemChanged(it.first, "favorite")
+            }
         }
     }
 
@@ -504,13 +509,15 @@ class ListFragment : Fragment() {
         private val text3: TextView = view.findViewById(R.id.text3)
 
         @SuppressLint("SetTextI18n")
-        override fun bind() {
-            image.progress().load(value.image)
-            text1.text = value.name
-            text3.text = "${value.count}P"
-            text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE
-            text2.text = value.info.spannable(" ", { it.name }) {
-                context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
+        override fun bind(i: Int, payloads: MutableList<Any>?) {
+            if (payloads?.isEmpty() != false) {
+                image.progress().load(value.image)
+                text1.text = value.name
+                text3.text = "${value.count}P"
+                text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE
+                text2.text = value.info.spannable(" ", { it.name }) {
+                    context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
+                }
             }
             check.isChecked = value.url?.let { dbFav.exists(it) } ?: false
         }

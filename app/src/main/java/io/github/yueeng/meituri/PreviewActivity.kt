@@ -97,6 +97,7 @@ class PreviewFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
         recycler.adapter = thumb
+        recycler.supportsChangeAnimations = false
         recycler.loadMore(2) { query() }
 
         sliding?.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {

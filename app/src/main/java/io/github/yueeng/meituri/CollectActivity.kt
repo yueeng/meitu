@@ -52,6 +52,7 @@ class CollectFragment : Fragment() {
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
         recycler.layoutManager = StaggeredGridLayoutManager(MtSettings.PREVIEW_LIST_COLUMN, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = adapter
+        recycler.supportsChangeAnimations = false
         recycler.loadMore { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {

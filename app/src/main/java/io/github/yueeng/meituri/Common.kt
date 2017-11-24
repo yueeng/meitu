@@ -231,17 +231,24 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
     }
 }
 
+var RecyclerView.supportsChangeAnimations
+    get() = (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations ?: false
+    set(value) {
+        (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations = value
+    }
+
 open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
     val context: Context get() = itemView.context
     private lateinit var _value: T
     val value: T get() = _value
-    open fun bind() {}
-    open fun bind(i: Int) {}
+    open fun bind() = Unit
+    open fun bind(i: Int) = bind()
+    open fun bind(i: Int, payloads: MutableList<Any>?) = bind(i)
+
     @Suppress("UNCHECKED_CAST")
-    fun set(v: Any, i: Int) {
+    fun set(v: Any, i: Int, payloads: MutableList<Any>?) {
         _value = v as T
-        bind(i)
-        bind()
+        bind(i, payloads)
     }
 }
 
@@ -271,10 +278,11 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
 
     fun get(position: Int) = _data[position]
 
-    override fun onBindViewHolder(holder: VH, position: Int) {
-        holder.set(get(position), position)
+    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>?) {
+        holder.set(get(position), position, payloads)
     }
 
+    override fun onBindViewHolder(holder: VH, position: Int) = Unit
 }
 
 abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>() {
@@ -289,8 +297,8 @@ abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>
         return super.clear()
     }
 
-    override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int) {
-        super.onBindViewHolder(holder, position)
+    override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int, payloads: MutableList<Any>?) {
+        super.onBindViewHolder(holder, position, payloads)
         if (position > last) {
             last = position
             val anim = ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0F)
