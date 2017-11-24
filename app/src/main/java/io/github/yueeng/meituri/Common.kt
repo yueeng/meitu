@@ -262,7 +262,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
         return this
     }
 
-    fun clear(): DataAdapter<T, VH> {
+    open fun clear(): DataAdapter<T, VH> {
         val size = _data.size
         _data.clear()
         if (size > 0) notifyItemRangeRemoved(0, size)
@@ -282,6 +282,11 @@ abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>
     private val interpolator = DecelerateInterpolator(3F)
     private val from: Float = (MainApplication.current().windowManager.defaultDisplay).run {
         Point().apply { getSize(this) }.let { Math.max(it.x, it.y) / 4F }
+    }
+
+    override fun clear(): DataAdapter<T, VH> {
+        last = -1
+        return super.clear()
     }
 
     override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int) {
