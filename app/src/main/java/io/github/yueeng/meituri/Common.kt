@@ -3,6 +3,7 @@
 package io.github.yueeng.meituri
 
 import android.Manifest
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DownloadManager
@@ -12,10 +13,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.database.Cursor
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.RectF
+import android.graphics.*
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -84,10 +82,7 @@ import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
-import org.jetbrains.anko.childrenSequence
-import org.jetbrains.anko.downloadManager
-import org.jetbrains.anko.startActivity
-import org.jetbrains.anko.toast
+import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
@@ -276,10 +271,29 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
 
     fun get(position: Int) = _data[position]
 
-    override fun onBindViewHolder(holder: VH?, position: Int) {
-        holder?.set(get(position), position)
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        holder.set(get(position), position)
     }
 
+}
+
+abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>() {
+    private var last: Int = -1
+    private val interpolator = DecelerateInterpolator(3F)
+    private val from: Float = (MainApplication.current().windowManager.defaultDisplay).run {
+        Point().apply { getSize(this) }.let { Math.max(it.x, it.y) / 4F }
+    }
+
+    override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int) {
+        super.onBindViewHolder(holder, position)
+        if (position > last) {
+            last = position
+            val anim = ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0F)
+                    .setDuration(1000)
+            anim.interpolator = interpolator
+            anim.start()
+        }
+    }
 }
 
 abstract class DataPagerAdapter<T>(val layout: Int) : PagerAdapter() {

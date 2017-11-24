@@ -214,7 +214,7 @@ class FavoriteTagsFragment : Fragment() {
         }
     }
 
-    class ListAdapter : DataAdapter<Link2, DataHolder<Link2>>() {
+    class ListAdapter : AnimDataAdapter<Link2, DataHolder<Link2>>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Link2> =
                 TextHolder(parent.inflate(R.layout.list_organ_item))
     }
@@ -301,7 +301,7 @@ class FavoriteFragment : Fragment() {
         }
     }
 
-    class ListAdapter : DataAdapter<Album, DataHolder<Album>>() {
+    class ListAdapter : AnimDataAdapter<Album, DataHolder<Album>>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Album> =
                 ListFragment.AlbumHolder(parent.inflate(R.layout.list_album_item))
     }
@@ -560,7 +560,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    class ListAdapter : DataAdapter<Name, DataHolder<Name>>() {
+    class ListAdapter : AnimDataAdapter<Name, DataHolder<Name>>() {
         override fun getItemViewType(position: Int): Int = when (get(position)) {
             is Album -> ListType.Album.value
             is Model -> ListType.Model.value

@@ -192,7 +192,7 @@ class CollectFragment : Fragment() {
         }
     }
 
-    inner class ImageAdapter : DataAdapter<String, ImageHolder>() {
+    inner class ImageAdapter : AnimDataAdapter<String, ImageHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageHolder =
                 ImageHolder(parent.inflate(R.layout.list_collect_item))
 

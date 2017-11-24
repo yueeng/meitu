@@ -318,7 +318,7 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    class ThumbAdapter(val name: String) : DataAdapter<String, ThumbHolder>() {
+    class ThumbAdapter(val name: String) : AnimDataAdapter<String, ThumbHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbHolder =
                 ThumbHolder(parent.inflate(R.layout.preview_thumb_item), name)
 
