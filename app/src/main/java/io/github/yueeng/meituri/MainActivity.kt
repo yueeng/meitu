@@ -24,9 +24,7 @@ import android.view.*
 import android.widget.CheckBox
 import android.widget.TextView
 import com.facebook.drawee.view.SimpleDraweeView
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.toObservable
-import io.reactivex.schedulers.Schedulers
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.searchManager
 import org.jetbrains.anko.startActivity
@@ -212,9 +210,7 @@ class FavoriteTagsFragment : Fragment() {
 
         init {
             view.setOnClickListener {
-                value.url?.takeIf { it.isNotEmpty() }?.let {
-                    context.startActivity<FavoriteTagActivity>("tag" to value.id, "url" to it, "name" to value.name)
-                }
+                context.startActivity<FavoriteTagActivity>("tag" to value.id, "url" to value.uri, "name" to value.name)
             }
         }
     }
@@ -388,7 +384,7 @@ class ListFragment : Fragment() {
     private fun query() {
         if (busy() || mtseq.url.isNullOrEmpty()) return
         busy * true
-        mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
+        mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
         }
@@ -487,6 +483,32 @@ class ListFragment : Fragment() {
             text2.movementMethod = LinkMovementMethod.getInstance()
             view.setOnClickListener {
                 context.startActivity<CollectActivity>("album" to value)
+            }
+            view.setOnLongClickListener {
+                val album = value
+                context.asActivity()?.let { activity ->
+                    ContextThemeWrapper(activity, R.style.AppThemeDark).popupMenu(image, res = R.style.Widget_AppCompat_Light_PopupMenu).apply {
+                        setForceShowIcon(true)
+                        inflate(R.menu.preivew_more)
+                        menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
+                        setOnMenuItemClickListener {
+                            when (it.itemId) {
+                                R.id.menu_download_all -> activity.permissionWriteExternalStorage {
+                                    mtCollectSequence(album.url).toObservable()
+                                            .flatMap { it.toObservable() }.toList()
+                                            .io2main().subscribe { list ->
+                                        activity.downloadAll(album.name, list)
+                                    }
+                                }
+                                R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else Album.from(album.url, album) { dbFav.put(it ?: album) }
+                                R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
+                            }
+                            true
+                        }
+                        show()
+                    }
+                }
+                true
             }
             check.setOnClickListener {
                 value.url?.let { url ->

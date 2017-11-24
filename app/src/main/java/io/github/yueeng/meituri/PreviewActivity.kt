@@ -27,9 +27,7 @@ import com.facebook.drawee.view.DraweeTransition
 import com.facebook.drawee.view.SimpleDraweeView
 import com.facebook.samples.zoomable.DoubleTapGestureListener
 import com.facebook.samples.zoomable.ZoomableDraweeView
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.toObservable
-import io.reactivex.schedulers.Schedulers
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.toast
@@ -255,7 +253,7 @@ class PreviewFragment : Fragment() {
         busy * true
         mtseq.toObservable().let {
             if (all) it else it.take(2)
-        }.flatMap { it.toObservable() }.toList().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { list ->
+        }.flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             if (list.isNotEmpty()) {
                 thumb.add(list)

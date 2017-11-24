@@ -72,6 +72,7 @@ import com.facebook.stetho.okhttp3.StethoInterceptor
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Scheduler
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.processors.FlowableProcessor
@@ -485,7 +486,7 @@ fun Fragment.delay(millis: Long, run: () -> Unit) {
 }
 
 fun Context.alert() = AlertDialog.Builder(this)
-fun Context.popupMenu(view: View) = PopupMenu(this, view)
+fun Context.popupMenu(view: View, gravity: Int = Gravity.NO_GRAVITY, attr: Int = 0, res: Int = 0) = PopupMenu(this, view, gravity, attr, res)
 
 val Context.orientation get() = resources.configuration.orientation
 val Context.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT
@@ -717,6 +718,13 @@ val String.md5
         return bytes.joinToString("", transform = { String.format("%02x", it) })
     }
 
+fun <T> Single<T>.io(): Single<T> = this.subscribeOn(Schedulers.io())
+fun <T> Single<T>.main(): Single<T> = observeOn(AndroidSchedulers.mainThread())
+fun <T> Single<T>.io2main(): Single<T> = this.io().main()
+fun <T> Observable<T>.io(): Observable<T> = this.subscribeOn(Schedulers.io())
+fun <T> Observable<T>.main(): Observable<T> = observeOn(AndroidSchedulers.mainThread())
+fun <T> Observable<T>.io2main(): Observable<T> = this.io().main()
+
 object RxMt {
     fun <T> create(fn: () -> T): Observable<T> = Observable.create<T> {
         try {
@@ -783,7 +791,7 @@ object Settings {
     private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
     val LIST_COLUMN: Int get() = context.resources.getInteger(R.integer.list_columns)
     val MAX_PREVIEW_LIST_COLUMN: Int
-        get() = LIST_COLUMN + if (context.isPortrait) 0 else 1
+        get() = LIST_COLUMN + if (context.isPortrait) 1 else 2
     var PREVIEW_LIST_COLUMN: Int
         get() = Math.min(MAX_PREVIEW_LIST_COLUMN, config.getInt(KEY_PREVIEW_LIST_COLUMN, LIST_COLUMN))
         set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
@@ -824,28 +832,27 @@ class FAB @JvmOverloads constructor(
 }
 
 class FAM @JvmOverloads constructor(
-        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
+        context: Context, val attrs: AttributeSet? = null, val defStyleAttr: Int = 0, val defStyleRes: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
-    var famSrc: Drawable? = null
+    var famSrc: Drawable?
+        get() = findViewById<FloatingActionButton>(R.id.fam_button)?.drawable
         set(value) {
             findViewById<FloatingActionButton>(R.id.fam_button)?.setImageDrawable(value)
-            field = value
         }
 
     init {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.END
-        val a = context.obtainStyledAttributes(
-                attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
-        famSrc = a.getDrawable(R.styleable.FAM_fam_src)
-        a.recycle()
     }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
+        addView(LayoutInflater.from(context).inflate(R.layout.fam, this, false))
+        val a = context.obtainStyledAttributes(attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
+        famSrc = a.getDrawable(R.styleable.FAM_fam_src)
+        a.recycle()
         children<LinearLayout>().forEach { it.visibility = View.INVISIBLE }
-        addView(LayoutInflater.from(context).inflate(R.layout.fam, this, false).also { fab ->
-            (fab as FloatingActionButton).setImageDrawable(famSrc)
+        findViewById<FloatingActionButton>(R.id.fam_button)?.let { fab ->
             fab.setOnClickListener {
                 TransitionManager.beginDelayedTransition(this, TransitionSet().apply {
                     addTransition(Fade())
@@ -859,14 +866,14 @@ class FAM @JvmOverloads constructor(
                     children<FAB>().forEach { it.visibility = View.VISIBLE }
                 }
             }
-        })
+        }
     }
 }
 
 fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Name>>>?, fn: (List<Pair<String, List<Name>>>?) -> Unit) {
     RxMt.create {
         info ?: Album.attr(url.httpGet().jsoup())
-    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe {
+    }.io2main().subscribe {
         it?.let { info ->
             alert().apply {
                 setTitle(name)

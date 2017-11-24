@@ -9,9 +9,7 @@ import io.objectbox.annotation.Entity
 import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
@@ -339,7 +337,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
                         }
                     }
                 }
-            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+            }.io2main().subscribe { fn(it) }
         }
     }
 }
@@ -436,7 +434,7 @@ object dbFav {
                 obl.put(o.model + o.organ + o.tags)
             }
         }
-    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe {
+    }.io2main().subscribe {
         fn?.invoke(it)
         RxBus.instance.post("favorite", it.url)
     }
@@ -444,22 +442,22 @@ object dbFav {
     fun exists(url: String) = !oba.find(ObAlbum_.url, url).isEmpty()
     fun del(url: String, fn: ((List<ObAlbum>) -> Unit)? = null): Disposable = RxMt.create {
         oba.find(ObAlbum_.url, url).onEach { oba.remove(it) }
-    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe {
+    }.io2main().subscribe {
         fn?.invoke(it)
         RxBus.instance.post("favorite", url)
     }
 
     fun albums(offset: Long, limit: Long, fn: (List<Album>) -> Unit): Disposable = RxMt.create {
         oba.query().orderDesc(ObAlbum_.id).build().find(offset, limit).map(::Album)
-    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+    }.io2main().subscribe { fn(it) }
 
     fun albums(tag: Long, fn: (List<Album>) -> Unit): Disposable = RxMt.create {
         obl.get(tag).albums.sortedByDescending { it.id }.map(::Album)
-    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+    }.io2main().subscribe { fn(it) }
 
     fun tags(type: Int, fn: (List<Link2>) -> Unit): Disposable = RxMt.create {
         obl.query().equal(ObLink_.type, type.toLong()).build().find().filter { it.albums.isNotEmpty() }.sortedByDescending { it.albums.size }.map(::Link2)
-    }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe { fn(it) }
+    }.io2main().subscribe { fn(it) }
 }
 
 open class MtSequence<T>(var url: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<List<T>> {
