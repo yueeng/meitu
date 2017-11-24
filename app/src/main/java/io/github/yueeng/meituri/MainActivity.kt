@@ -15,7 +15,8 @@ import android.support.v4.view.ViewPager
 import android.support.v4.widget.DrawerLayout
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.AlertDialog
+import android.support.v7.app.AppCompatDelegate
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.SearchView
@@ -34,7 +35,7 @@ import org.jetbrains.anko.startActivity
  * Created by Rain on 2017/8/22.
  */
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : DayNightAppCompatActivity() {
     private val adapter by lazy { MainAdapter(supportFragmentManager) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -335,6 +336,26 @@ class ListFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.favorite -> consumer { context?.startActivity<FavoriteActivity>() }
+        R.id.daynight -> consumer {
+            val current = MtSettings.DAY_NIGHT_MODE
+            val items = listOf(AppCompatDelegate.MODE_NIGHT_AUTO to "自动",
+                    AppCompatDelegate.MODE_NIGHT_NO to "白天",
+                    AppCompatDelegate.MODE_NIGHT_YES to "夜晚",
+                    AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM to "跟随系统")
+            activity?.alert()
+                    ?.setTitle("夜间模式")
+                    ?.setSingleChoiceItems(items.map { it.second }.toTypedArray(), items.indexOfFirst { it.first == current }, null)
+                    ?.setPositiveButton("确定") { d, _ ->
+                        (d as? AlertDialog)?.listView?.checkedItemPosition?.let {
+                            items[it].first.takeIf { it != MtSettings.DAY_NIGHT_MODE }?.let {
+                                MtSettings.DAY_NIGHT_MODE = it
+                                RxBus.instance.post("day_night", MtSettings.DAY_NIGHT_MODE)
+                            }
+                        }
+                    }
+                    ?.setNegativeButton("取消", null)
+                    ?.create()?.show()
+        }
         else -> super.onOptionsItemSelected(item)
     }
 
@@ -503,9 +524,9 @@ class ListFragment : Fragment() {
                 consumer {
                     val album = value
                     context.asActivity()?.let { activity ->
-                        ContextThemeWrapper(activity, R.style.AppThemeDark).popupMenu(image, res = R.style.Widget_AppCompat_Light_PopupMenu).apply {
+                        activity.wrapper().popupMenu(image).apply {
                             setForceShowIcon(true)
-                            inflate(R.menu.preivew_more)
+                            inflate(R.menu.list_more)
                             menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
                             setOnMenuItemClickListener {
                                 consumer {

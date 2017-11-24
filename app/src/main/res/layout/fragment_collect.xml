@@ -64,6 +64,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_label="布局"
-            app:fab_src="@drawable/ic_thumb" />
+            app:fab_src="@drawable/ic_category" />
     </io.github.yueeng.meituri.FAM>
 </android.support.design.widget.CoordinatorLayout>

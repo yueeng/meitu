@@ -144,7 +144,7 @@ class PreviewFragment : Fragment() {
             context?.showInfo(name, url, info) { info = it }
         }
         view.findViewById<View>(R.id.button3).setOnClickListener {
-            context?.popupMenu(it)?.apply {
+            context?.wrapper()?.popupMenu(it)?.apply {
                 setForceShowIcon(true)
                 inflate(R.menu.preivew_more)
                 menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)

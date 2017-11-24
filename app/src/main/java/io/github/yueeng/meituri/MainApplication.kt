@@ -3,6 +3,7 @@ package io.github.yueeng.meituri
 import android.app.Application
 import android.content.SearchRecentSuggestionsProvider
 import android.graphics.Bitmap
+import android.support.v7.app.AppCompatDelegate
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
 import com.facebook.stetho.Stetho
@@ -27,6 +28,7 @@ class MainApplication : Application() {
     }
 
     override fun onCreate() {
+        AppCompatDelegate.setDefaultNightMode(MtSettings.DAY_NIGHT_MODE)
         super.onCreate()
         if (LeakCanary.isInAnalyzerProcess(this)) {
             return

@@ -13,4 +13,8 @@
         android:id="@+id/menu_thumb"
         android:icon="@drawable/ic_menu_thumb"
         android:title="预览" />
+    <item
+        android:id="@+id/menu_info"
+        android:icon="@drawable/ic_menu_info"
+        android:title="信息" />
 </menu>

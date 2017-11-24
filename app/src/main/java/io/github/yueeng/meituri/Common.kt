@@ -41,6 +41,7 @@ import android.support.v4.view.ViewPager
 import android.support.v4.widget.SlidingPaneLayout
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.app.AppCompatDelegate
 import android.support.v7.view.menu.MenuPopupHelper
 import android.support.v7.widget.*
 import android.text.SpannableStringBuilder
@@ -142,6 +143,22 @@ fun Pair<String, String?>.jsoup() = try {
 } catch (e: Exception) {
     e.printStackTrace()
     null
+}
+
+object MtSettings {
+    private val context: Context get() = MainApplication.current()
+    private val config by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
+    private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
+    private const val KEY_DAY_NIGHT_MODE = "app.day_night_mode"
+    val LIST_COLUMN: Int get() = context.resources.getInteger(R.integer.list_columns)
+    val MAX_PREVIEW_LIST_COLUMN: Int
+        get() = LIST_COLUMN + if (context.isPortrait) 1 else 2
+    var PREVIEW_LIST_COLUMN: Int
+        get() = Math.min(MAX_PREVIEW_LIST_COLUMN, config.getInt(KEY_PREVIEW_LIST_COLUMN, LIST_COLUMN))
+        set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
+    var DAY_NIGHT_MODE: Int
+        get() = config.getInt(KEY_DAY_NIGHT_MODE, AppCompatDelegate.MODE_NIGHT_AUTO)
+        set(value) = config.edit().putInt(KEY_DAY_NIGHT_MODE, value).apply()
 }
 
 fun Element.attrs(vararg key: String): String? = key.firstOrNull { hasAttr(it) }?.let { attr(it) }
@@ -490,8 +507,9 @@ fun Fragment.delay(millis: Long, run: () -> Unit) {
     context?.delay(millis, run)
 }
 
+fun Context.wrapper(theme: Int = R.style.AppTheme) = ContextThemeWrapper(this, theme)
 fun Context.alert() = AlertDialog.Builder(this)
-fun Context.popupMenu(view: View, gravity: Int = Gravity.NO_GRAVITY, attr: Int = 0, res: Int = 0) = PopupMenu(this, view, gravity, attr, res)
+fun Context.popupMenu(view: View, gravity: Int = Gravity.NO_GRAVITY, attr: Int = 0, res: Int = R.style.AppTheme_PopupMenu) = PopupMenu(this, view, gravity, attr, res)
 
 val Context.orientation get() = resources.configuration.orientation
 val Context.isPortrait get() = orientation == Configuration.ORIENTATION_PORTRAIT
@@ -607,6 +625,23 @@ fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String) = this.apply 
             .build()
 }
 
+@SuppressLint("Registered")
+open class DayNightAppCompatActivity : AppCompatActivity() {
+    override fun onCreate(state: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(MtSettings.DAY_NIGHT_MODE)
+        super.onCreate(state)
+
+        RxBus.instance.subscribe<Int>(this, "day_night") {
+            recreate()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        RxBus.instance.unsubscribe(this, "day_night")
+    }
+}
+
 class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : SlidingPaneLayout(context, attrs, defStyle) {
     private var mInitialMotionX: Float = 0F
     private var mInitialMotionY: Float = 0F
@@ -637,7 +672,7 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
 }
 
 @SuppressLint("Registered")
-open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.PanelSlideListener {
+open class BaseSlideCloseActivity : DayNightAppCompatActivity(), SlidingPaneLayout.PanelSlideListener {
 
     override fun onCreate(state: Bundle?) {
         swipe()
@@ -672,7 +707,9 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
 
         // 右侧的内容视图
         val decorChild = decorView.getChildAt(0) as ViewGroup
-        decorChild.setBackgroundColor(ContextCompat.getColor(this, android.R.color.white))
+        theme.obtainStyledAttributes(intArrayOf(android.R.attr.colorBackground)).also {
+            decorChild.setBackgroundColor(it.getColor(0, 0))
+        }.recycle()
         decorView.removeView(decorChild)
         decorView.addView(swipe)
 
@@ -780,18 +817,6 @@ class RxBus {
     }
 }
 
-object Settings {
-    private val context: Context get() = MainApplication.current()
-    private val config by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
-    private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
-    val LIST_COLUMN: Int get() = context.resources.getInteger(R.integer.list_columns)
-    val MAX_PREVIEW_LIST_COLUMN: Int
-        get() = LIST_COLUMN + if (context.isPortrait) 1 else 2
-    var PREVIEW_LIST_COLUMN: Int
-        get() = Math.min(MAX_PREVIEW_LIST_COLUMN, config.getInt(KEY_PREVIEW_LIST_COLUMN, LIST_COLUMN))
-        set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
-}
-
 inline fun <reified T : View> ViewParent.children() = (this as? ViewGroup)?.let { view ->
     (0..view.childCount).asSequence().mapNotNull { view.getChildAt(it) as? T }
 } ?: emptySequence()
@@ -829,25 +854,26 @@ class FAB @JvmOverloads constructor(
 class FAM @JvmOverloads constructor(
         context: Context, val attrs: AttributeSet? = null, val defStyleAttr: Int = 0, val defStyleRes: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
-    var famSrc: Drawable?
-        get() = findViewById<FloatingActionButton>(R.id.fam_button)?.drawable
+    var famSrc: Drawable? = null
         set(value) {
             findViewById<FloatingActionButton>(R.id.fam_button)?.setImageDrawable(value)
+            field = value
         }
 
     init {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.END
+        val a = context.obtainStyledAttributes(attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
+        famSrc = a.getDrawable(R.styleable.FAM_fam_src)
+        a.recycle()
     }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
         addView(LayoutInflater.from(context).inflate(R.layout.fam, this, false))
-        val a = context.obtainStyledAttributes(attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
-        famSrc = a.getDrawable(R.styleable.FAM_fam_src)
-        a.recycle()
         children<LinearLayout>().forEach { it.visibility = View.INVISIBLE }
         findViewById<FloatingActionButton>(R.id.fam_button)?.let { fab ->
+            fab.setImageDrawable(famSrc)
             fab.setOnClickListener {
                 TransitionManager.beginDelayedTransition(this, TransitionSet().apply {
                     addTransition(Fade())

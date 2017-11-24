@@ -50,7 +50,7 @@ class CollectFragment : Fragment() {
         setSupportActionBar(view.findViewById(R.id.toolbar))
         title = name
         val recycler = view.findViewById<RecyclerView>(R.id.recycler)
-        recycler.layoutManager = StaggeredGridLayoutManager(Settings.PREVIEW_LIST_COLUMN, StaggeredGridLayoutManager.VERTICAL)
+        recycler.layoutManager = StaggeredGridLayoutManager(MtSettings.PREVIEW_LIST_COLUMN, StaggeredGridLayoutManager.VERTICAL)
         recycler.adapter = adapter
         recycler.loadMore { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
@@ -63,8 +63,8 @@ class CollectFragment : Fragment() {
         view.findViewById<FAB>(R.id.button1).setOnClickListener {
             TransitionManager.beginDelayedTransition(recycler)
             (recycler.layoutManager as? StaggeredGridLayoutManager)?.let {
-                it.spanCount = (it.spanCount + 1).takeIf { it <= Settings.MAX_PREVIEW_LIST_COLUMN } ?: 1
-                Settings.PREVIEW_LIST_COLUMN = it.spanCount
+                it.spanCount = (it.spanCount + 1).takeIf { it <= MtSettings.MAX_PREVIEW_LIST_COLUMN } ?: 1
+                MtSettings.PREVIEW_LIST_COLUMN = it.spanCount
             }
         }
         fun favStat(anim: Boolean = true) {

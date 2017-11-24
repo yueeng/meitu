@@ -37,7 +37,7 @@
         </activity>
         <activity
             android:name=".PreviewActivity"
-            android:theme="@style/AppThemeDarkTranslucent" />
+            android:theme="@style/AppThemeTranslucent" />
         <activity
             android:name=".CollectActivity"
             android:theme="@style/AppThemeTranslucent" />

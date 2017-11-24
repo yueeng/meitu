@@ -12,4 +12,9 @@
         android:icon="@drawable/ic_favorite_border"
         android:title="收藏"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/daynight"
+        android:icon="@drawable/ic_sunny"
+        android:title="收藏"
+        app:showAsAction="ifRoom" />
 </menu>
