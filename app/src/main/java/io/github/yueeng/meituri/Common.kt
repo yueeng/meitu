@@ -115,7 +115,7 @@ fun logw(vararg msg: Any?) = debug { Log.w(LOG_TAG, msg.joinToString(", ")) }
 fun logd(vararg msg: Any?) = debug { Log.d(LOG_TAG, msg.joinToString(", ")) }
 fun logv(vararg msg: Any?) = debug { Log.v(LOG_TAG, msg.joinToString(", ")) }
 
-inline fun <reified T : Any> Any.cls(): T? = this as? T
+inline fun <reified T : Any> Any.clazz(): T? = this as? T
 
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
 fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
@@ -608,10 +608,9 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
     private val mEdgeSlop: Float = ViewConfiguration.get(context).scaledEdgeSlop.toFloat()
 
     @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(ev: MotionEvent?): Boolean = !isSwipeEnabled || super.onTouchEvent(ev)
+    override fun onTouchEvent(ev: MotionEvent?): Boolean = super.onTouchEvent(ev)
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        if (!isSwipeEnabled) return false
         when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 mInitialMotionX = ev.x
@@ -630,8 +629,6 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
         }
         return super.onInterceptTouchEvent(ev)
     }
-
-    var isSwipeEnabled: Boolean = true
 }
 
 @SuppressLint("Registered")
@@ -701,13 +698,6 @@ open class BaseSlideCloseActivity : AppCompatActivity(), SlidingPaneLayout.Panel
 
     override fun onPanelClosed(panel: View) {
 
-    }
-
-    fun lockSwipe(lock: Boolean) {
-        window.decorView.cls<ViewGroup>()
-                ?.getChildAt(0)
-                ?.cls<PagerSlidingPaneLayout>()
-                ?.isSwipeEnabled = !lock
     }
 }
 
