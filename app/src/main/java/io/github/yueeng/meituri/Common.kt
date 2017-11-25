@@ -191,6 +191,8 @@ val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
 fun View.delay(delay: Long, action: () -> Unit) = this.postDelayed({ action() }, delay)
 
 infix fun <A, B> A.to4(that: B): android.support.v4.util.Pair<A, B> = android.support.v4.util.Pair(this, that)
+fun <T, R> Iterable<T>.collect(clazz: Class<R>, predicate: ((R) -> Boolean) = { true }): List<R> =
+        filter { clazz.isInstance(it) }.map { clazz.cast(it) }.filter(predicate)
 
 inline fun <reified T : Fragment> AppCompatActivity.setFragment(container: Int, bundle: () -> Bundle?) {
     supportFragmentManager.run {
