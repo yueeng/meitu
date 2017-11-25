@@ -58,6 +58,7 @@ class CollectFragment : Fragment() {
             setOnRefreshListener {
                 adapter.clear()
                 mtseq.url = url
+                footer()
                 query()
             }
         }
@@ -106,13 +107,16 @@ class CollectFragment : Fragment() {
         super.onCreate(state)
         retainInstance = true
         setHasOptionsMenu(true)
+        footer()
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getStringArrayList("data"))
+            footer()
         } ?: query()
         RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
             mtseq.url = it.first
             adapter.add(it.second)
+            footer()
         }
     }
 
@@ -134,6 +138,12 @@ class CollectFragment : Fragment() {
         RxBus.instance.unsubscribe(this, "favorite")
     }
 
+    private fun footer() {
+        val msg = if (mtseq.url.isNullOrEmpty()) "没有更多了" else "加载中，请稍候。"
+        if (adapter.footer.isEmpty()) adapter.add(FooterDataAdapter.TYPE_FOOTER, msg)
+        else adapter.replace(FooterDataAdapter.TYPE_FOOTER, 0, msg)
+    }
+
     private fun query(all: Boolean = false, fn: (() -> Unit)? = null) {
         if (busy() || mtseq.url == null) {
             if (mtseq.url == null) fn?.invoke()
@@ -145,6 +155,7 @@ class CollectFragment : Fragment() {
         }.flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
+            footer()
             fn?.invoke()
         }
     }
@@ -193,8 +204,8 @@ class CollectFragment : Fragment() {
         }
     }
 
-    inner class ImageAdapter : AnimDataAdapter<String, ImageHolder>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageHolder =
+    inner class ImageAdapter : FooterDataAdapter<String, ImageHolder>() {
+        override fun onCreateHolder(parent: ViewGroup, viewType: Int): ImageHolder =
                 ImageHolder(parent.inflate(R.layout.list_collect_item))
 
     }

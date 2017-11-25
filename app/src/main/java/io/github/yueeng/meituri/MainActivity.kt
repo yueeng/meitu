@@ -376,20 +376,21 @@ class ListFragment : Fragment() {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                         when (adapter.getItemViewType(position)) {
-                            ListType.Title.value -> this@apply.spanCount
-                            ListType.Info.value -> this@apply.spanCount
+                            ListType.Title.value, ListType.Info.value -> this@apply.spanCount
                             ListType.Category.value -> 1
-                            else -> 2
+                            ListType.Album.value, ListType.Model.value, ListType.Organ.value -> 2
+                            else -> this@apply.spanCount
                         }
             }
         }
         recycler.adapter = adapter
-        recycler.supportsChangeAnimations = false
+        recycler.itemAnimator = null
         recycler.loadMore(2) { query() }
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
                 mtseq.url = url
+                footer()
                 query()
             }
         }
@@ -410,10 +411,18 @@ class ListFragment : Fragment() {
         super.onCreate(state)
         retainInstance = true
         setHasOptionsMenu(true)
+        footer()
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getParcelableArrayList("data"))
+            footer()
         } ?: query()
+    }
+
+    private fun footer() {
+        val msg = if (mtseq.url.isNullOrEmpty()) "没有更多了" else "加载中，请稍候。"
+        if (adapter.footer.isEmpty()) adapter.add(FooterDataAdapter.TYPE_FOOTER, msg)
+        else adapter.replace(FooterDataAdapter.TYPE_FOOTER, 0, msg)
     }
 
     override fun onSaveInstanceState(state: Bundle) {
@@ -428,6 +437,7 @@ class ListFragment : Fragment() {
         mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
+            footer()
         }
     }
 
@@ -567,8 +577,8 @@ class ListFragment : Fragment() {
         }
     }
 
-    class ListAdapter : AnimDataAdapter<Name, DataHolder<Name>>() {
-        override fun getItemViewType(position: Int): Int = when (get(position)) {
+    class ListAdapter : FooterDataAdapter<Name, DataHolder<Name>>() {
+        override fun getItemType(position: Int): Int = when (get(position)) {
             is Album -> ListType.Album.value
             is Model -> ListType.Model.value
             is Organ -> ListType.Organ.value
@@ -577,7 +587,7 @@ class ListFragment : Fragment() {
             else -> ListType.Title.value
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Name> = when (viewType) {
+        override fun onCreateHolder(parent: ViewGroup, viewType: Int): DataHolder<Name> = when (viewType) {
             ListType.Album.value -> AlbumHolder(parent.inflate(R.layout.list_album_item))
             ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
             ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))

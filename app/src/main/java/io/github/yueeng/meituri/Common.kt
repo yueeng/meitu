@@ -256,7 +256,7 @@ open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
 
 abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<VH>() {
     private val _data = mutableListOf<T>()
-    val data: List<T> get() = _data
+    open val data: List<T> get() = _data
     override fun getItemCount(): Int = _data.size
     fun add(item: T): DataAdapter<T, VH> {
         _data.add(item)
@@ -267,7 +267,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
     fun add(items: Iterable<T>): DataAdapter<T, VH> {
         val start = _data.size
         _data.addAll(items)
-        if (_data.size - start > 0) notifyItemRangeInserted(start, _data.size - start)
+        if (_data.size - start > 0) notifyItemRangeInserted(start + 1, _data.size - start)
         return this
     }
 
@@ -301,6 +301,10 @@ abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>
 
     override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int, payloads: MutableList<Any>?) {
         super.onBindViewHolder(holder, position, payloads)
+        animation(holder, position)
+    }
+
+    protected fun animation(holder: VH, position: Int) {
         if (position > last) {
             last = position
             val anim = ObjectAnimator.ofFloat(holder.itemView, "translationY", from, 0F)
@@ -308,6 +312,100 @@ abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>
             anim.interpolator = interpolator
             anim.start()
         }
+    }
+}
+
+class FooterHolder(view: View) : DataHolder<String>(view) {
+    private val text1 = view.findViewById<TextView>(R.id.text1)
+    override fun bind() {
+        (itemView.layoutParams as? StaggeredGridLayoutManager.LayoutParams)?.isFullSpan = true
+        text1.text = value
+    }
+}
+
+abstract class FooterDataAdapter<T : Any, VH : DataHolder<T>> : AnimDataAdapter<Any, DataHolder<Any>>() {
+    companion object {
+        const val TYPE_HEADER = -1
+        const val TYPE_FOOTER = -2
+    }
+
+    fun add(type: Int, vararg items: String): FooterDataAdapter<T, VH> {
+        when (type) {
+            TYPE_HEADER -> {
+                val start = _header.size
+                _header.addAll(items)
+                notifyItemRangeInserted(start + 1, _header.size - start)
+            }
+            TYPE_FOOTER -> {
+                val start = _footer.size
+                _footer.addAll(items)
+                notifyItemRangeInserted(_header.size + data.size + start + 1, _footer.size - start)
+            }
+        }
+        return this
+    }
+
+    fun clear(type: Int): FooterDataAdapter<T, VH> {
+        when (type) {
+            TYPE_HEADER -> {
+                val size = _header.size
+                _header.clear()
+                notifyItemRangeInserted(0, size)
+            }
+            TYPE_FOOTER -> {
+                val size = _footer.size
+                _footer.clear()
+                notifyItemRangeInserted(_header.size + data.size, size)
+            }
+        }
+        return this
+    }
+
+    fun replace(type: Int, position: Int, item: String): FooterDataAdapter<T, VH> {
+        when (type) {
+            TYPE_HEADER -> {
+                _header[position] = item
+                notifyItemChanged(position)
+            }
+            TYPE_FOOTER -> {
+                _footer[position] = item
+                notifyItemChanged(position + _header.size + data.size)
+            }
+        }
+        return this
+    }
+
+    private val _header = mutableListOf<String>()
+    private val _footer = mutableListOf<String>()
+    val header: List<String> get() = _header
+    val footer: List<String> get() = _footer
+    override fun getItemCount(): Int = super.getItemCount() + _header.size + _footer.size
+    final override fun getItemViewType(position: Int): Int = when {
+        position < _header.size -> TYPE_HEADER
+        position < data.size + _header.size -> getItemType(position - _header.size)
+        position < data.size + _header.size + _footer.size -> TYPE_FOOTER
+        else -> throw IllegalArgumentException()
+    }
+
+    open fun getItemType(position: Int): Int = 0
+
+    final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Any> = when (viewType) {
+        TYPE_HEADER, TYPE_FOOTER -> FooterHolder(parent.inflate(R.layout.list_text_item))
+        else -> onCreateHolder(parent, viewType)
+    }
+
+    abstract fun onCreateHolder(parent: ViewGroup, viewType: Int): VH
+    @Suppress("UNCHECKED_CAST")
+    override val data: List<T>
+        get() = super.data as List<T>
+
+    override fun onBindViewHolder(holder: DataHolder<Any>, position: Int, payloads: MutableList<Any>?) {
+        when (getItemViewType(position)) {
+            -1 -> holder.set(_header[position], position, payloads)
+            -2 -> holder.set(_footer[position - data.size - _header.size], position - data.size - _header.size, payloads)
+            else -> holder.set(get(position - _header.size), position - _header.size, payloads)
+        }
+        animation(holder, position)
     }
 }
 
