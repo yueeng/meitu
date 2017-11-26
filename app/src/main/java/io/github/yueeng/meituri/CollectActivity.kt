@@ -38,7 +38,7 @@ class CollectFragment : Fragment() {
     private val album by lazy { arguments?.getParcelable<Album>("album")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
-    private val mtseq by lazy { mtCollectSequence(url) }
+    private val mtseq by lazy { mtCollectSequence(url).apply { ob = { ui { footer() } } } }
     private val adapter by lazy { ImageAdapter() }
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private var info: List<Pair<String, List<Name>>>? = null
@@ -58,7 +58,6 @@ class CollectFragment : Fragment() {
             setOnRefreshListener {
                 adapter.clear()
                 mtseq.url = url
-                footer()
                 query()
             }
         }
@@ -107,16 +106,13 @@ class CollectFragment : Fragment() {
         super.onCreate(state)
         retainInstance = true
         setHasOptionsMenu(true)
-        footer()
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getStringArrayList("data"))
-            footer()
         } ?: query()
         RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
             mtseq.url = it.first
             adapter.add(it.second)
-            footer()
         }
     }
 
@@ -155,7 +151,6 @@ class CollectFragment : Fragment() {
         }.flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
-            footer()
             fn?.invoke()
         }
     }

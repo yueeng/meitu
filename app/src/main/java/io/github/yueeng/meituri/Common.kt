@@ -1,4 +1,4 @@
-@file:Suppress("unused", "PropertyName", "ObjectPropertyName")
+@file:Suppress("unused", "PropertyName", "ObjectPropertyName", "MemberVisibilityCanPrivate")
 
 package io.github.yueeng.meituri
 
@@ -168,6 +168,14 @@ fun Context.asActivity(): Activity? = when (this) {
 
 fun Fragment.setSupportActionBar(bar: Toolbar) {
     (activity as? AppCompatActivity)?.setSupportActionBar(bar)
+}
+
+fun Fragment.ui(func: () -> Unit) {
+    activity?.runOnUiThread(func)
+}
+
+fun Activity.ui(func: () -> Unit) {
+    runOnUiThread(func)
 }
 
 var Fragment.title: CharSequence?
@@ -547,7 +555,6 @@ fun consumer(fn: () -> Unit): Boolean {
 fun Cursor.getString(column: String): String = getString(getColumnIndex(column))
 fun Cursor.getInt(column: String) = getInt(getColumnIndex(column))
 
-@Suppress("MemberVisibilityCanPrivate")
 object Save {
     private fun encode(path: String): String = """\/:*?"<>|""".fold(path) { r, i ->
         r.replace(i, ' ')
@@ -966,7 +973,7 @@ class FAB @JvmOverloads constructor(
 }
 
 class FAM @JvmOverloads constructor(
-        context: Context, val attrs: AttributeSet? = null, val defStyleAttr: Int = 0, val defStyleRes: Int = 0
+        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
     var famSrc: Drawable? = null
         set(value) {

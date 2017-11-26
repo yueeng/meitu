@@ -390,7 +390,7 @@ class ListFragment : Fragment() {
             setOnRefreshListener {
                 adapter.clear()
                 mtseq.url = url
-                footer()
+//                footer()
                 query()
             }
         }
@@ -406,16 +406,16 @@ class ListFragment : Fragment() {
     private val adapter = ListAdapter()
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private val url by lazy { arguments?.getString("url")!! }
-    private val mtseq by lazy { mtAlbumSequence(url) }
+    private val mtseq by lazy { mtAlbumSequence(url).apply { ob = { ui { footer() } } } }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         retainInstance = true
         setHasOptionsMenu(true)
-        footer()
+//        footer()
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getParcelableArrayList("data"))
-            footer()
+//            footer()
         } ?: query()
     }
 
@@ -437,7 +437,7 @@ class ListFragment : Fragment() {
         mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
-            footer()
+//            footer()
         }
     }
 
