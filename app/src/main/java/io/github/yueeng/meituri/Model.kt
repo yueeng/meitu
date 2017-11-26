@@ -14,6 +14,7 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import org.jsoup.select.Elements
+import kotlin.properties.Delegates
 
 /**
  * Data model
@@ -464,7 +465,12 @@ object dbFav {
     }.io2main().subscribe { fn(it) }
 }
 
-open class MtSequence<T>(var url: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<List<T>> {
+open class MtSequence<T>(uri: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<List<T>> {
+    var ob: (() -> Unit)? = null
+    var url by Delegates.observable(uri) { _, o, n ->
+        if (o != n) ob?.invoke()
+    }
+
     override fun iterator(): Iterator<List<T>> = object : Iterator<List<T>> {
         lateinit var data: List<T>
         override fun hasNext(): Boolean = url?.let {

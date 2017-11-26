@@ -38,7 +38,7 @@ class CollectFragment : Fragment() {
     private val album by lazy { arguments?.getParcelable<Album>("album")!! }
     private val name by lazy { album.name }
     private val url by lazy { album.url!! }
-    private val mtseq by lazy { mtCollectSequence(url) }
+    private val mtseq by lazy { mtCollectSequence(url).apply { ob = { ui { footer() } } } }
     private val adapter by lazy { ImageAdapter() }
     private val busy = ViewBinder(false, SwipeRefreshLayout::setRefreshing)
     private var info: List<Pair<String, List<Name>>>? = null
@@ -134,6 +134,12 @@ class CollectFragment : Fragment() {
         RxBus.instance.unsubscribe(this, "favorite")
     }
 
+    private fun footer() {
+        val msg = if (mtseq.url.isNullOrEmpty()) "没有更多了" else "加载中，请稍候。"
+        if (adapter.footer.isEmpty()) adapter.add(FooterDataAdapter.TYPE_FOOTER, msg)
+        else adapter.replace(FooterDataAdapter.TYPE_FOOTER, 0, msg)
+    }
+
     private fun query(all: Boolean = false, fn: (() -> Unit)? = null) {
         if (busy() || mtseq.url == null) {
             if (mtseq.url == null) fn?.invoke()
@@ -193,8 +199,8 @@ class CollectFragment : Fragment() {
         }
     }
 
-    inner class ImageAdapter : AnimDataAdapter<String, ImageHolder>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageHolder =
+    inner class ImageAdapter : FooterDataAdapter<String, ImageHolder>() {
+        override fun onCreateHolder(parent: ViewGroup, viewType: Int): ImageHolder =
                 ImageHolder(parent.inflate(R.layout.list_collect_item))
 
     }
