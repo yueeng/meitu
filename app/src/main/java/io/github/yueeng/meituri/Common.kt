@@ -1012,7 +1012,7 @@ class FAM @JvmOverloads constructor(
     }
 }
 
-fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Name>>>?, fn: (List<Pair<String, List<Name>>>?) -> Unit) {
+fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Name>>>? = null, fn: ((List<Pair<String, List<Name>>>?) -> Unit)? = null) {
     RxMt.create {
         info ?: Album.attr(url.httpGet().jsoup())
     }.io2main().subscribe {
@@ -1032,7 +1032,7 @@ fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Nam
                 }
             }
         } ?: toast("获取信息失败，请稍后重试。")
-        fn.invoke(it)
+        fn?.invoke(it)
     }
 }
 

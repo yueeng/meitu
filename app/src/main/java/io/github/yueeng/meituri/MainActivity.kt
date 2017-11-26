@@ -557,6 +557,7 @@ class ListFragment : Fragment() {
                                         }
                                         R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else Album.from(album.url, album) { dbFav.put(it ?: album) }
                                         R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
+                                        R.id.menu_info -> context.showInfo(album.name, album.url)
                                     }
                                 }
                             }
