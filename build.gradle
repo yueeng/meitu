@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.1.60'
+    ext.kotlin_version = '1.1.61'
     ext.android_compile_sdk = 26
     ext.android_build_tools = '27.0.1'
     ext.android_target_sdk = 26
@@ -15,7 +15,7 @@ buildscript {
         maven { url "http://objectbox.net/beta-repo/" }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.0-alpha03'
+        classpath 'com.android.tools.build:gradle:3.1.0-alpha04'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "io.objectbox:objectbox-gradle-plugin:$objectboxVersion"
 

@@ -330,48 +330,35 @@ abstract class FooterDataAdapter<T : Any, VH : DataHolder<T>> : AnimDataAdapter<
     }
 
     fun add(type: Int, vararg items: String): FooterDataAdapter<T, VH> {
-        when (type) {
-            TYPE_HEADER -> {
-                val start = _header.size
-                _header.addAll(items)
-                notifyItemRangeInserted(start + 1, _header.size - start)
-            }
-            TYPE_FOOTER -> {
-                val start = _footer.size
-                _footer.addAll(items)
-                notifyItemRangeInserted(_header.size + data.size + start + 1, _footer.size - start)
-            }
+        val (list, size, pos) = when (type) {
+            TYPE_HEADER -> Triple(_header, _header.size, 0)
+            TYPE_FOOTER -> Triple(_footer, _footer.size, _header.size + data.size)
+            else -> throw IllegalArgumentException()
         }
+        list.addAll(items)
+        notifyItemRangeRemoved(pos + size + 1, list.size - size)
         return this
     }
 
     fun clear(type: Int): FooterDataAdapter<T, VH> {
-        when (type) {
-            TYPE_HEADER -> {
-                val size = _header.size
-                _header.clear()
-                notifyItemRangeInserted(0, size)
-            }
-            TYPE_FOOTER -> {
-                val size = _footer.size
-                _footer.clear()
-                notifyItemRangeInserted(_header.size + data.size, size)
-            }
+        val (list, size, pos) = when (type) {
+            TYPE_HEADER -> Triple(_header, _header.size, 0)
+            TYPE_FOOTER -> Triple(_footer, _footer.size, _header.size + data.size)
+            else -> throw IllegalArgumentException()
         }
+        list.clear()
+        notifyItemRangeRemoved(pos, size)
         return this
     }
 
     fun replace(type: Int, position: Int, item: String): FooterDataAdapter<T, VH> {
-        when (type) {
-            TYPE_HEADER -> {
-                _header[position] = item
-                notifyItemChanged(position)
-            }
-            TYPE_FOOTER -> {
-                _footer[position] = item
-                notifyItemChanged(position + _header.size + data.size)
-            }
+        val (list, pos) = when (type) {
+            TYPE_HEADER -> Pair(_header, position)
+            TYPE_FOOTER -> Pair(_footer, position + _header.size + data.size)
+            else -> throw IllegalArgumentException()
         }
+        list[position] = item
+        notifyItemChanged(pos)
         return this
     }
 
