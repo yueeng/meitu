@@ -109,11 +109,14 @@ fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
 }
 
-fun logi(vararg msg: Any?) = debug { Log.i(LOG_TAG, msg.joinToString(", ")) }
-fun loge(vararg msg: Any?) = debug { Log.e(LOG_TAG, msg.joinToString(", ")) }
-fun logw(vararg msg: Any?) = debug { Log.w(LOG_TAG, msg.joinToString(", ")) }
-fun logd(vararg msg: Any?) = debug { Log.d(LOG_TAG, msg.joinToString(", ")) }
-fun logv(vararg msg: Any?) = debug { Log.v(LOG_TAG, msg.joinToString(", ")) }
+fun stack() = Thread.currentThread().stackTrace.drop(7).take(1)
+        .joinToString("\n") { "${it.methodName}(${it.fileName}:${it.lineNumber})" }
+
+fun logi(vararg msg: Any?) = debug { Log.i(LOG_TAG, stack() + " -> " + msg.joinToString(", ")) }
+fun loge(vararg msg: Any?) = debug { Log.e(LOG_TAG, stack() + " -> " + msg.joinToString(", ")) }
+fun logw(vararg msg: Any?) = debug { Log.w(LOG_TAG, stack() + " -> " + msg.joinToString(", ")) }
+fun logd(vararg msg: Any?) = debug { Log.d(LOG_TAG, stack() + " -> " + msg.joinToString(", ")) }
+fun logv(vararg msg: Any?) = debug { Log.v(LOG_TAG, stack() + " -> " + msg.joinToString(", ")) }
 
 inline fun <reified T : Any> Any.clazz(): T? = this as? T
 
