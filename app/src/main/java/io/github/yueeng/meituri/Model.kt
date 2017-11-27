@@ -1,10 +1,12 @@
-@file:Suppress("UNUSED_PARAMETER", "unused", "PropertyName", "ClassName")
+@file:Suppress("UNUSED_PARAMETER", "unused", "PropertyName", "ClassName", "ObjectPropertyName")
 
 package io.github.yueeng.meituri
 
 import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
+import io.objectbox.Box
+import io.objectbox.BoxStore
 import io.objectbox.annotation.Entity
 import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
@@ -402,9 +404,30 @@ data class ObAlbum(@Id var id: Long = 0) {
 }
 
 object dbFav {
-    private val ob by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
-    private val oba by lazy { ob.boxFor(ObAlbum::class.java) }
-    private val obl by lazy { ob.boxFor(ObLink::class.java) }
+    private class cob {
+        val ob: BoxStore by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
+        val oba: Box<ObAlbum> by lazy { ob.boxFor(ObAlbum::class.java) }
+        val obl: Box<ObLink> by lazy { ob.boxFor(ObLink::class.java) }
+    }
+
+    private var _cob: cob? = null
+    private val lck = Any()
+    fun reset(fn: (() -> Unit)? = null) {
+        synchronized(lck) {
+            _cob?.ob?.close()
+            fn?.invoke()
+            _cob = cob()
+        }
+    }
+
+    init {
+        reset()
+    }
+
+    private val ob get() = _cob!!.ob
+    private val oba get() = _cob!!.oba
+    private val obl get() = _cob!!.obl
+
     fun put(album: Album, fn: ((ObAlbum) -> Unit)? = null): Disposable = RxMt.create {
         if (album.url == "") {
             throw IllegalArgumentException("album.url is null.")

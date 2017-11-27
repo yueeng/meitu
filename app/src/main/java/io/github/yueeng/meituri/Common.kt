@@ -32,6 +32,7 @@ import android.support.transition.TransitionManager
 import android.support.transition.TransitionSet
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
+import android.support.v4.app.NotificationCompat
 import android.support.v4.app.SharedElementCallback
 import android.support.v4.content.ContextCompat
 import android.support.v4.view.PagerAdapter
@@ -86,13 +87,16 @@ import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
-import java.io.File
+import java.io.*
 import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 /**
  * Common library
@@ -708,10 +712,21 @@ fun <V : View> BottomSheetBehavior<V>.close() {
 fun PopupMenu.setForceShowIcon(show: Boolean) = try {
     javaClass.getDeclaredField("mPopup").let {
         it.isAccessible = true
-        (it.get(this) as MenuPopupHelper).setForceShowIcon(show)
+        it.get(this).clazz<MenuPopupHelper>()?.setForceShowIcon(show)
     }
 } catch (e: Exception) {
     e.printStackTrace()
+}
+
+fun Menu.setIconEnable(enable: Boolean) = try {
+    javaClass.getDeclaredMethod("setOptionalIconsVisible", Boolean::class.java).let {
+        it.isAccessible = true
+        it.invoke(this, enable)
+    }
+    true
+} catch (e: Exception) {
+    e.printStackTrace()
+    false
 }
 
 var ZoomableDraweeView.maxScaleFactor: Float
@@ -1045,4 +1060,67 @@ fun Context.downloadAll(name: String, data: List<String>) = alert().apply {
     }
     setNegativeButton("取消", null)
     create().show()
+}
+
+fun File.listFiles(reduce: Boolean): List<File> {
+    return if (reduce) {
+        mutableListOf<File>().apply {
+            listFiles().let {
+                addAll(it)
+                it.filter { it.isDirectory }.forEach { addAll(it.listFiles(reduce)) }
+            }
+        }
+    } else this.listFiles().toList()
+}
+
+object MtBackup {
+    private val context by lazy { MainApplication.current() }
+    private val objectbox by lazy { File(context.filesDir, "objectbox") }
+    private val target = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+    } else {
+        Environment.getExternalStorageDirectory()
+    }.also {
+        if (!it.exists()) it.mkdirs()
+    }.let {
+        File(it, "${javaClass.`package`.name}.bak")
+    }
+
+    fun backup() {
+        ZipOutputStream(BufferedOutputStream(FileOutputStream(target))).use { zip ->
+            for (file in objectbox.listFiles(true)) {
+                val name = file.toRelativeString(objectbox) + if (file.isDirectory) "/" else ""
+                zip.putNextEntry(ZipEntry(name))
+                if (file.isDirectory) continue
+                BufferedInputStream(FileInputStream(file)).use {
+                    it.copyTo(zip)
+                }
+            }
+        }
+        context.toast("备份完成: ${target.path}")
+        val notify = NotificationCompat.Builder(context, "")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("数据备份")
+                .setContentText(target.path)
+        context.notificationManager.notify(0, notify.build())
+    }
+
+    fun restore() {
+        if (!target.exists()) {
+            context.toast("没有发现备份文件: ${target.path}")
+            return
+        }
+        ZipInputStream(BufferedInputStream(FileInputStream(target))).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                val file = File(objectbox, entry.name)
+                if (entry.isDirectory) {
+                    if (!file.exists()) file.mkdirs()
+                } else BufferedOutputStream(FileOutputStream(file)).use {
+                    zip.copyTo(it)
+                }
+                zip.closeEntry()
+            }
+        }
+    }
 }

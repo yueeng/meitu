@@ -15,6 +15,11 @@
     <item
         android:id="@+id/daynight"
         android:icon="@drawable/ic_sunny"
-        android:title="收藏"
+        android:title="夜间模式"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/backup"
+        android:icon="@drawable/ic_backup"
+        android:title="备份"
         app:showAsAction="ifRoom" />
 </menu>

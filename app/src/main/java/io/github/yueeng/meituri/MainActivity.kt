@@ -329,6 +329,7 @@ class ListActivity : BaseSlideCloseActivity() {
 
 class ListFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        menu.setIconEnable(true)
         inflater.inflate(R.menu.search, menu)
         val search = menu.findItem(R.id.search).actionView as SearchView
         val info = context?.searchManager?.getSearchableInfo(ComponentName(context, ListActivity::class.java))
@@ -354,6 +355,20 @@ class ListFragment : Fragment() {
                                 RxBus.instance.post("day_night", MtSettings.DAY_NIGHT_MODE)
                             }
                         }
+                    }
+                    ?.setNegativeButton("取消", null)
+                    ?.create()?.show()
+        }
+        R.id.backup -> consumer {
+            context?.alert()
+                    ?.setTitle("备份")
+                    ?.setMessage("备份本地收藏数据，重装应用后可以恢复之前的收藏。")
+                    ?.setPositiveButton("备份") { _, _ ->
+                        activity?.permissionWriteExternalStorage { dbFav.reset { MtBackup.backup() } }
+                    }
+                    ?.setNeutralButton("还原") { _, _ ->
+                        dbFav.reset { MtBackup.restore() }
+                        RxBus.instance.post("day_night", MtSettings.DAY_NIGHT_MODE)
                     }
                     ?.setNegativeButton("取消", null)
                     ?.create()?.show()
