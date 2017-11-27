@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.PointF
 import android.os.Build
 import android.os.Bundle
 import android.support.design.widget.BottomSheetBehavior
@@ -25,6 +26,8 @@ import android.widget.TextView
 import com.facebook.drawee.drawable.ScalingUtils
 import com.facebook.drawee.view.DraweeTransition
 import com.facebook.drawee.view.SimpleDraweeView
+import com.facebook.samples.zoomable.AbstractAnimatedZoomableController
+import com.facebook.samples.zoomable.DefaultZoomableController
 import com.facebook.samples.zoomable.DoubleTapGestureListener
 import com.facebook.samples.zoomable.ZoomableDraweeView
 import io.reactivex.rxkotlin.toObservable
@@ -187,6 +190,14 @@ class PreviewFragment : Fragment() {
 
     fun onBackPressed(): Boolean = sliding?.state?.takeIf { it == BottomSheetBehavior.STATE_EXPANDED }?.let {
         sliding?.close()?.let { true }
+    } ?: view?.findViewById<ViewPager>(R.id.pager)
+            ?.findViewWithTag<View>(adapter.data[current()])
+            ?.findViewById<ZoomableDraweeView>(R.id.image)
+            ?.zoomableController?.clazz<AbstractAnimatedZoomableController>()
+            ?.takeIf { it.scaleFactor > 1F }?.consumer {
+        val vp = PointF(0F, 0F)
+        val ip = mapViewToImage(vp)
+        zoomToPoint(1F, ip, vp, DefaultZoomableController.LIMIT_ALL, 300, null)
     } ?: false
 
     private val receiver = object : BroadcastReceiver() {

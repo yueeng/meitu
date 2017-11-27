@@ -551,10 +551,8 @@ fun <T> String.spannable(tag: List<T>?, string: ((T) -> String) = { "$it" }, cal
     }
 }
 
-fun consumer(fn: () -> Unit): Boolean {
-    fn()
-    return true
-}
+inline fun <T> T.consumer(block: T.() -> Unit): Boolean = block(this).let { true }
+inline fun consumer(fn: () -> Unit): Boolean = fn().let { true }
 
 fun Cursor.getString(column: String): String = getString(getColumnIndex(column))
 fun Cursor.getInt(column: String) = getInt(getColumnIndex(column))
