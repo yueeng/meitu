@@ -298,7 +298,7 @@ class PreviewFragment : Fragment() {
             val image: ZoomableDraweeView = view.findViewById(R.id.image)
             image.apply {
                 maxScaleFactor = 5F
-            }.progress().load(item).setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
+            }.progress().load(item, false).setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
                 override fun onSingleTapConfirmed(e: MotionEvent?): Boolean = consumer {
                     RxBus.instance.post("tap_preview", 1)
                 }
@@ -307,7 +307,7 @@ class PreviewFragment : Fragment() {
             ViewCompat.setTransitionName(image, item)
             if (position == current()) {
                 image.startPostponedEnterTransition()
-                image.post { RxBus.instance.post("hack_shared_elements", position) }
+//                image.post { RxBus.instance.post("hack_shared_elements", position) }
             }
         }
     }

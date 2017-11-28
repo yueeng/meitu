@@ -64,6 +64,7 @@ import com.facebook.drawee.controller.BaseControllerListener
 import com.facebook.drawee.drawable.ProgressBarDrawable
 import com.facebook.drawee.generic.GenericDraweeHierarchy
 import com.facebook.drawee.view.DraweeView
+import com.facebook.imagepipeline.common.ResizeOptions
 import com.facebook.imagepipeline.image.ImageInfo
 import com.facebook.imagepipeline.request.ImageRequestBuilder
 import com.facebook.samples.zoomable.DefaultZoomableController
@@ -742,24 +743,48 @@ fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
     })
 }
 
-fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String) = this.apply {
-    val weak = WeakReference(this)
-    val request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(uri))
-            .setProgressiveRenderingEnabled(true)
-            .build()
-    controller = Fresco.getDraweeControllerBuilderSupplier().get()
-            .setImageRequest(request)
-            .setTapToRetryEnabled(true)
-            .setControllerListener(object : BaseControllerListener<ImageInfo>() {
-                override fun onFinalImageSet(id: String, imageInfo: ImageInfo?, animatable: Animatable?) {
-                    imageInfo?.let {
-                        weak.get()?.aspectRatio = 1F * it.width / it.height
-                    }
+fun View.size(fn: (Int, Int) -> Unit) {
+    if (width > 0 && height > 0) return fn(width, height)
+    val once = Once()
+    viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+        override fun onGlobalLayout() {
+            viewTreeObserver.removeOnGlobalLayoutListener(this)
+            once.run { fn(width, height) }
+        }
+    })
+    viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+        override fun onPreDraw(): Boolean {
+            viewTreeObserver.removeOnPreDrawListener(this)
+            once.run { fn(width, height) }
+            return false
+        }
+    })
+}
 
-                }
-            })
-            .setOldController(controller)
-            .build()
+fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String, sample: Boolean = true, fn: ((ImageInfo) -> Unit)? = null) = this.apply {
+    val weak = WeakReference(this)
+    size { w, h ->
+        val request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(uri))
+                .setProgressiveRenderingEnabled(true)
+                .apply { if (sample) resizeOptions = ResizeOptions(w, h) }
+                .build()
+        weak.get()?.controller = Fresco.getDraweeControllerBuilderSupplier().get()
+                .setImageRequest(request)
+                .setTapToRetryEnabled(true)
+                .setControllerListener(object : BaseControllerListener<ImageInfo>() {
+                    override fun onFinalImageSet(id: String, imageInfo: ImageInfo?, animatable: Animatable?) {
+                        imageInfo?.let { info ->
+                            weak.get()?.let {
+                                it.aspectRatio = 1F * info.width / info.height
+                                fn?.invoke(info)
+                            }
+                        }
+
+                    }
+                })
+                .setOldController(controller)
+                .build()
+    }
 }
 
 @SuppressLint("Registered")

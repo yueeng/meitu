@@ -35,10 +35,8 @@ class MainApplication : Application() {
         }
         val config = OkHttpImagePipelineConfigFactory
                 .newBuilder(this, okhttp)
-                .setDownsampleEnabled(true)
+//                .setDownsampleEnabled(true)
                 .setBitmapsConfig(Bitmap.Config.RGB_565)
-                // . other setters
-                // . setNetworkFetcher is already called for you
                 .build()
         Fresco.initialize(this, config)
         Stetho.initializeWithDefaults(this)
