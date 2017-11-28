@@ -14,7 +14,6 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.database.Cursor
 import android.graphics.*
-import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -52,23 +51,23 @@ import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.util.Log
-import android.util.TypedValue
 import android.view.*
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.facebook.drawee.backends.pipeline.Fresco
-import com.facebook.drawee.controller.BaseControllerListener
-import com.facebook.drawee.drawable.ProgressBarDrawable
-import com.facebook.drawee.generic.GenericDraweeHierarchy
-import com.facebook.drawee.view.DraweeView
-import com.facebook.imagepipeline.common.ResizeOptions
-import com.facebook.imagepipeline.image.ImageInfo
-import com.facebook.imagepipeline.request.ImageRequestBuilder
-import com.facebook.samples.zoomable.DefaultZoomableController
-import com.facebook.samples.zoomable.ZoomableDraweeView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.GlideBuilder
+import com.bumptech.glide.Registry
+import com.bumptech.glide.annotation.GlideModule
+import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.bumptech.glide.module.AppGlideModule
+import com.bumptech.glide.module.LibraryGlideModule
+import com.bumptech.glide.request.RequestOptions
 import com.facebook.stetho.okhttp3.StethoInterceptor
 import io.reactivex.Flowable
 import io.reactivex.Observable
@@ -89,7 +88,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import java.io.*
-import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.security.MessageDigest
@@ -132,6 +130,22 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
         .addNetworkInterceptor(StethoInterceptor())
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
+
+@GlideModule
+class MtAppGlideModule : AppGlideModule() {
+    override fun applyOptions(context: Context, builder: GlideBuilder) {
+        builder.setDefaultRequestOptions(RequestOptions().format(DecodeFormat.PREFER_RGB_565))
+    }
+}
+
+@GlideModule
+class OkHttpLibraryGlideModule : LibraryGlideModule() {
+    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okhttp))
+    }
+}
+
+fun GlideRequest<Drawable>.crossFade(): GlideRequest<Drawable> = this.transition(DrawableTransitionOptions.withCrossFade())
 
 fun String.httpGet() = try {
     val html = okhttp.newCall(Request.Builder().url(this).build()).execute().body()?.string()
@@ -191,16 +205,6 @@ var Fragment.title: CharSequence?
     set(value) {
         activity?.title = value
     }
-
-fun <T : View> View.findViewWithTag2(tag: Any, clazz: Class<T>): T? {
-    while (true) {
-        val v = this.findViewWithTag<View>(tag) ?: return null
-        return if (clazz.isInstance(v)) clazz.cast(v)
-        else v.childrenSequence().mapNotNull { it.findViewWithTag2(tag, clazz) }.firstOrNull()
-    }
-}
-
-inline fun <reified T : View> View.findViewWithTag2(tag: Any): T? = this.findViewWithTag2(tag, T::class.java)
 
 fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflater.from(this.context).inflate(layout, this, attach)
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
@@ -731,18 +735,6 @@ fun Menu.setIconEnable(enable: Boolean) = try {
     false
 }
 
-var ZoomableDraweeView.maxScaleFactor: Float
-    get() = (this.zoomableController as? DefaultZoomableController)?.maxScaleFactor ?: 2F
-    set(value) {
-        (this.zoomableController as? DefaultZoomableController)?.maxScaleFactor = value
-    }
-
-fun <DV : DraweeView<GenericDraweeHierarchy>> DV.progress() = this.apply {
-    hierarchy.setProgressBarImage(ProgressBarDrawable().apply {
-        barWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2F, resources.displayMetrics).toInt()
-    })
-}
-
 fun View.size(fn: (Int, Int) -> Unit) {
     if (width > 0 && height > 0) return fn(width, height)
     val once = Once()
@@ -759,32 +751,6 @@ fun View.size(fn: (Int, Int) -> Unit) {
             return false
         }
     })
-}
-
-fun <DV : DraweeView<GenericDraweeHierarchy>> DV.load(uri: String, sample: Boolean = true, fn: ((ImageInfo) -> Unit)? = null) = this.apply {
-    val weak = WeakReference(this)
-    size { w, h ->
-        val request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(uri))
-                .setProgressiveRenderingEnabled(true)
-                .apply { if (sample) resizeOptions = ResizeOptions(w, h) }
-                .build()
-        weak.get()?.controller = Fresco.getDraweeControllerBuilderSupplier().get()
-                .setImageRequest(request)
-                .setTapToRetryEnabled(true)
-                .setControllerListener(object : BaseControllerListener<ImageInfo>() {
-                    override fun onFinalImageSet(id: String, imageInfo: ImageInfo?, animatable: Animatable?) {
-                        imageInfo?.let { info ->
-                            weak.get()?.let {
-                                it.aspectRatio = 1F * info.width / info.height
-                                fn?.invoke(info)
-                            }
-                        }
-
-                    }
-                })
-                .setOldController(controller)
-                .build()
-    }
 }
 
 @SuppressLint("Registered")
@@ -1147,6 +1113,40 @@ object MtBackup {
                 }
                 zip.closeEntry()
             }
+        }
+    }
+}
+
+class AspectRatioImageView @JvmOverloads constructor(
+        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
+) : ImageView(context, attrs, defStyleAttr, defStyleRes) {
+    var arivAspectRatio: Float = 0F
+    var arivAdjustViewBounds: Boolean = true
+
+    init {
+        val a = context.obtainStyledAttributes(
+                attrs, R.styleable.AspectRatioImageView, defStyleAttr, defStyleRes)
+        arivAspectRatio = a.getFloat(R.styleable.AspectRatioImageView_ariv_aspectRatio, 0F)
+        arivAdjustViewBounds = a.getBoolean(R.styleable.AspectRatioImageView_ariv_adjustViewBounds, true)
+        a.recycle()
+    }
+
+    override fun onMeasure(wms: Int, hms: Int) {
+        val whm = MeasureSpec.getMode(wms) to MeasureSpec.getMode(hms)
+        when {
+            arivAdjustViewBounds && adjustViewBounds && drawable != null -> super.onMeasure(wms, hms)
+            whm.first == whm.second -> super.onMeasure(wms, hms)
+            arivAspectRatio != 0F && whm.first == MeasureSpec.UNSPECIFIED -> {
+                val h = MeasureSpec.getSize(hms)
+                val w = h * arivAspectRatio
+                super.onMeasure(MeasureSpec.makeMeasureSpec(w.toInt(), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY))
+            }
+            arivAspectRatio != 0F && whm.second == MeasureSpec.UNSPECIFIED -> {
+                val w = MeasureSpec.getSize(wms)
+                val h = w / arivAspectRatio
+                super.onMeasure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(h.toInt(), MeasureSpec.EXACTLY))
+            }
+            else -> super.onMeasure(wms, hms)
         }
     }
 }

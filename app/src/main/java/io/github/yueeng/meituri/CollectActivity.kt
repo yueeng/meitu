@@ -1,11 +1,9 @@
 package io.github.yueeng.meituri
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.support.transition.TransitionManager
-import android.support.v4.app.ActivityOptionsCompat
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
 import android.support.v4.widget.SwipeRefreshLayout
@@ -16,7 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import com.facebook.drawee.view.SimpleDraweeView
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.toast
 
@@ -28,10 +25,10 @@ class CollectActivity : BaseSlideCloseActivity() {
         setFragment<CollectFragment>(R.id.container) { intent.extras }
     }
 
-    override fun onActivityReenter(resultCode: Int, data: Intent?) {
-        (supportFragmentManager.findFragmentById(R.id.container) as? CollectFragment)?.onActivityReenter(resultCode, data)
-        super.onActivityReenter(resultCode, data)
-    }
+//    override fun onActivityReenter(resultCode: Int, data: Intent?) {
+//        (supportFragmentManager.findFragmentById(R.id.container) as? CollectFragment)?.onActivityReenter(resultCode, data)
+//        super.onActivityReenter(resultCode, data)
+//    }
 }
 
 class CollectFragment : Fragment() {
@@ -155,30 +152,31 @@ class CollectFragment : Fragment() {
         }
     }
 
-    private val recycler get() = view?.findViewById<RecyclerView>(R.id.recycler)
-    fun onActivityReenter(resultCode: Int, data: Intent?) {
-        if (resultCode == Activity.RESULT_OK && data != null) {
-            val position = data.getIntExtra("exit_position", -1)
-            activity?.exitSharedElementCallback {
-                recycler?.findViewHolderForAdapterPosition2<ImageHolder>(position)?.let {
-                    it.image to it.value
-                } ?: throw IllegalArgumentException()
-            }
-            recycler?.let { recycler ->
-                activity?.supportPostponeEnterTransition()
-                recycler.scrollToPosition(position)
-                recycler.startPostponedEnterTransition()
-            }
-        }
-    }
+//    private val recycler get() = view?.findViewById<RecyclerView>(R.id.recycler)
+//    fun onActivityReenter(resultCode: Int, data: Intent?) {
+//        if (resultCode == Activity.RESULT_OK && data != null) {
+//            val position = data.getIntExtra("exit_position", -1)
+//            activity?.exitSharedElementCallback {
+//                recycler?.findViewHolderForAdapterPosition2<ImageHolder>(position)?.let {
+//                    it.image to it.value
+//                } ?: throw IllegalArgumentException()
+//            }
+//            recycler?.let { recycler ->
+//                activity?.supportPostponeEnterTransition()
+//                recycler.scrollToPosition(position)
+//                recycler.startPostponedEnterTransition()
+//            }
+//        }
+//    }
 
     inner class ImageHolder(view: View) : DataHolder<String>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
-        val image: SimpleDraweeView = view.findViewById(R.id.image)
+        val image: ImageView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int) {
-            image.load(value).aspectRatio = 2F / 3F
+//            image.load(value).aspectRatio = 2F / 3F
+            GlideApp.with(image).load(value).crossFade().into(image)
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
@@ -190,12 +188,12 @@ class CollectFragment : Fragment() {
                             .putExtra("album", album)
                             .putExtra("data", ArrayList(adapter.data))
                             .putExtra("uri", mtseq.url)
-                            .putExtra("index", adapterPosition),
+                            .putExtra("index", adapterPosition)/*,
                             ActivityOptionsCompat.makeSceneTransitionAnimation(it,
-                                    image to4 value).toBundle())
+                                    image to4 value).toBundle()*/)
                 }
             }
-            image.progress()
+//            image.progress()
         }
     }
 

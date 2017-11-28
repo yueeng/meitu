@@ -1,14 +1,13 @@
 package io.github.yueeng.meituri
 
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.PointF
-import android.os.Build
+import android.net.Uri
 import android.os.Bundle
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
@@ -18,22 +17,19 @@ import android.support.v4.view.ViewPager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import com.facebook.drawee.drawable.ScalingUtils
-import com.facebook.drawee.view.DraweeTransition
-import com.facebook.drawee.view.SimpleDraweeView
-import com.facebook.samples.zoomable.AbstractAnimatedZoomableController
-import com.facebook.samples.zoomable.DefaultZoomableController
-import com.facebook.samples.zoomable.DoubleTapGestureListener
-import com.facebook.samples.zoomable.ZoomableDraweeView
+import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.transition.Transition
+import com.davemorrissey.labs.subscaleview.ImageSource
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.toast
+import java.io.File
 
 
 /**
@@ -46,19 +42,7 @@ class PreviewActivity : BaseSlideCloseActivity() {
         super.onCreate(state)
         setContentView(R.layout.activity_preview)
         setSupportActionBar(findViewById(R.id.toolbar))
-        supportPostponeEnterTransition()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.sharedElementEnterTransition = DraweeTransition.createTransitionSet(
-                    ScalingUtils.ScaleType.CENTER_CROP, ScalingUtils.ScaleType.CENTER_CROP)
-            window.sharedElementEnterTransition = DraweeTransition.createTransitionSet(
-                    ScalingUtils.ScaleType.CENTER_CROP, ScalingUtils.ScaleType.CENTER_CROP)
-        }
         setFragment<PreviewFragment>(R.id.container) { intent.extras }
-    }
-
-    override fun finishAfterTransition() {
-        (supportFragmentManager.findFragmentById(R.id.container) as? PreviewFragment)?.finishAfterTransition()
-        super.finishAfterTransition()
     }
 
     override fun onBackPressed() {
@@ -190,14 +174,6 @@ class PreviewFragment : Fragment() {
 
     fun onBackPressed(): Boolean = sliding?.state?.takeIf { it == BottomSheetBehavior.STATE_EXPANDED }?.let {
         sliding?.close()?.let { true }
-    } ?: view?.findViewById<ViewPager>(R.id.pager)
-            ?.findViewWithTag<View>(adapter.data[current()])
-            ?.findViewById<ZoomableDraweeView>(R.id.image)
-            ?.zoomableController?.clazz<AbstractAnimatedZoomableController>()
-            ?.takeIf { it.scaleFactor > 1F }?.consumer {
-        val vp = PointF(0F, 0F)
-        val ip = mapViewToImage(vp)
-        zoomToPoint(1F, ip, vp, DefaultZoomableController.LIMIT_ALL, 300, null)
     } ?: false
 
     private val receiver = object : BroadcastReceiver() {
@@ -279,45 +255,36 @@ class PreviewFragment : Fragment() {
     }
 
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
-    fun finishAfterTransition() {
-        activity?.let { activity ->
-            pager?.currentItem?.let {
-                activity.setResult(Activity.RESULT_OK, Intent()
-                        .putExtra("exit_position", it))
-                pager?.findViewWithTag2<ZoomableDraweeView>(adapter.data[it])?.let { view ->
-                    activity.enterSharedElementCallback { view to ViewCompat.getTransitionName(view) }
-                }
-            }
-        }
-    }
 
     inner class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
-            val image: ZoomableDraweeView = view.findViewById(R.id.image)
-            image.apply {
-                maxScaleFactor = 5F
-            }.progress().load(item, false).setTapListener(object : DoubleTapGestureListener(view.findViewById(R.id.image)) {
-                override fun onSingleTapConfirmed(e: MotionEvent?): Boolean = consumer {
-                    RxBus.instance.post("tap_preview", 1)
-                }
-            })
-            image.tag = item
-            ViewCompat.setTransitionName(image, item)
-            if (position == current()) {
-                image.startPostponedEnterTransition()
-//                image.post { RxBus.instance.post("hack_shared_elements", position) }
+            val image: SubsamplingScaleImageView = view.findViewById(R.id.image)
+            image.setOnClickListener {
+                RxBus.instance.post("tap_preview", 1)
             }
+            GlideApp.with(image)
+                    .asFile()
+                    .load(item)
+                    .into(object : SimpleTarget<File>() {
+                        override fun onResourceReady(resource: File, transition: Transition<in File>) {
+                            image.setImage(ImageSource.uri(Uri.fromFile(resource)))
+                            ObjectAnimator.ofFloat(image, "alpha", 0F, 1F)
+                                    .setDuration(500)
+                                    .start()
+                        }
+                    })
+            ViewCompat.setTransitionName(image, item)
         }
     }
 
     class ThumbHolder(view: View, val name: String) : DataHolder<String>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
-        private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        private val image: ImageView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
         override fun bind(i: Int) {
-            image.load(value).aspectRatio = 2F / 3F
+            GlideApp.with(image).load(value).crossFade().into(image)
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
@@ -326,7 +293,6 @@ class PreviewFragment : Fragment() {
             view.setOnClickListener {
                 RxBus.instance.post("tap_thumb", adapterPosition)
             }
-            image.progress()
         }
     }
 

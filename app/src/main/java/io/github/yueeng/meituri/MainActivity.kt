@@ -23,8 +23,8 @@ import android.support.v7.widget.SearchView
 import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.TextView
-import com.facebook.drawee.view.SimpleDraweeView
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.searchManager
@@ -477,13 +477,14 @@ class ListFragment : Fragment() {
     }
 
     class InfoHolder(view: View) : DataHolder<Info>(view) {
-        private val image = view.findViewById<SimpleDraweeView>(R.id.image)
+        private val image = view.findViewById<ImageView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
         private val text3 = view.findViewById<TextView>(R.id.text3)
         private val text4 = view.findViewById<TextView>(R.id.text4)
         override fun bind() {
-            image.progress().load(value.image)
+            GlideApp.with(image).load(value.image).crossFade().into(image)
+//            image.progress().load(value.image)
             text1.text = value.name
             text2.text = value.attr.joinToString { "${it.first}${it.second}" }
             text3.text = value.tag.spannable(" ", { it.name }) {
@@ -510,12 +511,13 @@ class ListFragment : Fragment() {
     }
 
     class ModelHolder(view: View) : DataHolder<Model>(view) {
-        private val image = view.findViewById<SimpleDraweeView>(R.id.image)
+        private val image = view.findViewById<ImageView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
         @SuppressLint("SetTextI18n")
         override fun bind() {
-            image.progress().load(value.image)
+//            image.progress().load(value.image)
+            GlideApp.with(image).load(value.image).crossFade().into(image)
             text1.text = value.name
             text2.text = "${value.count}套"
             text2.visibility = if (value.count > 0) View.VISIBLE else View.GONE
@@ -527,7 +529,7 @@ class ListFragment : Fragment() {
     }
 
     class AlbumHolder(view: View) : DataHolder<Album>(view) {
-        private val image: SimpleDraweeView = view.findViewById(R.id.image)
+        private val image: ImageView = view.findViewById(R.id.image)
         private val check: CheckBox = view.findViewById(R.id.check)
         private val text1: TextView = view.findViewById(R.id.text1)
         private val text2: TextView = view.findViewById(R.id.text2)
@@ -536,7 +538,8 @@ class ListFragment : Fragment() {
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int, payloads: MutableList<Any>?) {
             if (payloads?.isEmpty() != false) {
-                image.progress().load(value.image)
+//                image.progress().load(value.image)
+                GlideApp.with(image).load(value.image).crossFade().into(image)
                 text1.text = value.name
                 text3.text = "${value.count}P"
                 text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE

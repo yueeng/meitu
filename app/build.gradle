@@ -47,18 +47,19 @@ dependencies {
     implementation "com.squareup.okhttp3:okhttp-android-support:$okhttp_version"
     implementation 'org.jetbrains.anko:anko-sdk15:0.10.3'
     implementation 'org.jsoup:jsoup:1.10.3'
-    implementation 'com.facebook.fresco:fresco:1.5.0'
-    implementation 'com.facebook.fresco:imagepipeline-okhttp3:0.12.0'
     implementation 'com.facebook.stetho:stetho:1.5.0'
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
     implementation "io.objectbox:objectbox-android:$objectboxVersion"
     implementation "io.objectbox:objectbox-kotlin:$objectboxVersion"
-//    implementation 'com.squareup.picasso:picasso:2.5.2'
     kapt "io.objectbox:objectbox-processor:$objectboxVersion"
-    compile 'io.reactivex.rxjava2:rxjava:2.1.6'
-    compile 'io.reactivex.rxjava2:rxkotlin:2.1.0'
-    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
-    compile 'io.objectbox:objectbox-rxjava:0.9.8'
+    implementation 'io.reactivex.rxjava2:rxjava:2.1.6'
+    implementation 'io.reactivex.rxjava2:rxkotlin:2.1.0'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    implementation 'io.objectbox:objectbox-rxjava:0.9.8'
+    implementation 'com.github.bumptech.glide:glide:4.3.1'
+    kapt 'com.github.bumptech.glide:compiler:4.3.1'
+    implementation 'com.github.bumptech.glide:okhttp3-integration:4.3.1'
+    implementation 'com.davemorrissey.labs:subsampling-scale-image-view:3.8.0'
     debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
     testImplementation 'junit:junit:4.12'

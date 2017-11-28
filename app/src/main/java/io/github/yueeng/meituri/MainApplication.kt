@@ -2,10 +2,7 @@ package io.github.yueeng.meituri
 
 import android.app.Application
 import android.content.SearchRecentSuggestionsProvider
-import android.graphics.Bitmap
 import android.support.v7.app.AppCompatDelegate
-import com.facebook.drawee.backends.pipeline.Fresco
-import com.facebook.imagepipeline.backends.okhttp3.OkHttpImagePipelineConfigFactory
 import com.facebook.stetho.Stetho
 import com.squareup.leakcanary.LeakCanary
 import java.lang.ref.WeakReference
@@ -33,12 +30,6 @@ class MainApplication : Application() {
         if (LeakCanary.isInAnalyzerProcess(this)) {
             return
         }
-        val config = OkHttpImagePipelineConfigFactory
-                .newBuilder(this, okhttp)
-//                .setDownsampleEnabled(true)
-                .setBitmapsConfig(Bitmap.Config.RGB_565)
-                .build()
-        Fresco.initialize(this, config)
         Stetho.initializeWithDefaults(this)
         LeakCanary.install(this)
     }
