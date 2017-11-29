@@ -24,6 +24,7 @@ import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.CheckBox
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.bundleOf
@@ -405,7 +406,6 @@ class ListFragment : Fragment() {
             setOnRefreshListener {
                 adapter.clear()
                 mtseq.url = url
-//                footer()
                 query()
             }
         }
@@ -426,11 +426,9 @@ class ListFragment : Fragment() {
         super.onCreate(state)
         retainInstance = true
         setHasOptionsMenu(true)
-//        footer()
         state?.let {
             mtseq.url = state.getString("uri")
             adapter.add(state.getParcelableArrayList("data"))
-//            footer()
         } ?: query()
     }
 
@@ -452,7 +450,6 @@ class ListFragment : Fragment() {
         mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
-//            footer()
         }
     }
 
@@ -482,9 +479,10 @@ class ListFragment : Fragment() {
         private val text2 = view.findViewById<TextView>(R.id.text2)
         private val text3 = view.findViewById<TextView>(R.id.text3)
         private val text4 = view.findViewById<TextView>(R.id.text4)
+        private val progress: ProgressBar = view.findViewById(R.id.progress)
         override fun bind() {
-            GlideApp.with(image).load(value.image).crossFade().into(image)
-//            image.progress().load(value.image)
+            GlideApp.with(image).load(value.image).crossFade()
+                    .progress(value.image, progress).into(image)
             text1.text = value.name
             text2.text = value.attr.joinToString { "${it.first}${it.second}" }
             text3.text = value.tag.spannable(" ", { it.name }) {
@@ -514,10 +512,11 @@ class ListFragment : Fragment() {
         private val image = view.findViewById<ImageView>(R.id.image)
         private val text1 = view.findViewById<TextView>(R.id.text1)
         private val text2 = view.findViewById<TextView>(R.id.text2)
+        private val progress: ProgressBar = view.findViewById(R.id.progress)
         @SuppressLint("SetTextI18n")
         override fun bind() {
-//            image.progress().load(value.image)
-            GlideApp.with(image).load(value.image).crossFade().into(image)
+            GlideApp.with(image).load(value.image).crossFade()
+                    .progress(value.image, progress).into(image)
             text1.text = value.name
             text2.text = "${value.count}套"
             text2.visibility = if (value.count > 0) View.VISIBLE else View.GONE
@@ -534,12 +533,14 @@ class ListFragment : Fragment() {
         private val text1: TextView = view.findViewById(R.id.text1)
         private val text2: TextView = view.findViewById(R.id.text2)
         private val text3: TextView = view.findViewById(R.id.text3)
+        private val progress: ProgressBar = view.findViewById(R.id.progress)
 
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int, payloads: MutableList<Any>?) {
             if (payloads?.isEmpty() != false) {
-//                image.progress().load(value.image)
-                GlideApp.with(image).load(value.image).crossFade().into(image)
+                GlideApp.with(image).load(value.image).crossFade()
+                        .progress(value.image, progress)
+                        .into(image)
                 text1.text = value.name
                 text3.text = "${value.count}P"
                 text3.visibility = if (value.count > 0) View.VISIBLE else View.GONE

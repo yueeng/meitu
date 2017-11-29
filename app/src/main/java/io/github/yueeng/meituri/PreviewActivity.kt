@@ -1,18 +1,15 @@
 package io.github.yueeng.meituri
 
-import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.net.Uri
 import android.os.Bundle
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
-import android.support.v4.view.ViewCompat
 import android.support.v4.view.ViewPager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -20,16 +17,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
-import com.bumptech.glide.request.target.SimpleTarget
-import com.bumptech.glide.request.transition.Transition
-import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.toast
-import java.io.File
 
 
 /**
@@ -256,26 +250,20 @@ class PreviewFragment : Fragment() {
 
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
 
-    inner class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
+    class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
             val image: SubsamplingScaleImageView = view.findViewById(R.id.image)
+            val progress: ProgressBar = view.findViewById(R.id.progress)
             image.setOnClickListener {
                 RxBus.instance.post("tap_preview", 1)
             }
             GlideApp.with(image)
                     .asFile()
                     .load(item)
-                    .into(object : SimpleTarget<File>() {
-                        override fun onResourceReady(resource: File, transition: Transition<in File>) {
-                            image.setImage(ImageSource.uri(Uri.fromFile(resource)))
-                            ObjectAnimator.ofFloat(image, "alpha", 0F, 1F)
-                                    .setDuration(500)
-                                    .start()
-                        }
-                    })
-            ViewCompat.setTransitionName(image, item)
+                    .progress(item, progress)
+                    .into(image)
         }
     }
 
@@ -283,8 +271,11 @@ class PreviewFragment : Fragment() {
         private val text: TextView = view.findViewById(R.id.text1)
         private val image: ImageView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
+        private val progress: ProgressBar = view.findViewById(R.id.progress)
         override fun bind(i: Int) {
-            GlideApp.with(image).load(value).crossFade().into(image)
+            GlideApp.with(image).load(value).crossFade()
+                    .progress(value, progress)
+                    .into(image)
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
@@ -302,4 +293,3 @@ class PreviewFragment : Fragment() {
 
     }
 }
-

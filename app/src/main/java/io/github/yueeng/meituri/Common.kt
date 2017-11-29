@@ -42,6 +42,8 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.AppCompatDelegate
 import android.support.v7.view.menu.MenuPopupHelper
 import android.support.v7.widget.*
+import android.support.v7.widget.PopupMenu
+import android.support.v7.widget.Toolbar
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -53,41 +55,45 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
 import android.view.animation.DecelerateInterpolator
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import com.bumptech.glide.Glide
 import com.bumptech.glide.GlideBuilder
 import com.bumptech.glide.Registry
 import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
+import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.module.AppGlideModule
 import com.bumptech.glide.module.LibraryGlideModule
+import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.request.transition.Transition
+import com.davemorrissey.labs.subscaleview.ImageSource
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.facebook.stetho.okhttp3.StethoInterceptor
-import io.reactivex.Flowable
+import io.reactivex.*
 import io.reactivex.Observable
-import io.reactivex.Scheduler
-import io.reactivex.Single
+import io.reactivex.android.MainThreadDisposable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.processors.FlowableProcessor
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subscribers.SerializedSubscriber
-import okhttp3.JavaNetCookieJar
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.*
 import okhttp3.logging.HttpLoggingInterceptor
+import okio.*
 import org.jetbrains.anko.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import java.io.*
+import java.lang.ref.WeakReference
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.security.MessageDigest
@@ -122,14 +128,63 @@ inline fun <reified T : Any> Any.clazz(): T? = this as? T
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
 fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
 
+interface ProgressListener {
+    fun update(bytesRead: Long, contentLength: Long, done: Boolean)
+}
+
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .cookieJar(JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL)))
         .addNetworkInterceptor(StethoInterceptor())
+        .addNetworkInterceptor { chain ->
+            val request = chain.request()
+            val url = request.url().toString()
+            val response = chain.proceed(request)
+            response.newBuilder().body(ProgressResponseBody(response.body()!!, object : ProgressListener {
+                override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
+                    RxBus.instance.post(url, if (done) 100 else (bytesRead * 100 / contentLength).toInt())
+                }
+            })).build()
+        }
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
+
+
+private class ProgressResponseBody internal constructor(private val responseBody: ResponseBody, private val progressListener: ProgressListener) : ResponseBody() {
+    private var bufferedSource: BufferedSource? = null
+
+    override fun contentType(): MediaType? {
+        return responseBody.contentType()
+    }
+
+    override fun contentLength(): Long {
+        return responseBody.contentLength()
+    }
+
+    override fun source(): BufferedSource? {
+        if (bufferedSource == null) {
+            bufferedSource = Okio.buffer(source(responseBody.source()))
+        }
+        return bufferedSource
+    }
+
+    private fun source(source: Source): Source {
+        return object : ForwardingSource(source) {
+            internal var totalBytesRead = 0L
+
+            @Throws(IOException::class)
+            override fun read(sink: Buffer, byteCount: Long): Long {
+                val bytesRead = super.read(sink, byteCount)
+                // read() returns the number of bytes read, or -1 if this source is exhausted.
+                totalBytesRead += if (bytesRead != -1L) bytesRead else 0
+                progressListener.update(totalBytesRead, responseBody.contentLength(), bytesRead == -1L)
+                return bytesRead
+            }
+        }
+    }
+}
 
 @GlideModule
 class MtAppGlideModule : AppGlideModule() {
@@ -146,6 +201,47 @@ class OkHttpLibraryGlideModule : LibraryGlideModule() {
 }
 
 fun GlideRequest<Drawable>.crossFade(): GlideRequest<Drawable> = this.transition(DrawableTransitionOptions.withCrossFade())
+fun <T> GlideRequest<T>.complete(fn: (Boolean) -> Unit): GlideRequest<T> = this.listener(object : RequestListener<T> {
+    override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<T>?, isFirstResource: Boolean): Boolean {
+        fn.invoke(false)
+        return false
+    }
+
+    override fun onResourceReady(resource: T?, model: Any?, target: Target<T>?, dataSource: DataSource?, isFirstResource: Boolean): Boolean {
+        fn.invoke(true)
+        return false
+    }
+})
+
+fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: Long = 50L): GlideRequest<T> {
+    progressBar.progress = 0
+    progressBar.max = 100
+    progressBar.visibility = View.VISIBLE
+    val progress = WeakReference(progressBar)
+    RxBus.instance.flowable<Int>(url).lifecycle(progressBar).sample(sample, TimeUnit.MILLISECONDS, true).observeOn(AndroidSchedulers.mainThread()).subscribe {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            progress.get()?.setProgress(it, true)
+        } else progress.get()?.progress = it
+    }
+    return this.complete { progress.get()?.visibility = View.INVISIBLE }
+}
+
+fun GlideRequest<File>.into(image: SubsamplingScaleImageView): SimpleTarget<File> = WeakReference(image).let { weak ->
+    image.setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
+        override fun onImageLoaded() {
+            weak.get()?.let {
+                ObjectAnimator.ofFloat(it, "alpha", 0F, 1F)
+                        .setDuration(300)
+                        .start()
+            }
+        }
+    })
+    into(object : SimpleTarget<File>() {
+        override fun onResourceReady(resource: File, transition: Transition<in File>) {
+            weak.get()?.setImage(ImageSource.uri(Uri.fromFile(resource)))
+        }
+    })
+}
 
 fun String.httpGet() = try {
     val html = okhttp.newCall(Request.Builder().url(this).build()).execute().body()?.string()
@@ -894,6 +990,30 @@ object RxMt {
             it.onError(e)
         }
     }!!
+}
+
+fun <T> Flowable<T>.lifecycle(view: View): Flowable<T> = this.compose { transformer ->
+    transformer.takeUntil(Observable.create<Int> { emitter ->
+        emitter.setDisposable(object : MainThreadDisposable() {
+            private val listener = object : View.OnAttachStateChangeListener {
+                override fun onViewDetachedFromWindow(v: View?) {
+                    emitter.onNext(0)
+                }
+
+                override fun onViewAttachedToWindow(v: View?) {
+                }
+
+            }
+
+            init {
+                view.addOnAttachStateChangeListener(listener)
+            }
+
+            override fun onDispose() {
+                view.removeOnAttachStateChangeListener(listener)
+            }
+        })
+    }.toFlowable(BackpressureStrategy.LATEST))
 }
 
 class RxBus {

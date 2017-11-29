@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.toast
@@ -24,11 +25,6 @@ class CollectActivity : BaseSlideCloseActivity() {
         setContentView(R.layout.activity_container)
         setFragment<CollectFragment>(R.id.container) { intent.extras }
     }
-
-//    override fun onActivityReenter(resultCode: Int, data: Intent?) {
-//        (supportFragmentManager.findFragmentById(R.id.container) as? CollectFragment)?.onActivityReenter(resultCode, data)
-//        super.onActivityReenter(resultCode, data)
-//    }
 }
 
 class CollectFragment : Fragment() {
@@ -171,12 +167,12 @@ class CollectFragment : Fragment() {
 
     inner class ImageHolder(view: View) : DataHolder<String>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
-        val image: ImageView = view.findViewById(R.id.image)
+        private val image: ImageView = view.findViewById(R.id.image)
+        private val progress: ProgressBar = view.findViewById(R.id.progress)
         private val image2: ImageView = view.findViewById(R.id.image2)
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int) {
-//            image.load(value).aspectRatio = 2F / 3F
-            GlideApp.with(image).load(value).crossFade().into(image)
+            GlideApp.with(image).load(value).crossFade().progress(value, progress).into(image)
             text.text = "${i + 1}"
             image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
         }
@@ -188,12 +184,9 @@ class CollectFragment : Fragment() {
                             .putExtra("album", album)
                             .putExtra("data", ArrayList(adapter.data))
                             .putExtra("uri", mtseq.url)
-                            .putExtra("index", adapterPosition)/*,
-                            ActivityOptionsCompat.makeSceneTransitionAnimation(it,
-                                    image to4 value).toBundle()*/)
+                            .putExtra("index", adapterPosition))
                 }
             }
-//            image.progress()
         }
     }
 
