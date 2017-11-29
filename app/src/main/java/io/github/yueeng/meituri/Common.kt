@@ -128,10 +128,6 @@ inline fun <reified T : Any> Any.clazz(): T? = this as? T
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
 fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
 
-interface ProgressListener {
-    fun update(bytesRead: Long, contentLength: Long, done: Boolean)
-}
-
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
@@ -151,6 +147,9 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
         .apply { debug { addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }) } }
         .build()
 
+interface ProgressListener {
+    fun update(bytesRead: Long, contentLength: Long, done: Boolean)
+}
 
 private class ProgressResponseBody internal constructor(private val responseBody: ResponseBody, private val progressListener: ProgressListener) : ResponseBody() {
     private var bufferedSource: BufferedSource? = null
@@ -226,8 +225,8 @@ fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: 
     return this.complete { progress.get()?.visibility = View.INVISIBLE }
 }
 
-fun GlideRequest<File>.into(image: SubsamplingScaleImageView): SimpleTarget<File> = WeakReference(image).let { weak ->
-    image.setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
+fun GlideRequest<File>.into(image: SubsamplingScaleImageView, animation: Boolean = true): SimpleTarget<File> = WeakReference(image).let { weak ->
+    if (animation) weak.get()?.setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
         override fun onImageLoaded() {
             weak.get()?.let {
                 ObjectAnimator.ofFloat(it, "alpha", 0F, 1F)
@@ -992,28 +991,30 @@ object RxMt {
     }!!
 }
 
-fun <T> Flowable<T>.lifecycle(view: View): Flowable<T> = this.compose { transformer ->
-    transformer.takeUntil(Observable.create<Int> { emitter ->
-        emitter.setDisposable(object : MainThreadDisposable() {
-            private val listener = object : View.OnAttachStateChangeListener {
-                override fun onViewDetachedFromWindow(v: View?) {
-                    emitter.onNext(0)
+fun <T> Flowable<T>.lifecycle(view: View): Flowable<T> = WeakReference(view).let { weak ->
+    compose { transformer ->
+        transformer.takeUntil(Observable.create<Int> { emitter ->
+            emitter.setDisposable(object : MainThreadDisposable() {
+                private val listener = object : View.OnAttachStateChangeListener {
+                    override fun onViewDetachedFromWindow(v: View?) {
+                        emitter.onNext(0)
+                    }
+
+                    override fun onViewAttachedToWindow(v: View?) {
+                    }
+
                 }
 
-                override fun onViewAttachedToWindow(v: View?) {
+                init {
+                    weak.get()?.addOnAttachStateChangeListener(listener)
                 }
 
-            }
-
-            init {
-                view.addOnAttachStateChangeListener(listener)
-            }
-
-            override fun onDispose() {
-                view.removeOnAttachStateChangeListener(listener)
-            }
-        })
-    }.toFlowable(BackpressureStrategy.LATEST))
+                override fun onDispose() {
+                    weak.get()?.removeOnAttachStateChangeListener(listener)
+                }
+            })
+        }.toFlowable(BackpressureStrategy.LATEST))
+    }
 }
 
 class RxBus {
