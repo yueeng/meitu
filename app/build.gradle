@@ -8,7 +8,6 @@ android {
     compileSdkVersion android_compile_sdk
     buildToolsVersion android_build_tools
     defaultConfig {
-        applicationId "io.github.yueeng.meituri"
         minSdkVersion android_min_sdk
         targetSdkVersion android_target_sdk
         versionCode 1

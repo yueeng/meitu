@@ -1,4 +1,4 @@
-package io.github.yueeng.meituri
+package io.github.yueeng.meitu
 
 import android.app.Application
 import android.content.SearchRecentSuggestionsProvider

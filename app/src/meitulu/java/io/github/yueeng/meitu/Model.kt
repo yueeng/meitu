@@ -1,4 +1,4 @@
-package io.github.yueeng.meituri
+package io.github.yueeng.meitu
 
 import android.net.Uri
 import org.jsoup.nodes.Document

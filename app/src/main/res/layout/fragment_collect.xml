@@ -32,38 +32,38 @@
             android:layout_height="match_parent" />
     </android.support.v4.widget.SwipeRefreshLayout>
 
-    <io.github.yueeng.meituri.FAM
+    <io.github.yueeng.meitu.FAM
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         app:fam_src="@drawable/ic_add">
 
-        <io.github.yueeng.meituri.FAB
+        <io.github.yueeng.meitu.FAB
             android:id="@+id/button3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_label="下载全部"
             app:fab_src="@drawable/ic_download_all" />
 
-        <io.github.yueeng.meituri.FAB
+        <io.github.yueeng.meitu.FAB
             android:id="@+id/button2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_label="收藏"
             app:fab_src="@drawable/ic_favorite_border" />
 
-        <io.github.yueeng.meituri.FAB
+        <io.github.yueeng.meitu.FAB
             android:id="@+id/button4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_label="信息"
             app:fab_src="@drawable/ic_info" />
 
-        <io.github.yueeng.meituri.FAB
+        <io.github.yueeng.meitu.FAB
             android:id="@+id/button1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_label="布局"
             app:fab_src="@drawable/ic_category" />
-    </io.github.yueeng.meituri.FAM>
+    </io.github.yueeng.meitu.FAM>
 </android.support.design.widget.CoordinatorLayout>

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="io.github.yueeng.meituri">
+    package="io.github.yueeng.meitu">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
-        android:name=".MainApplication"
+        android:name="io.github.yueeng.meitu.MainApplication"
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:hardwareAccelerated="true"
@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".MainActivity">
+        <activity android:name="io.github.yueeng.meitu.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -26,7 +26,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ListActivity"
+            android:name="io.github.yueeng.meitu.ListActivity"
             android:theme="@style/AppThemeTranslucent">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
@@ -37,20 +37,20 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name=".PreviewActivity"
+            android:name="io.github.yueeng.meitu.PreviewActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
-            android:name=".CollectActivity"
+            android:name="io.github.yueeng.meitu.CollectActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
-            android:name=".FavoriteActivity"
+            android:name="io.github.yueeng.meitu.FavoriteActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
-            android:name=".FavoriteTagActivity"
+            android:name="io.github.yueeng.meitu.FavoriteTagActivity"
             android:theme="@style/AppThemeTranslucent" />
 
         <provider
-            android:name=".SearchHistoryProvider"
+            android:name="io.github.yueeng.meitu.SearchHistoryProvider"
             android:authorities="@string/app_search_provider"
             android:exported="false" />
     </application>

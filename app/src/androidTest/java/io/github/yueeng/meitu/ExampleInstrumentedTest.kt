@@ -1,4 +1,4 @@
-package io.github.yueeng.meituri
+package io.github.yueeng.meitu
 
 import android.support.test.InstrumentationRegistry
 import android.support.test.runner.AndroidJUnit4

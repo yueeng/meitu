@@ -1,6 +1,6 @@
 @file:Suppress("unused", "PropertyName", "ObjectPropertyName", "MemberVisibilityCanPrivate")
 
-package io.github.yueeng.meituri
+package io.github.yueeng.meitu
 
 import android.Manifest
 import android.animation.ObjectAnimator

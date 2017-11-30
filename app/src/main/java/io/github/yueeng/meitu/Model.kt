@@ -1,6 +1,6 @@
 @file:Suppress("UNUSED_PARAMETER", "unused", "PropertyName", "ClassName", "ObjectPropertyName")
 
-package io.github.yueeng.meituri
+package io.github.yueeng.meitu
 
 import android.os.Parcel
 import android.os.Parcelable
