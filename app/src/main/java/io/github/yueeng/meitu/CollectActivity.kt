@@ -50,7 +50,7 @@ class CollectFragment : Fragment() {
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
-                mtseq.url = url
+                mtseq(url)
                 query()
             }
         }
@@ -100,11 +100,11 @@ class CollectFragment : Fragment() {
         retainInstance = true
         setHasOptionsMenu(true)
         state?.let {
-            mtseq.url = state.getString("uri")
+            mtseq(state.getBundle("uri"))
             adapter.add(state.getStringArrayList("data"))
         } ?: query()
-        RxBus.instance.subscribe<Pair<String, List<String>>>(this, "update_collect") {
-            mtseq.url = it.first
+        RxBus.instance.subscribe<Pair<Bundle, List<String>>>(this, "update_collect") {
+            mtseq(it.first)
             adapter.add(it.second)
         }
     }
@@ -116,7 +116,7 @@ class CollectFragment : Fragment() {
 
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
-        state.putString("uri", mtseq.url)
+        state.putBundle("uri", mtseq())
         state.putStringArrayList("data", ArrayList(adapter.data))
     }
 
@@ -128,42 +128,25 @@ class CollectFragment : Fragment() {
     }
 
     private fun footer() {
-        val msg = if (mtseq.url.isNullOrEmpty()) "没有更多了" else "加载中，请稍候。"
+        val msg = if (mtseq.empty()) "没有更多了" else "加载中，请稍候。"
         if (adapter.footer.isEmpty()) adapter.add(FooterDataAdapter.TYPE_FOOTER, msg)
         else adapter.replace(FooterDataAdapter.TYPE_FOOTER, 0, msg)
     }
 
     private fun query(all: Boolean = false, fn: (() -> Unit)? = null) {
-        if (busy() || mtseq.url == null) {
-            if (mtseq.url == null) fn?.invoke()
+        if (busy() || mtseq.empty()) {
+            if (mtseq.empty()) fn?.invoke()
             return
         }
         busy * true
         mtseq.toObservable().let {
-            if (all) it else it.take(2)
-        }.flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
+            if (all) it else it.take(10)
+        }.toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
             fn?.invoke()
         }
     }
-
-//    private val recycler get() = view?.findViewById<RecyclerView>(R.id.recycler)
-//    fun onActivityReenter(resultCode: Int, data: Intent?) {
-//        if (resultCode == Activity.RESULT_OK && data != null) {
-//            val position = data.getIntExtra("exit_position", -1)
-//            activity?.exitSharedElementCallback {
-//                recycler?.findViewHolderForAdapterPosition2<ImageHolder>(position)?.let {
-//                    it.image to it.value
-//                } ?: throw IllegalArgumentException()
-//            }
-//            recycler?.let { recycler ->
-//                activity?.supportPostponeEnterTransition()
-//                recycler.scrollToPosition(position)
-//                recycler.startPostponedEnterTransition()
-//            }
-//        }
-//    }
 
     inner class ImageHolder(view: View) : DataHolder<String>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
@@ -183,7 +166,7 @@ class CollectFragment : Fragment() {
                     it.startActivity(Intent(it, PreviewActivity::class.java)
                             .putExtra("album", album)
                             .putExtra("data", ArrayList(adapter.data))
-                            .putExtra("uri", mtseq.url)
+                            .putExtra("uri", mtseq())
                             .putExtra("index", adapterPosition))
                 }
             }

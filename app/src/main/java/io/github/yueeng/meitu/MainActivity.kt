@@ -398,7 +398,7 @@ class ListFragment : Fragment() {
         busy + view.findViewById<SwipeRefreshLayout>(R.id.swipe).apply {
             setOnRefreshListener {
                 adapter.clear()
-                mtseq.url = url
+                mtseq(url)
                 query()
             }
         }
@@ -411,7 +411,7 @@ class ListFragment : Fragment() {
         }
         RxBus.instance.subscribe<String>(this, "command") {
             adapter.clear()
-            mtseq.url = url
+            mtseq(url)
             query()
         }
     }
@@ -425,27 +425,27 @@ class ListFragment : Fragment() {
         retainInstance = true
         setHasOptionsMenu(true)
         state?.let {
-            mtseq.url = state.getString("uri")
+            mtseq(state.getBundle("uri"))
             adapter.add(state.getParcelableArrayList("data"))
         } ?: query()
     }
 
     private fun footer() {
-        val msg = if (mtseq.url.isNullOrEmpty()) "没有更多了" else "加载中，请稍候。"
+        val msg = if (mtseq.empty()) "没有更多了" else "加载中，请稍候。"
         if (adapter.footer.isEmpty()) adapter.add(FooterDataAdapter.TYPE_FOOTER, msg)
         else adapter.replace(FooterDataAdapter.TYPE_FOOTER, 0, msg)
     }
 
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
-        state.putString("uri", mtseq.url)
+        state.putBundle("uri", mtseq())
         state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
     private fun query() {
-        if (busy() || mtseq.url.isNullOrEmpty()) return
+        if (busy() || mtseq.empty()) return
         busy * true
-        mtseq.toObservable().take(1).flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
+        mtseq.toObservable().take(20).toList().io2main().subscribe { list ->
             busy * false
             adapter.add(list)
         }
@@ -585,8 +585,7 @@ class ListFragment : Fragment() {
                                 consumer {
                                     when (it.itemId) {
                                         R.id.menu_download_all -> activity.permissionWriteExternalStorage {
-                                            mtCollectSequence(album.url).toObservable()
-                                                    .flatMap { it.toObservable() }.toList()
+                                            mtCollectSequence(album.url).toObservable().toList()
                                                     .io2main().subscribe { list ->
                                                 activity.downloadAll(album.name, list)
                                             }

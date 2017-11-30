@@ -191,7 +191,7 @@ class PreviewFragment : Fragment() {
         retainInstance = true
         state?.let {
             page * state.getInt("page")
-            mtseq.url = state.getString("uri")
+            mtseq(state.getBundle("uri"))
             adapter.data.addAll(state.getStringArrayList("data"))
             thumb.add(state.getStringArrayList("thumb"))
             info = state.getParcelableArrayList<Bundle>("info")?.map {
@@ -202,7 +202,7 @@ class PreviewFragment : Fragment() {
                 adapter.data.addAll(it)
                 thumb.add(it)
             }
-            mtseq.url = it.getString("uri") ?: url
+            mtseq(it.getBundle("uri"))
             it.getInt("index").let {
                 page * it
                 current * it
@@ -214,7 +214,7 @@ class PreviewFragment : Fragment() {
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
         state.putInt("page", page())
-        state.putString("uri", mtseq.url)
+        state.putBundle("uri", mtseq())
         state.putStringArrayList("data", ArrayList(adapter.data))
         state.putStringArrayList("thumb", ArrayList(thumb.data))
 
@@ -228,20 +228,20 @@ class PreviewFragment : Fragment() {
     private var info: List<Pair<String, List<Name>>>? = null
 
     private fun query(all: Boolean = false, call: (() -> Unit)? = null) {
-        if (busy() || mtseq.url == null) {
-            if (mtseq.url == null) call?.invoke()
+        if (busy() || mtseq.empty()) {
+            if (mtseq.empty()) call?.invoke()
             return
         }
         busy * true
         mtseq.toObservable().let {
-            if (all) it else it.take(2)
-        }.flatMap { it.toObservable() }.toList().io2main().subscribe { list ->
+            if (all) it else it.take(10)
+        }.toList().io2main().subscribe { list ->
             busy * false
             if (list.isNotEmpty()) {
                 thumb.add(list)
                 adapter.data.addAll(list)
                 adapter.notifyDataSetChanged()
-                RxBus.instance.post("update_collect", mtseq.url to list)
+                RxBus.instance.post("update_collect", mtseq() to list)
                 page * current()
             }
             call?.invoke()

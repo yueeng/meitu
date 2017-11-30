@@ -2,6 +2,7 @@
 
 package io.github.yueeng.meitu
 
+import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
 import io.objectbox.Box
@@ -11,8 +12,11 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.reactivex.disposables.Disposable
+import org.jetbrains.anko.bundleOf
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.properties.Delegates
 
 /**
@@ -414,21 +418,52 @@ object dbFav {
     }.io2main().subscribe { fn(it) }
 }
 
-open class MtSequence<T>(uri: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<List<T>> {
+inline fun <reified T> mtSequence(uri: String?, noinline fn: (String) -> Pair<String?, List<T>>) = MtSequence(uri, T::class.java, fn)
+@Suppress("UNCHECKED_CAST")
+class MtSequence<out T>(uri: String?, private val clazz: Class<T>, val fn: (String) -> Pair<String?, List<T>>) : Sequence<T> {
     var ob: (() -> Unit)? = null
-    var url by Delegates.observable(uri) { _, o, n ->
+    private val data = LinkedList<T>()
+    private var url by Delegates.observable(uri) { _, o, n ->
         if (o != n) ob?.invoke()
     }
 
-    override fun iterator(): Iterator<List<T>> = object : Iterator<List<T>> {
-        lateinit var data: List<T>
-        override fun hasNext(): Boolean = url?.let {
+    operator fun invoke() = bundleOf("url" to url).apply {
+        when {
+            Parcelable::class.java.isAssignableFrom(clazz) ->
+                putParcelableArrayList("data", ArrayList(data as List<Parcelable>))
+            String::class.java.isAssignableFrom(clazz) ->
+                putStringArrayList("data", ArrayList(data as List<String>))
+            else -> throw IllegalArgumentException(clazz.name)
+        }
+    }
+
+    operator fun invoke(bundle: Bundle) {
+        data.clear()
+        when {
+            Parcelable::class.java.isAssignableFrom(clazz) ->
+                data.addAll(bundle.getParcelableArrayList<Parcelable>("data") as List<T>)
+            String::class.java.isAssignableFrom(clazz) ->
+                data.addAll(bundle.getStringArrayList("data") as List<T>)
+            else -> throw IllegalArgumentException(clazz.name)
+        }
+        url = bundle.getString("url")
+    }
+
+    operator fun invoke(uri: String) {
+        url = uri
+        data.clear()
+    }
+
+    fun empty() = data.isEmpty() && url?.isEmpty() ?: true
+
+    override fun iterator(): Iterator<T> = object : Iterator<T> {
+        override fun hasNext(): Boolean = data.isNotEmpty() || url?.let {
             val result = fn(it)
             url = result.first
-            data = result.second
+            data.addAll(result.second)
             data.isNotEmpty()
         } ?: false
 
-        override fun next(): List<T> = data
+        override fun next(): T = data.pop()
     }
 }
