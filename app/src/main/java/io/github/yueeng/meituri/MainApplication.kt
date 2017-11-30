@@ -41,7 +41,7 @@ class SearchHistoryProvider : SearchRecentSuggestionsProvider() {
     }
 
     companion object {
-        val AUTHORITY: String = SearchHistoryProvider::class.java.name
+        val AUTHORITY: String = MainApplication.current().getString(R.string.app_search_provider)
         val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
     }
 }

@@ -30,6 +30,19 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    flavorDimensions 'meitu'
+    productFlavors {
+        meituri {
+            dimension 'meitu'
+            applicationId 'io.github.yueeng.meituri'
+            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
+        }
+        meitulu {
+            dimension 'meitu'
+            applicationId 'io.github.yueeng.meitulu'
+            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
+        }
+    }
 }
 
 dependencies {

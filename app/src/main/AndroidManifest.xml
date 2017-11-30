@@ -51,7 +51,7 @@
 
         <provider
             android:name=".SearchHistoryProvider"
-            android:authorities="io.github.yueeng.meituri.SearchHistoryProvider"
+            android:authorities="@string/app_search_provider"
             android:exported="false" />
     </application>
 
