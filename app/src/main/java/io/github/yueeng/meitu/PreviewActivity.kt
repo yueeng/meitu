@@ -236,17 +236,17 @@ class PreviewFragment : Fragment() {
         val data = mutableListOf<String>()
         mtseq.toObservable().let {
             if (all) it else it.take(10)
-        }.io2main().subscribe({
-            data.add(it)
-            thumb.add(it)
-            adapter.data.add(it)
-            adapter.notifyDataSetChanged()
-        }, {}, {
+        }.io2main().doOnComplete {
             busy * false
             RxBus.instance.post("update_collect", mtseq() to data)
             page * current()
             call?.invoke()
-        })
+        }.subscribe {
+            data.add(it)
+            thumb.add(it)
+            adapter.data.add(it)
+            adapter.notifyDataSetChanged()
+        }
     }
 
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
