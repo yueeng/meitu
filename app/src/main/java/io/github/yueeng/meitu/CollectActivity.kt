@@ -141,11 +141,10 @@ class CollectFragment : Fragment() {
         busy * true
         mtseq.toObservable().let {
             if (all) it else it.take(10)
-        }.toList().io2main().subscribe { list ->
+        }.io2main().subscribe({ adapter.add(it) }, {}, {
             busy * false
-            adapter.add(list)
             fn?.invoke()
-        }
+        })
     }
 
     inner class ImageHolder(view: View) : DataHolder<String>(view) {

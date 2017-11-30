@@ -233,19 +233,20 @@ class PreviewFragment : Fragment() {
             return
         }
         busy * true
+        val data = mutableListOf<String>()
         mtseq.toObservable().let {
             if (all) it else it.take(10)
-        }.toList().io2main().subscribe { list ->
+        }.io2main().subscribe({
+            data.add(it)
+            thumb.add(it)
+            adapter.data.add(it)
+            adapter.notifyDataSetChanged()
+        }, {}, {
             busy * false
-            if (list.isNotEmpty()) {
-                thumb.add(list)
-                adapter.data.addAll(list)
-                adapter.notifyDataSetChanged()
-                RxBus.instance.post("update_collect", mtseq() to list)
-                page * current()
-            }
+            RxBus.instance.post("update_collect", mtseq() to data)
+            page * current()
             call?.invoke()
-        }
+        })
     }
 
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)

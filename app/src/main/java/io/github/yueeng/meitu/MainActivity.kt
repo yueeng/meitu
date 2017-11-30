@@ -445,10 +445,9 @@ class ListFragment : Fragment() {
     private fun query() {
         if (busy() || mtseq.empty()) return
         busy * true
-        mtseq.toObservable().take(20).toList().io2main().subscribe { list ->
-            busy * false
-            adapter.add(list)
-        }
+        mtseq.toObservable().take(20).io2main().subscribe({
+            adapter.add(it)
+        }, {}, { busy * false })
     }
 
     class NameHolder(view: View) : DataHolder<Name>(view) {

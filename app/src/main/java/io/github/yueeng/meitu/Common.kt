@@ -375,7 +375,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
     override fun getItemCount(): Int = _data.size
     fun add(item: T): DataAdapter<T, VH> {
         _data.add(item)
-        notifyItemInserted(_data.size - 1)
+        notifyItemInserted(_data.size)
         return this
     }
 
@@ -451,7 +451,7 @@ abstract class FooterDataAdapter<T : Any, VH : DataHolder<T>> : AnimDataAdapter<
             else -> throw IllegalArgumentException()
         }
         list.addAll(items)
-        notifyItemRangeRemoved(pos + size + 1, list.size - size)
+        notifyItemRangeInserted(pos + size + 1, list.size - size)
         return this
     }
 
