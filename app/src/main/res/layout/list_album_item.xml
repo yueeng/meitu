@@ -70,6 +70,7 @@
             android:layout_margin="3dp"
             android:ellipsize="end"
             android:lines="3"
+            android:maxLines="3"
             android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
     </LinearLayout>

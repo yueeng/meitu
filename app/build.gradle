@@ -35,11 +35,13 @@ android {
         meituri {
             dimension 'meitu'
             applicationId 'io.github.yueeng.meituri'
+            resValue "string", "app_name", "美图日"
             resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
         meitulu {
             dimension 'meitu'
             applicationId 'io.github.yueeng.meitulu'
+            resValue "string", "app_name", "美图录"
             resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
     }
