@@ -1142,7 +1142,7 @@ class FAM @JvmOverloads constructor(
 
 fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Name>>>? = null, fn: ((List<Pair<String, List<Name>>>?) -> Unit)? = null) {
     RxMt.create {
-        info ?: Album.attr(url.httpGet().jsoup())
+        info ?: AlbumEx.attr(url.httpGet().jsoup())
     }.io2main().subscribe {
         it?.let { info ->
             alert().apply {

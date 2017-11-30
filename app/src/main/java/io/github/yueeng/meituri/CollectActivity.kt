@@ -74,7 +74,7 @@ class CollectFragment : Fragment() {
         }
         favStat(false)
         view.findViewById<FAB>(R.id.button2).setOnClickListener {
-            if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) {
+            if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else AlbumEx.from(album.url!!, album) {
                 dbFav.put(it ?: album)
             }
         }

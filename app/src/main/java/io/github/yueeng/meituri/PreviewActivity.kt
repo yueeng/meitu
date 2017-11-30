@@ -137,7 +137,7 @@ class PreviewFragment : Fragment() {
                             else activity?.permissionWriteExternalStorage {
                                 query(true) { context?.downloadAll(name, adapter.data) }
                             }
-                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else Album.from(album.url!!, album) { dbFav.put(it ?: album) }
+                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else AlbumEx.from(album.url!!, album) { dbFav.put(it ?: album) }
                             R.id.menu_thumb -> sliding?.open()
                         }
                     }

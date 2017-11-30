@@ -2,7 +2,6 @@
 
 package io.github.yueeng.meituri
 
-import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
 import io.objectbox.Box
@@ -12,7 +11,6 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.reactivex.disposables.Disposable
-import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import org.jsoup.select.Elements
@@ -23,9 +21,6 @@ import kotlin.properties.Delegates
  * Created by Rain on 2017/8/22.
  */
 
-val website = "http://www.meituri.com"
-
-fun search(key: String) = "$website/search/${Uri.encode(key)}"
 open class Name(val name: String) : Parcelable {
     override fun toString(): String = name
     override fun equals(other: Any?): Boolean = name == other
@@ -84,23 +79,15 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
 }
 
 class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
-    private var _count = 0
-
-    val count get() = _count
+     var count = 0
 
     constructor(e: Link) : this(e.name, e.url)
-
-    constructor(e: Element) : this(Link(e.select("a"))) {
-        _count = e.select("span").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-        }
-    }
 
     constructor(source: Parcel) : this(
             source.readString(),
             source.readString()
     ) {
-        _count = source.readInt()
+        count = source.readInt()
     }
 
     override fun describeContents() = 0
@@ -108,11 +95,10 @@ class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
-        writeInt(_count)
+        writeInt(count)
     }
 
     companion object {
-        val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
 
         @JvmField
         val CREATOR: Parcelable.Creator<Organ> = object : Parcelable.Creator<Organ> {
@@ -123,29 +109,18 @@ class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
 }
 
 class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
-    private lateinit var _image: String
+     lateinit var image: String
 
-    private var _count = 0
-
-    val image get() = _image
-
-    val count get() = _count
+     var count = 0
 
     constructor(e: Link) : this(e.name, e.url)
-
-    constructor(e: Element) : this(Link(e.select("p a"))) {
-        _image = e.select("img").attr("abs:src")
-        _count = e.select(".shuliang").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-        }
-    }
 
     constructor(source: Parcel) : this(
             source.readString(),
             source.readString()
     ) {
-        _image = source.readString()
-        _count = source.readInt()
+        image = source.readString()
+        count = source.readInt()
     }
 
     override fun describeContents() = 0
@@ -153,12 +128,11 @@ class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
-        writeString(_image)
-        writeInt(_count)
+        writeString(image)
+        writeInt(count)
     }
 
     companion object {
-        val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
 
         @JvmField
         val CREATOR: Parcelable.Creator<Model> = object : Parcelable.Creator<Model> {
@@ -179,15 +153,6 @@ class Info(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     lateinit var etc: String
 
-    constructor(e: Element) : this(Link(e.select(".renwu .right h1"))) {
-        image = e.select(".renwu .left img").attr("abs:src")
-        attr = e.select(".renwu .right span").filter { it.nextSibling() is TextNode }.map {
-            it.text() to (it.nextSibling() as TextNode).text()
-        }
-        tag = e.select(".renwu .shuoming a").map { Link(it) }
-        e.select(".renwu .shuoming p").remove()
-        etc = e.select(".renwu .shuoming").text()
-    }
 
     constructor(source: Parcel) : this(
             source.readString(),
@@ -242,22 +207,6 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     constructor(e: Link) : this(e.name, e.url)
 
-    constructor(e: Element) : this(Link(e.select(".biaoti a"))) {
-        _image = e.select("img").attr("abs:src")
-        _count = e.select(".shuliang").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-        }
-        model = e.select("p:contains(模特：)").flatMap { it.childNodes() }.mapNotNull {
-            when (it) {
-                is TextNode -> it.text().trim().takeIf { it.isNotEmpty() }?.let { Link(it) }
-                is Element -> Link(it.text(), it.attr("abs:href"))
-                else -> null
-            }
-        }.drop(1).distinctBy { it.key }
-        organ = e.select("p:contains(机构：) a").map { Link(it) }
-        tags = e.select("p:contains(类型：) a,p:contains(标签：) a").map { Link(it) }
-    }
-
     constructor(it: ObAlbum) : this(it.name, it.url) {
         _image = it.image
         _count = it.count
@@ -293,54 +242,10 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     }
 
     companion object {
-        val rgx = "(\\d+)\\s*P".toRegex(RegexOption.IGNORE_CASE)
-
         @JvmField
         val CREATOR: Parcelable.Creator<Album> = object : Parcelable.Creator<Album> {
             override fun createFromParcel(source: Parcel): Album = Album(source)
             override fun newArray(size: Int): Array<Album?> = arrayOfNulls(size)
-        }
-
-        fun attr(dom: Document?): List<Pair<String, List<Name>>>? = dom?.select(".tuji p,.shuoming p, .fenxiang_l")?.flatMap { it.childNodes() }?.flatMap {
-            when (it) {
-                is TextNode -> it.text().trim().split("；").filter { it.isNotBlank() }
-                        .map { it.split("：").joinToString("：") { it.trim() } }
-                is Element -> listOf(Link(it.text(), it.attr("abs:href")))
-                else -> emptyList()
-            }
-        }?.fold<Any, MutableList<MutableList<Name>>>(mutableListOf()) { r, t ->
-            r.apply {
-                when (t) {
-                    is String -> mutableListOf<Name>().apply {
-                        r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
-                    }
-                    is Link -> r.last() += t
-                }
-            }
-        }?.map { it.first().toString() to it.drop(1) }
-
-        fun from(url: String, sample: Album? = null, fn: (Album?) -> Unit) {
-            RxMt.create {
-                url.httpGet().jsoup()?.let { dom ->
-                    attr(dom)?.toMap()?.let {
-                        fun attr2links(name: String) = it[name]?.map {
-                            when (it) {
-                                is Link -> it
-                                else -> Link(it.name)
-                            }
-                        } ?: emptyList()
-                        Album(dom.select("h1").text(), url).apply {
-                            model = attr2links("出镜模特").plus((sample?.model ?: emptyList())).distinctBy { it.key }
-                            organ = attr2links("拍摄机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
-                            tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }
-                            _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".content img.tupian_img").firstOrNull()?.attr("abs:src") ?: ""
-                            _count = sample?.count?.takeIf { it != 0 } ?: it["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
-                                rgx.find(it)?.let { it.groups[1]?.value?.toInt() }
-                            } ?: 0
-                        }
-                    }
-                }
-            }.io2main().subscribe { fn(it) }
         }
     }
 }
@@ -505,37 +410,4 @@ open class MtSequence<T>(uri: String?, val fn: (String) -> Pair<String?, List<T>
 
         override fun next(): List<T> = data
     }
-}
-
-fun mtAlbumSequence(uri: String) = MtSequence(uri) {
-    val first = it == uri
-    val dom = it.httpGet().jsoup()
-    val url = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
-    val list: List<Name>? = dom?.select(".hezi .title,.hezi li,.hezi_t li,.jigou li,.fenlei p,.shoulushuliang,.renwu")?.mapNotNull {
-        when {
-            it.`is`(".hezi li") -> Album(it)
-            first && it.`is`(".hezi_t li") -> Model(it)
-            first && it.`is`(".jigou li") -> Organ(it)
-            first && it.`is`(".renwu") -> Info(it)
-            first && it.`is`(".shoulushuliang") -> Name(it.text())
-            first && it.`is`(".hezi .title") -> Name(it.text())
-            first && it.`is`(".fenlei p") -> Name(it.text())
-            else -> null
-        }
-    }
-    val categories = it.takeIf { first && it == "$website/mote/" }?.let {
-        dom?.select("#tag_ul li a")?.map { Link(it) }
-    }
-    url to categories?.takeIf { it.isNotEmpty() }?.let {
-        listOf(Name("分类")) + it + Name("模特")
-    }.orEmpty() + list.orEmpty()
-}
-
-fun mtCollectSequence(uri: String) = MtSequence(uri) {
-    val dom = it.httpGet().jsoup()
-    val data = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
-    val url = dom?.select("#pages span+a")?.let {
-        !it.`is`(".a1") to it.attr("abs:href")
-    }?.takeIf { it.first }?.second
-    url to data.orEmpty()
 }

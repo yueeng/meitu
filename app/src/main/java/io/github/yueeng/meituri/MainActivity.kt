@@ -42,14 +42,7 @@ class MainActivity : DayNightAppCompatActivity() {
         super.onCreate(state)
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
-        val list = listOf(website to "首页",
-                "$website/zhongguo/" to "中国美女",
-                "$website/riben/" to "日本美女",
-                "$website/taiwan/" to "台湾美女",
-                "$website/hanguo/" to "韩国美女",
-                "$website/mote/" to "美女库",
-                "$website/jigou/" to "写真机构"/*, "" to "分类"*/)
-        adapter.data += list
+        adapter.data += homes
         val pager = findViewById<ViewPager>(R.id.container)
         pager.adapter = adapter
         val tabs: TabLayout = findViewById(R.id.tab)
@@ -61,7 +54,7 @@ class MainActivity : DayNightAppCompatActivity() {
         drawer.addDrawerListener(toggle)
         toggle.syncState()
         val navigation = findViewById<NavigationView>(R.id.navigation)
-        list.forEachIndexed { i, it ->
+        homes.forEachIndexed { i, it ->
             navigation.menu.add(when (i) {
                 0 -> 0
                 in 1..4 -> 1
@@ -80,7 +73,7 @@ class MainActivity : DayNightAppCompatActivity() {
                     startActivity<FavoriteActivity>()
                     drawer.closeDrawer(navigation)
                 }
-                in 0x1000..0x1000 + list.size -> consumer {
+                in 0x1000..0x1000 + homes.size -> consumer {
                     pager.currentItem = it.itemId - 0x1000
                     drawer.closeDrawer(navigation)
                 }
@@ -574,7 +567,7 @@ class ListFragment : Fragment() {
                                                 activity.downloadAll(album.name, list)
                                             }
                                         }
-                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else Album.from(album.url, album) { dbFav.put(it ?: album) }
+                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) { dbFav.put(it ?: album) }
                                         R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
                                         R.id.menu_info -> context.showInfo(album.name, album.url)
                                     }
@@ -588,7 +581,7 @@ class ListFragment : Fragment() {
             check.setOnClickListener {
                 value.url?.let { url ->
                     if (check.isChecked)
-                        Album.from(url, value) {
+                        AlbumEx.from(url, value) {
                             dbFav.put(it ?: value)
                         }
                     else dbFav.del(url)
