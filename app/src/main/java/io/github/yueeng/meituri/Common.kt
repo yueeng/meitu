@@ -212,7 +212,7 @@ fun <T> GlideRequest<T>.complete(fn: (Boolean) -> Unit): GlideRequest<T> = this.
     }
 })
 
-fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: Long = 50L): GlideRequest<T> {
+fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: Long = 100L): GlideRequest<T> {
     progressBar.progress = 0
     progressBar.max = 100
     progressBar.visibility = View.VISIBLE
@@ -393,7 +393,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
         return this
     }
 
-    fun get(position: Int) = _data[position]
+    open fun get(position: Int) = _data[position]
 
     override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>?) {
         holder.set(get(position), position, payloads)
@@ -490,6 +490,10 @@ abstract class FooterDataAdapter<T : Any, VH : DataHolder<T>> : AnimDataAdapter<
     }
 
     open fun getItemType(position: Int): Int = 0
+    @Suppress("UNCHECKED_CAST")
+    override fun get(position: Int): T {
+        return super.get(position - _header.size) as T
+    }
 
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataHolder<Any> = when (viewType) {
         TYPE_HEADER, TYPE_FOOTER -> FooterHolder(parent.inflate(R.layout.list_text_item))

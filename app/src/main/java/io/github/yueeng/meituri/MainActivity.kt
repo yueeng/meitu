@@ -409,6 +409,11 @@ class ListFragment : Fragment() {
                 adapter.notifyItemChanged(it.first, "favorite")
             }
         }
+        RxBus.instance.subscribe<String>(this, "command") {
+            adapter.clear()
+            mtseq.url = url
+            query()
+        }
     }
 
     private val adapter = ListAdapter()
@@ -453,6 +458,19 @@ class ListFragment : Fragment() {
         }
     }
 
+    class CmdHolder(view: View) : DataHolder<Cmd>(view) {
+        private val text1 = view.findViewById<TextView>(R.id.text1)
+        override fun bind() {
+            text1.text = value.name
+        }
+
+        init {
+            view.setOnClickListener {
+                RxBus.instance.post("command", value.cmd)
+            }
+        }
+    }
+
     class TextHolder(view: View) : DataHolder<Link>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         override fun bind() {
@@ -477,12 +495,18 @@ class ListFragment : Fragment() {
             GlideApp.with(image).load(value.image).crossFade()
                     .progress(value.image, progress).into(image)
             text1.text = value.name
-            text2.text = value.attr.joinToString { "${it.first}${it.second}" }
             text3.text = value.tag.spannable(" ", { it.name }) {
                 context.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
             }
             text3.visibility = if (value.tag.isEmpty()) View.GONE else View.VISIBLE
-            text4.text = value.etc
+            if (value.attr.isNotEmpty()) {
+                text2.text = value.attr.joinToString { "${it.first}${it.second}" }
+                text4.text = value.etc
+            } else {
+                text2.text = value.etc
+                text4.text = ""
+            }
+            text4.visibility = if (text4.text.isNotEmpty()) View.VISIBLE else View.GONE
         }
     }
 
@@ -597,6 +621,7 @@ class ListFragment : Fragment() {
             is Organ -> ListType.Organ.value
             is Info -> ListType.Info.value
             is Link -> ListType.Category.value
+            is Cmd -> ListType.Cmd.value
             else -> ListType.Title.value
         }
 
@@ -605,13 +630,14 @@ class ListFragment : Fragment() {
             ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
             ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))
             ListType.Title.value -> NameHolder(parent.inflate(R.layout.list_text_item))
-            ListType.Category.value -> TextHolder(parent.inflate(R.layout.list_text_item))
+            ListType.Category.value -> TextHolder(parent.inflate(R.layout.list_category_item))
+            ListType.Cmd.value -> CmdHolder(parent.inflate(R.layout.list_text_item))
             ListType.Info.value -> InfoHolder(parent.inflate(R.layout.list_info_item))
             else -> throw IllegalArgumentException()
         }
     }
 
     enum class ListType(val value: Int) {
-        Title(0), Album(1), Model(2), Organ(3), Info(4), Category(5)
+        Title(0), Album(1), Model(2), Organ(3), Info(4), Category(5), Cmd(6)
     }
 }

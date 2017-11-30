@@ -12,7 +12,6 @@ import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.reactivex.disposables.Disposable
 import org.jsoup.nodes.Element
-import org.jsoup.nodes.TextNode
 import org.jsoup.select.Elements
 import kotlin.properties.Delegates
 
@@ -41,6 +40,28 @@ open class Name(val name: String) : Parcelable {
         val CREATOR: Parcelable.Creator<Name> = object : Parcelable.Creator<Name> {
             override fun createFromParcel(source: Parcel): Name = Name(source)
             override fun newArray(size: Int): Array<Name?> = arrayOfNulls(size)
+        }
+    }
+}
+
+open class Cmd(name: String, val cmd: String) : Name(name), Parcelable {
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    )
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(cmd)
+    }
+
+    companion object {
+        @JvmField
+        val CREATOR: Parcelable.Creator<Cmd> = object : Parcelable.Creator<Cmd> {
+            override fun createFromParcel(source: Parcel): Cmd = Cmd(source)
+            override fun newArray(size: Int): Array<Cmd?> = arrayOfNulls(size)
         }
     }
 }
@@ -79,7 +100,7 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
 }
 
 class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
-     var count = 0
+    var count = 0
 
     constructor(e: Link) : this(e.name, e.url)
 
@@ -109,9 +130,9 @@ class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
 }
 
 class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
-     lateinit var image: String
+    lateinit var image: String
 
-     var count = 0
+    var count = 0
 
     constructor(e: Link) : this(e.name, e.url)
 
