@@ -48,6 +48,10 @@ object ModelEx {
 //            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
 //        }
     }
+
+    fun dz_tag(e: Element) = Model(Link(""/*e.attr("data-tagname")*/, e.attr("abs:href"))).apply {
+        image = "https://img.aitaotu.cc:8089/Thumb/Tagbg/${e.attr("data-tagcode")}_dz.jpg"
+    }
 }
 
 object InfoEx {
@@ -122,21 +126,26 @@ object AlbumEx {
 }
 
 fun mtAlbumSequence(uri: String) = mtSequence(uri) {
-//    val first = it == uri
+    //    val first = it == uri
     val dom = it.httpGet().jsoup()
     val url = dom?.select("#pageNum a.thisclass+a")?.attr("abs:href")
-    val fn = listOf<Pair<String, (Element) -> Name>>(
-            ".taotu-main li:not(.longword)" to { e -> AlbumEx.from(e) },
-            ".taotu-nav>a" to { e -> Link(e) },
-            ".main .imgtag" to { e -> ModelEx.from(e) },
-            "#Pnav3.Wc .index-kcont-bt strong a,#Pnav3.Wc~.Wc .index-kcont-bt strong a" to { e -> Title(Link(e)) },
-            "#Pnav3.Wc .index-list-c a,#Pnav3.Wc~.Wc .index-list-c a" to { e -> AlbumEx.from(e) },
-            ".item_list .item" to { e -> AlbumEx.from(e) }, //https://www.aitaotu.com/meinv/
-            "#mainbody li" to { e -> AlbumEx.from(e) } //https://www.aitaotu.com/tag/weimeinvsheng.html
+    val fn = listOf<Pair<String, (Element) -> List<Name>>>(
+            ".taotu-main li:not(.longword)" to { e -> AlbumEx.from(e).option() },
+            ".taotu-nav>a" to { e -> Link(e).option() },
+            ".main .imgtag" to { e -> ModelEx.from(e).option() },
+            "#Pnav3.Wc .index-kcont-bt strong a,#Pnav3.Wc~.Wc .index-kcont-bt strong a" to { e -> Title(Link(e)).option() },
+            "#Pnav3.Wc .index-list-c a,#Pnav3.Wc~.Wc .index-list-c a" to { e -> AlbumEx.from(e).option() },
+            ".item_list .item" to { e -> AlbumEx.from(e).option() }, //https://www.aitaotu.com/meinv/
+            "#mainbody li" to { e -> AlbumEx.from(e).option() }, //https://www.aitaotu.com/tag/weimeinvsheng.html
+            ".dz_nav a" to { e ->
+                listOf(Title(Link(e))) + dom?.select(".dz_tag li")?.get(e.elementSiblingIndex())?.let {
+                    it.select("a").map { ModelEx.dz_tag(it) }
+                }.orEmpty()
+            } //https://www.aitaotu.com/
     )
     val title = listOf(Name::class.java, Title::class.java, Info::class.java)
-    val list: List<Name>? = dom?.select(fn.joinToString(",") { it.first })?.mapNotNull { e ->
-        fn.firstOrNull { e.`is`(it.first) }?.second?.invoke(e)
+    val list: List<Name>? = dom?.select(fn.joinToString(",") { it.first })?.flatMap { e ->
+        fn.firstOrNull { e.`is`(it.first) }?.second?.invoke(e) ?: emptyList()
     }?.fold(mutableListOf()) { acc, name ->
         acc.apply {
             lastOrNull()?.takeIf { it.javaClass != name.javaClass }?.let { last ->
