@@ -385,8 +385,8 @@ class ListFragment : Fragment() {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                         when (adapter.getItemViewType(position)) {
-                            ListType.Title.value, ListType.Info.value -> this@apply.spanCount
-                            ListType.Category.value -> 1
+                            ListType.Sp.value, ListType.Name.value, ListType.Title.value, ListType.Info.value -> this@apply.spanCount
+                            ListType.Link.value -> 1
                             ListType.Album.value, ListType.Model.value, ListType.Organ.value -> 2
                             else -> this@apply.spanCount
                         }
@@ -457,7 +457,7 @@ class ListFragment : Fragment() {
         }
     }
 
-    class CmdHolder(view: View) : DataHolder<Cmd>(view) {
+    class TitleHolder(view: View) : DataHolder<Title>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         override fun bind() {
             text1.text = value.name
@@ -465,12 +465,15 @@ class ListFragment : Fragment() {
 
         init {
             view.setOnClickListener {
-                RxBus.instance.post("command", value.cmd)
+                if (value.url?.startsWith("cmd:") == true)
+                    RxBus.instance.post("cmd", value.url?.substring("cmd:".length) ?: "")
+                else
+                    context.startActivity<ListActivity>("url" to value.uri, "name" to value.name)
             }
         }
     }
 
-    class TextHolder(view: View) : DataHolder<Link>(view) {
+    class LinkHolder(view: View) : DataHolder<Link>(view) {
         private val text1 = view.findViewById<TextView>(R.id.text1)
         override fun bind() {
             text1.text = value.name.spannable(value.name.numbers())
@@ -618,24 +621,28 @@ class ListFragment : Fragment() {
             is Model -> ListType.Model.value
             is Organ -> ListType.Organ.value
             is Info -> ListType.Info.value
-            is Link -> ListType.Category.value
-            is Cmd -> ListType.Cmd.value
-            else -> ListType.Title.value
+            is Title -> ListType.Title.value
+            is Link -> ListType.Link.value
+            else -> get(position).takeIf { it.name.isNotEmpty() }?.let { ListType.Name.value } ?: ListType.Sp.value
         }
 
         override fun onCreateHolder(parent: ViewGroup, viewType: Int): DataHolder<Name> = when (viewType) {
             ListType.Album.value -> AlbumHolder(parent.inflate(R.layout.list_album_item))
             ListType.Model.value -> ModelHolder(parent.inflate(R.layout.list_model_item))
             ListType.Organ.value -> OrganHolder(parent.inflate(R.layout.list_organ_item))
-            ListType.Title.value -> NameHolder(parent.inflate(R.layout.list_text_item))
-            ListType.Category.value -> TextHolder(parent.inflate(R.layout.list_category_item))
-            ListType.Cmd.value -> CmdHolder(parent.inflate(R.layout.list_text_item))
+            ListType.Title.value -> TitleHolder(parent.inflate(R.layout.list_text_item))
+            ListType.Link.value -> LinkHolder(parent.inflate(R.layout.list_category_item))
+            ListType.Name.value -> NameHolder(parent.inflate(R.layout.list_text_item))
             ListType.Info.value -> InfoHolder(parent.inflate(R.layout.list_info_item))
+            ListType.Sp.value -> DataHolder(View(parent.context).apply { layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0) })
             else -> throw IllegalArgumentException()
         }
     }
 
     enum class ListType(val value: Int) {
-        Title(0), Album(1), Model(2), Organ(3), Info(4), Category(5), Cmd(6)
+        Name(0), Album(1),
+        Model(2), Organ(3),
+        Info(4), Link(5),
+        Title(6), Sp(7)
     }
 }

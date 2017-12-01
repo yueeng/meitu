@@ -273,9 +273,16 @@ object MtSettings {
         set(value) = config.edit().putInt(KEY_DAY_NIGHT_MODE, value).apply()
 }
 
+val RGX_INT = "\\d+".toRegex(RegexOption.IGNORE_CASE)
+fun String.tryInt(def: Int = 0): Int = RGX_INT.find(this)?.value?.toInt() ?: def
+
 fun Element.attrs(vararg key: String): String? = key.firstOrNull { hasAttr(it) }?.let { attr(it) }
 
 fun Elements.attrs(vararg key: String): String? = key.firstOrNull { hasAttr(it) }?.let { attr(it) }
+
+fun Element.selects(vararg key: String) = key.asSequence().map { select(it) }.firstOrNull { it.isNotEmpty() }
+
+fun Elements.selects(vararg key: String) = key.asSequence().map { select(it) }.firstOrNull { it.isNotEmpty() }
 
 fun Context.asActivity(): Activity? = when (this) {
     is Activity -> this

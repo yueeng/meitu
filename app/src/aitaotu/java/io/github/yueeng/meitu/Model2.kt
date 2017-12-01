@@ -9,13 +9,25 @@ import org.jsoup.nodes.TextNode
  * Model
  * Created by Rain on 2017/11/30.
  */
-val website = "https://www.meitulu.com"
+val website = "https://www.aitaotu.com"
 
-val homes = listOf(website to "首页",
-        "$website/xihuan/" to "精选美女",
-        "$website/rihan/" to "日韩美女",
-        "$website/gangtai/" to "港台美女",
-        "$website/guochan/" to "国产美女")
+val homes = listOf("$website/" to "首页",
+        "$website/taotu/" to "美女套图",
+        "$website/meinv/" to "美女大全",
+        "$website/mxtp/" to "明星图片",
+//        "$website/tushuo/" to "图说天下",
+        "$website/weimei/" to "唯美图片",
+        "$website/dmtp/" to "动漫图片",
+        "$website/dwtp/" to "动物图片",
+        "$website/dttp/" to "动态图片",
+        "$website/yxtp/" to "游戏图片",
+        "$website/cysj/" to "创意图片",
+        "$website/zxtp/" to "装修图片",
+        "$website/shxz/" to "生活写照",
+        "$website/sjbz/" to "手机壁纸",
+        "$website/zhuomian/" to "桌面壁纸",
+        "$website/touxiang/" to "QQ头像"
+)
 
 fun search(key: String) = "$website/search/${Uri.encode(key)}"
 
@@ -50,20 +62,14 @@ object InfoEx {
 object AlbumEx {
     private val rgx = "(\\d+)\\s*张".toRegex(RegexOption.IGNORE_CASE)
 
-    fun from(e: Element) = Album(Link(e.select(".p_title a"))).apply {
-        _image = e.select("img").attr("abs:src")
-        _count = e.select("p:contains(张)").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
+    fun from(e: Element) = Album(Link(e.selects(".title a", "p a", "a"))).apply {
+        _image = e.selects(".item_t .img img", "img")?.attrs("abs:data-original", "abs:src") ?: ""
+        _count = e.select(".items_likes").text().let {
+            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: e.select(".item_h_info_r_dt").text().tryInt()
         }
-        model = e.select("p:contains(模特：)").flatMap { it.childNodes() }.mapNotNull {
-            when (it) {
-                is TextNode -> it.text().trim().takeIf { it.isNotEmpty() }?.let { Link(it) }
-                is Element -> Link(it.text(), it.attr("abs:href"))
-                else -> null
-            }
-        }.drop(1).distinctBy { it.key }
-        organ = e.select("p:contains(机构：) a").map { Link(it) }
-        tags = e.select("p:contains(类型：) a,p:contains(标签：) a").map { Link(it) }
+        model = emptyList()
+        organ = emptyList()
+        tags = e.select(".items_comment a").map(::Link)
     }
 
     fun attr(dom: Document?): List<Pair<String, List<Name>>>? = dom?.let { document ->
@@ -116,32 +122,35 @@ object AlbumEx {
 }
 
 fun mtAlbumSequence(uri: String) = mtSequence(uri) {
-    val first = it == uri
+//    val first = it == uri
     val dom = it.httpGet().jsoup()
-    val url = dom?.select("#pages .current+a,#pages span+a:not(.a1)")?.attr("abs:href")
-    val list: List<Name>? = dom?.select(".zuixin,.boxs li,.hot_meinv li,.model_source li,.listtags,a.huanyipi")?.mapNotNull {
-        when {
-            it.`is`(".boxs li") -> AlbumEx.from(it)
-            first && it.`is`(".hot_meinv li") -> ModelEx.from(it)
-//            first && it.`is`(".listtags") -> OrganEx.from(it)
-            first && it.`is`(".listtags") -> InfoEx.from(it)
-            first && it.`is`(".model_source li") -> Link(it.select("a"))
-            first && it.`is`(".zuixin") -> Name(it.text())
-            first && it.`is`("a.huanyipi") -> Title(it.text(), "cmd:refresh")
-            else -> null
+    val url = dom?.select("#pageNum a.thisclass+a")?.attr("abs:href")
+    val fn = listOf<Pair<String, (Element) -> Name>>(
+            ".taotu-main li:not(.longword)" to { e -> AlbumEx.from(e) },
+            ".taotu-nav>a" to { e -> Link(e) },
+            ".main .imgtag" to { e -> ModelEx.from(e) },
+            "#Pnav3.Wc .index-kcont-bt strong a,#Pnav3.Wc~.Wc .index-kcont-bt strong a" to { e -> Title(Link(e)) },
+            "#Pnav3.Wc .index-list-c a,#Pnav3.Wc~.Wc .index-list-c a" to { e -> AlbumEx.from(e) },
+            ".item_list .item" to { e -> AlbumEx.from(e) }, //https://www.aitaotu.com/meinv/
+            "#mainbody li" to { e -> AlbumEx.from(e) } //https://www.aitaotu.com/tag/weimeinvsheng.html
+    )
+    val title = listOf(Name::class.java, Title::class.java, Info::class.java)
+    val list: List<Name>? = dom?.select(fn.joinToString(",") { it.first })?.mapNotNull { e ->
+        fn.firstOrNull { e.`is`(it.first) }?.second?.invoke(e)
+    }?.fold(mutableListOf()) { acc, name ->
+        acc.apply {
+            lastOrNull()?.takeIf { it.javaClass != name.javaClass }?.let { last ->
+                if (!title.any { it == last.javaClass || it == name.javaClass }) add(Name(""))
+            }
+            add(name)
         }
     }
-    val categories = it.takeIf { first && it == "$website/xihuan/" }?.let {
-        dom?.select("#tag_ul li a")?.map { Link(it) }
-    }
-    url to list.orEmpty() + categories?.takeIf { it.isNotEmpty() }?.let {
-        listOf(Name("分类")) + it
-    }.orEmpty()
+    url to list.orEmpty()
 }
 
 fun mtCollectSequence(uri: String) = mtSequence(uri) {
     val dom = it.httpGet().jsoup()
-    val data = dom?.select(".content img.content_img")?.map { it.attr("abs:src") }
-    val url = dom?.select("#pages span+a:not(.a1)")?.attr("abs:href")
+    val data = dom?.select(".big-pic img")?.map { it.attr("abs:src") }
+    val url = dom?.select(".pages .thisclass+li a")?.attr("abs:href")
     url to data.orEmpty()
 }

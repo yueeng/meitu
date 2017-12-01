@@ -48,32 +48,10 @@ open class Name(val name: String) : Parcelable {
     }
 }
 
-open class Cmd(name: String, val cmd: String) : Name(name), Parcelable {
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    )
-
-    override fun describeContents() = 0
-
-    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
-        writeString(name)
-        writeString(cmd)
-    }
-
-    companion object {
-        @JvmField
-        val CREATOR: Parcelable.Creator<Cmd> = object : Parcelable.Creator<Cmd> {
-            override fun createFromParcel(source: Parcel): Cmd = Cmd(source)
-            override fun newArray(size: Int): Array<Cmd?> = arrayOfNulls(size)
-        }
-    }
-}
-
 open class Link(name: String, val url: String? = null) : Name(name), Parcelable {
-    constructor(e: Elements) : this(e.text(), e.attrs("abs:href"))
+    constructor(e: Elements?) : this(e?.text() ?: "", e?.attrs("abs:href"))
 
-    constructor(e: Element) : this(e.text(), e.attrs("abs:href"))
+    constructor(e: Element?) : this(e?.text() ?: "", e?.attrs("abs:href"))
 
     override fun toString(): String = name
     override fun equals(other: Any?): Boolean = key == other
@@ -99,6 +77,29 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
         val CREATOR: Parcelable.Creator<Link> = object : Parcelable.Creator<Link> {
             override fun createFromParcel(source: Parcel): Link = Link(source)
             override fun newArray(size: Int): Array<Link?> = arrayOfNulls(size)
+        }
+    }
+}
+
+class Title(name: String, url: String? = null) : Link(name, url), Parcelable {
+    constructor(e: Link) : this(e.name, e.url)
+    constructor(source: Parcel) : this(
+            source.readString(),
+            source.readString()
+    )
+
+    override fun describeContents() = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
+        writeString(name)
+        writeString(url)
+    }
+
+    companion object {
+        @JvmField
+        val CREATOR: Parcelable.Creator<Title> = object : Parcelable.Creator<Title> {
+            override fun createFromParcel(source: Parcel): Title = Title(source)
+            override fun newArray(size: Int): Array<Title?> = arrayOfNulls(size)
         }
     }
 }
