@@ -580,8 +580,8 @@ fun RecyclerView.loadMore(last: Int = 1, call: () -> Unit) {
     }
     addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ -> load(v as RecyclerView) }
     addOnScrollListener(object : RecyclerView.OnScrollListener() {
-        override fun onScrollStateChanged(recycler: RecyclerView, state: Int) {
-            if (state == RecyclerView.SCROLL_STATE_IDLE) load(recycler)
+        override fun onScrolled(recycler: RecyclerView, dx: Int, dy: Int) {
+            load(recycler)
         }
     })
 }
