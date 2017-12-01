@@ -108,7 +108,7 @@ import java.util.zip.ZipOutputStream
  * Created by Rain on 2017/8/22.
  */
 
-val LOG_TAG = R::class.java.`package`.name.split(".").last()
+val LOG_TAG = BuildConfig.APPLICATION_ID.split(".").last()
 
 fun debug(call: () -> Unit) {
     if (BuildConfig.DEBUG) call()
@@ -1200,7 +1200,7 @@ object MtBackup {
     }.also {
         if (!it.exists()) it.mkdirs()
     }.let {
-        File(it, "${javaClass.`package`.name}.bak")
+        File(it, "${BuildConfig.APPLICATION_ID}.bak")
     }
 
     fun backup() {
