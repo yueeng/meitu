@@ -8,16 +8,7 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="AppThemeDarkBase" parent="Theme.AppCompat.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
-
     <style name="AppTheme" parent="AppThemeBase" />
-
-    <style name="AppThemeDark" parent="AppThemeDarkBase" />
 
     <style name="AppThemeTranslucentBase" parent="AppTheme">
         <item name="android:windowBackground">@android:color/transparent</item>
