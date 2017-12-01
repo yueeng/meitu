@@ -531,9 +531,13 @@ abstract class DataPagerAdapter<T>(val layout: Int) : PagerAdapter() {
         container.removeView(`object` as? View)
     }
 
+    open fun layout(container: ViewGroup, position: Int, item: T): View {
+        return container.inflate(layout)
+    }
+
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
         val item = data[position]
-        val view = container.inflate(layout)
+        val view = layout(container, position, item)
         view.tag = item
         bind(view, item, position)
         container.addView(view)

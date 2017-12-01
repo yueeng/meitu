@@ -252,19 +252,32 @@ class PreviewFragment : Fragment() {
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
 
     class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
+        override fun layout(container: ViewGroup, position: Int, item: String): View =
+                if (item.endsWith(".gif", true))
+                    container.inflate(R.layout.preview_image_item)
+                else super.layout(container, position, item)
+
         override fun bind(view: View, item: String, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
             image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
-            val image: SubsamplingScaleImageView = view.findViewById(R.id.image)
             val progress: ProgressBar = view.findViewById(R.id.progress)
-            image.setOnClickListener {
-                RxBus.instance.post("tap_preview", 1)
+            view.findViewById<View>(R.id.image).let { image ->
+                when (image) {
+                    is SubsamplingScaleImageView -> GlideApp.with(image)
+                            .asFile()
+                            .load(item)
+                            .progress(item, progress)
+                            .into(image)
+                    is ImageView -> GlideApp.with(image)
+                            .load(item)
+                            .crossFade()
+                            .progress(item, progress)
+                            .into(image)
+                }
+                image.setOnClickListener {
+                    RxBus.instance.post("tap_preview", 1)
+                }
             }
-            GlideApp.with(image)
-                    .asFile()
-                    .load(item)
-                    .progress(item, progress)
-                    .into(image)
         }
     }
 
