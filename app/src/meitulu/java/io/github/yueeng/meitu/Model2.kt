@@ -141,7 +141,7 @@ fun mtAlbumSequence(uri: String) = mtSequence(uri) {
 
 fun mtCollectSequence(uri: String) = mtSequence(uri) {
     val dom = it.httpGet().jsoup()
-    val data = dom?.select(".content img.content_img")?.map { it.attr("abs:src") }
+    val data = dom?.select(".content img.content_img")?.map { Name(it.attr("abs:src")) }
     val url = dom?.select("#pages span+a:not(.a1)")?.attr("abs:href")
     url to data.orEmpty()
 }

@@ -142,9 +142,7 @@ fun mtAlbumSequence(uri: String) = mtSequence(uri) {
 
 fun mtCollectSequence(uri: String) = mtSequence(uri) {
     val dom = it.httpGet().jsoup()
-    val data = dom?.select(".content img.tupian_img")?.map { it.attr("abs:src") }
-    val url = dom?.select("#pages span+a")?.let {
-        !it.`is`(".a1") to it.attr("abs:href")
-    }?.takeIf { it.first }?.second
+    val data = dom?.select(".content img.tupian_img")?.map { Name(it.attr("abs:src")) }
+    val url = dom?.select("#pages span+a:not(.a1)")?.attr("abs:href")
     url to data.orEmpty()
 }

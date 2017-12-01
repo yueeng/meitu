@@ -419,9 +419,8 @@ object dbFav {
     }.io2main().subscribe { fn(it) }
 }
 
-inline fun <reified T> mtSequence(uri: String?, noinline fn: (String) -> Pair<String?, List<T>>) = MtSequence(uri, T::class.java, fn)
-@Suppress("UNCHECKED_CAST")
-class MtSequence<out T>(uri: String?, private val clazz: Class<T>, val fn: (String) -> Pair<String?, List<T>>) : Sequence<T> {
+inline fun <reified T : Parcelable> mtSequence(uri: String?, noinline fn: (String) -> Pair<String?, List<T>>) = MtSequence(uri, fn)
+class MtSequence<out T : Parcelable>(uri: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<T> {
     var ob: (() -> Unit)? = null
     private val data = LinkedList<T>()
     private var url by Delegates.observable(uri) { _, o, n ->
@@ -429,24 +428,12 @@ class MtSequence<out T>(uri: String?, private val clazz: Class<T>, val fn: (Stri
     }
 
     operator fun invoke() = bundleOf("url" to url).apply {
-        when {
-            Parcelable::class.java.isAssignableFrom(clazz) ->
-                putParcelableArrayList("data", ArrayList(data as List<Parcelable>))
-            String::class.java.isAssignableFrom(clazz) ->
-                putStringArrayList("data", ArrayList(data as List<String>))
-            else -> throw IllegalArgumentException(clazz.name)
-        }
+        putParcelableArrayList("data", ArrayList(data))
     }
 
     operator fun invoke(bundle: Bundle) {
         data.clear()
-        when {
-            Parcelable::class.java.isAssignableFrom(clazz) ->
-                data.addAll(bundle.getParcelableArrayList<Parcelable>("data") as List<T>)
-            String::class.java.isAssignableFrom(clazz) ->
-                data.addAll(bundle.getStringArrayList("data") as List<T>)
-            else -> throw IllegalArgumentException(clazz.name)
-        }
+        data.addAll(bundle.getParcelableArrayList("data"))
         url = bundle.getString("url")
     }
 

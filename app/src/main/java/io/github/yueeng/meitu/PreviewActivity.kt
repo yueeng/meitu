@@ -242,9 +242,9 @@ class PreviewFragment : Fragment() {
             page * current()
             call?.invoke()
         }.subscribe {
-            data.add(it)
-            thumb.add(it)
-            adapter.data.add(it)
+            data.add(it.name)
+            thumb.add(it.name)
+            adapter.data.add(it.name)
             adapter.notifyDataSetChanged()
         }
     }

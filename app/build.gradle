@@ -13,7 +13,6 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
     }
     buildTypes {
         release {
@@ -36,16 +35,19 @@ android {
             dimension 'meitu'
             applicationId 'io.github.yueeng.aitaotu'
             resValue "string", "app_name", "爱套图"
+            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
         meituri {
             dimension 'meitu'
             applicationId 'io.github.yueeng.meituri'
             resValue "string", "app_name", "美图日"
+            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
         meitulu {
             dimension 'meitu'
             applicationId 'io.github.yueeng.meitulu'
             resValue "string", "app_name", "美图录"
+            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
     }
 }

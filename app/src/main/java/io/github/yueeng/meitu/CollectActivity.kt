@@ -144,7 +144,7 @@ class CollectFragment : Fragment() {
         }.io2main().doOnComplete {
             busy * false
             fn?.invoke()
-        }.subscribe { adapter.add(it) }
+        }.subscribe { adapter.add(it.name) }
     }
 
     inner class ImageHolder(view: View) : DataHolder<String>(view) {

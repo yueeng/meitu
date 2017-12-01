@@ -590,7 +590,7 @@ class ListFragment : Fragment() {
                                         R.id.menu_download_all -> activity.permissionWriteExternalStorage {
                                             mtCollectSequence(album.url).toObservable().toList()
                                                     .io2main().subscribe { list ->
-                                                activity.downloadAll(album.name, list)
+                                                activity.downloadAll(album.name, list.map { it.name })
                                             }
                                         }
                                         R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) { dbFav.put(it ?: album) }
