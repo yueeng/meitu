@@ -537,7 +537,7 @@ class ListFragment : Fragment() {
             GlideApp.with(image).load(value.image).crossFade()
                     .progress(value.image, progress).into(image)
             text1.text = value.name
-            text1.visibility = if (value.name.isNotEmpty()) View.VISIBLE else View.GONE
+            text1.visibility = if (value.flag == 0 && value.name.isNotEmpty()) View.VISIBLE else View.GONE
             text2.text = "${value.count}套"
             text2.visibility = if (value.count > 0) View.VISIBLE else View.GONE
         }

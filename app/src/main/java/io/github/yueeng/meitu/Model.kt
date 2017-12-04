@@ -138,6 +138,7 @@ class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
     lateinit var image: String
 
     var count = 0
+    var flag = 0
 
     constructor(e: Link) : this(e.name, e.url)
 

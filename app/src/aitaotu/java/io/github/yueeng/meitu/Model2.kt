@@ -51,6 +51,7 @@ object ModelEx {
 
     fun dz_tag(e: Element) = Model(Link(""/*e.attr("data-tagname")*/, e.attr("abs:href"))).apply {
         image = "https://img.aitaotu.cc:8089/Thumb/Tagbg/${e.attr("data-tagcode")}_dz.jpg"
+        flag = 1
     }
 }
 
