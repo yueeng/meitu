@@ -49,7 +49,7 @@ object ModelEx {
 //        }
     }
 
-    fun dz_tag(e: Element) = Model(Link(""/*e.attr("data-tagname")*/, e.attr("abs:href"))).apply {
+    fun dz_tag(e: Element) = Model(Link(e.attr("data-tagname"), e.attr("abs:href"))).apply {
         image = "https://img.aitaotu.cc:8089/Thumb/Tagbg/${e.attr("data-tagcode")}_dz.jpg"
         flag = 1
     }
@@ -67,37 +67,39 @@ object InfoEx {
 object AlbumEx {
     private val rgx = "(\\d+)\\s*张".toRegex(RegexOption.IGNORE_CASE)
 
-    fun from(e: Element) = Album(Link(e.selects(".title a", "p a", "a"))).apply {
-        _image = e.selects(".item_t .img img", "img")?.attrs("abs:data-original", "abs:src") ?: ""
+    fun from(e: Element) = Album(Link(e.selects(".thumb+.text>.txtc", ".title a", "span a", "p a", "a")?.text() ?: "", e.selects(".thumb a", ".title a", "span a", "p a", "a")?.attr("abs:href"))).apply {
+        _image = e.selects(".item_t .img img", ".thumb img", "img")?.attrs("abs:data-original", "abs:src") ?: ""
         _count = e.select(".items_likes").text().let {
             rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: e.select(".item_h_info_r_dt").text().tryInt()
         }
         model = emptyList()
         organ = emptyList()
-        tags = e.select(".items_comment a").map(::Link)
+        tags = e.select(".items_comment a,.thumb+.text>a").map(::Link)
     }
 
     fun attr(dom: Document?): List<Pair<String, List<Name>>>? = dom?.let { document ->
-        document.select("p.buchongshuoming").forEach { it.text(it.text()) }
-        document.select(".c_l p,p.buchongshuoming, .fenxiang_l")
+        document.select(".tsmaincont-main-cont-desc,.tsmaincont-desc span,.photo-fbl .fbl")
                 .flatMap { it.childNodes() }
                 .flatMap {
                     when (it) {
-                        is TextNode -> it.text().trim().split("；").filter { it.isNotBlank() }
-                                .map { it.split("：").joinToString("：") { it.trim() } }
-                        is Element -> if (it.tagName() == "a") listOf(Link(it.text(), it.attr("abs:href"))) else emptyList()
+                        is TextNode -> it.text()?.takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList()
+                        is Element -> when (it.tagName()) {
+                            "a", "A" -> listOf(Link(it.text(), it.attr("abs:href")))
+                            "span" -> it.text()?.takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList()
+                            else -> emptyList()
+                        }
                         else -> emptyList()
                     }
                 }.fold<Any, MutableList<MutableList<Name>>>(mutableListOf()) { r, t ->
             r.apply {
                 when (t) {
+                    is Link -> r.last() += t
                     is String -> mutableListOf<Name>().apply {
                         r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
                     }
-                    is Link -> r.last() += t
                 }
             }
-        }.map { it.first().toString() to it.drop(1) }
+        }.map { it.first().toString() to it.drop(1) }.filterNot { it.first.startsWith("提示") }
     }
 
     fun from(url: String, sample: Album? = null, fn: (Album?) -> Unit) {
@@ -111,13 +113,13 @@ object AlbumEx {
                         }
                     } ?: emptyList()
                     Album(dom.select("h1").text(), url).apply {
-                        model = attr2links("模特姓名").plus((sample?.model ?: emptyList())).distinctBy { it.key }
-                        organ = attr2links("发行机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
-                        tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }
-                        _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".content img.tupian_img").firstOrNull()?.attr("abs:src") ?: ""
-                        _count = sample?.count?.takeIf { it != 0 } ?: it["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
+                        model = emptyList()// attr2links("模特姓名").plus((sample?.model ?: emptyList())).distinctBy { it.key }
+                        organ = emptyList()//attr2links("发行机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
+                        tags = attr2links("来源").plus(attr2links("标签")).plus((sample?.tags ?: emptyList())).distinctBy { it.key }
+                        _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".big-pic img").firstOrNull()?.attr("abs:src") ?: ""
+                        _count = 0/*sample?.count?.takeIf { it != 0 } ?: it["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
                             rgx.find(it)?.let { it.groups[1]?.value?.toInt() }
-                        } ?: 0
+                        } ?: 0*/
                     }
                 }
             }
@@ -127,7 +129,7 @@ object AlbumEx {
 }
 
 fun mtAlbumSequence(uri: String) = mtSequence(uri) {
-    //    val first = it == uri
+    val first = it == uri
     val dom = it.httpGet().jsoup()
     val url = dom?.select("#pageNum a.thisclass+a")?.attr("abs:href")
     val fn = listOf<Pair<String, (Element) -> List<Name>>>(
@@ -138,22 +140,21 @@ fun mtAlbumSequence(uri: String) = mtSequence(uri) {
             "#Pnav3.Wc .index-list-c a,#Pnav3.Wc~.Wc .index-list-c a" to { e -> AlbumEx.from(e).option() },
             ".item_list .item" to { e -> AlbumEx.from(e).option() }, //https://www.aitaotu.com/meinv/
             "#mainbody li" to { e -> AlbumEx.from(e).option() }, //https://www.aitaotu.com/tag/weimeinvsheng.html
-            ".dz_nav a" to { e ->
+            ".sut_lbtC_rnowc .sut_mxbt_L a" to { e -> Title(Link(e)).option() },
+            ".sut_lbtC_rnowc .sliderbox dd" to { e -> AlbumEx.from(e).option() },
+            ".topic_top .top_content p" to { e -> Name(e.text()).option() },
+            ".ai-l-cls a" to { e -> if (first) Link(e).option() else emptyList() },
+            ".list-topbq-c a" to { e -> if (first) Link(e).option() else emptyList() },
+            ".Clbc_Game_r:eq(0) .lbc_Star_r_bt" to { e -> if (first) Name(e.text()).option() else emptyList() },
+            ".Clbc_Game_r:eq(0) .Clbc_r_cont li" to { e -> if (first) AlbumEx.from(e).option() else emptyList() },
+            ".dz_nav a:not(:contains(图说词条))" to { e ->
                 listOf(Title(Link(e))) + dom?.select(".dz_tag li")?.get(e.elementSiblingIndex())?.let {
                     it.select("a").map { ModelEx.dz_tag(it) }
                 }.orEmpty()
             } //https://www.aitaotu.com/
     )
-    val title = listOf(Name::class.java, Title::class.java, Info::class.java)
     val list: List<Name>? = dom?.select(fn.joinToString(",") { it.first })?.flatMap { e ->
         fn.firstOrNull { e.`is`(it.first) }?.second?.invoke(e) ?: emptyList()
-    }?.fold(mutableListOf()) { acc, name ->
-        acc.apply {
-            lastOrNull()?.takeIf { it.javaClass != name.javaClass }?.let { last ->
-                if (!title.any { it == last.javaClass || it == name.javaClass }) add(Name(""))
-            }
-            add(name)
-        }
     }
     url to list.orEmpty()
 }

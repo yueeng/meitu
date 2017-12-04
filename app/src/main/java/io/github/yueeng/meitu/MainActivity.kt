@@ -445,8 +445,12 @@ class ListFragment : Fragment() {
     private fun query() {
         if (busy() || mtseq.empty()) return
         busy * true
-        mtseq.toObservable().take(20).io2main().doOnComplete { busy * false }.subscribe {
-            adapter.add(it)
+        val title = listOf(Name::class.java, Title::class.java, Info::class.java)
+        mtseq.toObservable().take(20).io2main().doOnComplete { busy * false }.subscribe { item ->
+            adapter.data.lastOrNull()?.takeIf { it.javaClass != item.javaClass }?.let { last ->
+                if (!title.any { it == last.javaClass || it == item.javaClass }) adapter.add(Name(""))
+            }
+            adapter.add(item)
         }
     }
 
