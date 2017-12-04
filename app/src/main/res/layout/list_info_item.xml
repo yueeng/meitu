@@ -29,7 +29,7 @@
                     android:adjustViewBounds="true"
                     android:contentDescription="@string/app_name"
                     android:src="@mipmap/ic_launcher"
-                    app:ariv_aspectRatio="1" />
+                    app:ariv_aspectRatio="@dimen/list_info_ratio" />
 
                 <ProgressBar
                     android:id="@+id/progress"

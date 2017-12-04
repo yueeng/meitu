@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="list_model_ratio" format="float" type="dimen">2</item>
+    <item name="list_album_ratio" format="float" type="dimen">2</item>
+</resources>

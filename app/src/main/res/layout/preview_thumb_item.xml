@@ -12,7 +12,7 @@
         android:layout_height="match_parent"
         android:adjustViewBounds="true"
         android:src="@mipmap/ic_launcher"
-        app:ariv_aspectRatio="0.66667" />
+        app:ariv_aspectRatio="@dimen/list_collect_ratio" />
 
     <ProgressBar
         android:id="@+id/progress"
