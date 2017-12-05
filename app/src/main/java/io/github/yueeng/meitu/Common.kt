@@ -365,7 +365,7 @@ open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
     val context: Context get() = itemView.context
     private lateinit var _value: T
     val value: T get() = _value
-    open fun bind() = Unit
+    open fun bind() {}
     open fun bind(i: Int) = bind()
     open fun bind(i: Int, payloads: MutableList<Any>?) = bind(i)
 

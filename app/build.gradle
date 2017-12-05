@@ -19,31 +19,6 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
-    def apks = []
-    android.applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            def outputFile = output.outputFile
-            if (outputFile != null && outputFile.name.endsWith('release.apk')) {
-                def fileName = "app-${variant.productFlavors[0].name}-${defaultConfig.versionName}.apk"
-                outputFileName = fileName
-                apks.add(outputFile.parentFile.absolutePath + File.separator + fileName)
-            }
-        }
-    }
-    afterEvaluate {
-        def folder = rootDir.getAbsolutePath() + File.separator + "apk"
-        assembleRelease.doFirst {
-            delete fileTree(dir: folder, include: "**/*.apk")
-        }
-        assembleRelease.doLast {
-            apks.forEach { apk ->
-                copy {
-                    from apk
-                    into folder
-                }
-            }
-        }
-    }
     signingConfigs {
         release {
             storeFile file(keystore['RELEASE_STORE_FILE'])
@@ -87,6 +62,29 @@ android {
             applicationId 'io.github.yueeng.meitulu'
             resValue "string", "app_name", "美图录"
             resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
+        }
+    }
+    def apks = []
+    android.applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('release.apk')) {
+                def fileName = "app-${variant.productFlavors[0].name}-${defaultConfig.versionName}.apk"
+                outputFileName = fileName
+                apks.add(outputFile.parentFile.absolutePath + File.separator + fileName)
+            }
+        }
+    }
+    task publish(dependsOn: 'assembleRelease') {
+        doLast {
+            def folder = rootDir.getAbsolutePath() + File.separator + "apk"
+            delete fileTree(dir: folder, include: "**/*.apk")
+            apks.forEach { apk ->
+                copy {
+                    from apk
+                    into folder
+                }
+            }
         }
     }
 }

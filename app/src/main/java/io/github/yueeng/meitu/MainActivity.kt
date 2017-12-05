@@ -361,8 +361,10 @@ class ListFragment : Fragment() {
                         activity?.permissionWriteExternalStorage { dbFav.reset { MtBackup.backup() } }
                     }
                     ?.setNeutralButton("还原") { _, _ ->
-                        dbFav.reset { MtBackup.restore() }
-                        RxBus.instance.post("day_night", MtSettings.DAY_NIGHT_MODE)
+                        activity?.permissionWriteExternalStorage {
+                            dbFav.reset { MtBackup.restore() }
+                            RxBus.instance.post("day_night", MtSettings.DAY_NIGHT_MODE)
+                        }
                     }
                     ?.setNegativeButton("取消", null)
                     ?.create()?.show()
