@@ -132,30 +132,30 @@ fun mtAlbumSequence(uri: String) = mtSequence(uri) {
     val first = it == uri
     val dom = it.httpGet().jsoup()
     val url = dom?.select("#pageNum a.thisclass+a")?.attr("abs:href")
-    val fn = listOf<Pair<String, (Element) -> List<Name>>>(
-            ".taotu-main li:not(.longword)" to { e -> AlbumEx.from(e).option() },
-            ".taotu-nav>a" to { e -> Link(e).option() },
-            ".main .imgtag" to { e -> ModelEx.from(e).option() },
-            "#Pnav3.Wc .index-kcont-bt strong a,#Pnav3.Wc~.Wc .index-kcont-bt strong a" to { e -> Title(Link(e)).option() },
-            "#Pnav3.Wc .index-list-c a,#Pnav3.Wc~.Wc .index-list-c a" to { e -> AlbumEx.from(e).option() },
-            ".item_list .item" to { e -> AlbumEx.from(e).option() }, //https://www.aitaotu.com/meinv/
-            "#mainbody li" to { e -> AlbumEx.from(e).option() }, //https://www.aitaotu.com/tag/weimeinvsheng.html
-            ".sut_lbtC_rnowc .sut_mxbt_L a" to { e -> Title(Link(e)).option() },
-            ".sut_lbtC_rnowc .sliderbox dd" to { e -> AlbumEx.from(e).option() },
-            ".topic_top .top_content p" to { e -> Name(e.text()).option() },
-            ".ai-l-cls a" to { e -> if (first) Link(e).option() else emptyList() },
-            ".list-topbq-c a" to { e -> if (first) Link(e).option() else emptyList() },
-            ".Clbc_Game_r:eq(0) .lbc_Star_r_bt" to { e -> if (first) Name(e.text()).option() else emptyList() },
-            ".Clbc_Game_r:eq(0) .Clbc_r_cont li" to { e -> if (first) AlbumEx.from(e).option() else emptyList() },
+    val fn = listOf<Pair<String, (Element) -> Pair<Int, List<Name>>>>(
+            ".taotu-main li:not(.longword)" to { e -> 0 to AlbumEx.from(e).option() },
+            ".taotu-nav>a" to { e -> 0 to Link(e).option() },
+            ".main .imgtag" to { e -> 0 to ModelEx.from(e).option() },
+            "#Pnav3.Wc .index-kcont-bt strong a,#Pnav3.Wc~.Wc .index-kcont-bt strong a" to { e -> 0 to Title(Link(e)).option() },
+            "#Pnav3.Wc .index-list-c a,#Pnav3.Wc~.Wc .index-list-c a" to { e -> 0 to AlbumEx.from(e).option() },
+            ".item_list .item" to { e -> 0 to AlbumEx.from(e).option() }, //https://www.aitaotu.com/meinv/
+            "#mainbody li" to { e -> 0 to AlbumEx.from(e).option() }, //https://www.aitaotu.com/tag/weimeinvsheng.html
+            ".sut_lbtC_rnowc .sut_mxbt_L a" to { e -> 0 to Title(Link(e)).option() },
+            ".sut_lbtC_rnowc .sliderbox dd" to { e -> 0 to AlbumEx.from(e).option() },
+            ".topic_top .top_content p" to { e -> 0 to if (first) Name(e.text()).option() else emptyList() },
+            ".ai-l-cls a" to { e -> 0 to if (first) Link(e).option() else emptyList() },
+            ".list-topbq-c a" to { e -> 0 to if (first) Link(e).option() else emptyList() },
+            ".Clbc_Game_r:eq(0) .lbc_Star_r_bt" to { e -> 1 to if (first) Name(e.text()).option() else emptyList() },
+            ".Clbc_Game_r:eq(0) .Clbc_r_cont li" to { e -> 1 to if (first) AlbumEx.from(e).option() else emptyList() },
             ".dz_nav a:not(:contains(图说词条))" to { e ->
-                listOf(Title(Link(e))) + dom?.select(".dz_tag li")?.get(e.elementSiblingIndex())?.let {
+                0 to listOf(Title(Link(e))) + dom?.select(".dz_tag li")?.get(e.elementSiblingIndex())?.let {
                     it.select("a").map { ModelEx.dz_tag(it) }
                 }.orEmpty()
             } //https://www.aitaotu.com/
     )
-    val list: List<Name>? = dom?.select(fn.joinToString(",") { it.first })?.flatMap { e ->
-        fn.firstOrNull { e.`is`(it.first) }?.second?.invoke(e) ?: emptyList()
-    }
+    val list: List<Name>? = dom?.select(fn.joinToString(",") { it.first })?.map { e ->
+        fn.firstOrNull { e.`is`(it.first) }?.second?.invoke(e) ?: (0 to emptyList())
+    }?.sortedByDescending { it.first }?.flatMap { it.second }
     url to list.orEmpty()
 }
 
