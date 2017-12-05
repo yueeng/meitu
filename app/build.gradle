@@ -4,6 +4,11 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'io.objectbox' // after applying Android plugin
 
+def keystoreFile = rootProject.file("keystore.properties")
+def keystore = new Properties()
+keystore.load(new FileInputStream(keystoreFile))
+
+
 android {
     compileSdkVersion android_compile_sdk
     buildToolsVersion android_build_tools
@@ -14,10 +19,44 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+    def apks = []
+    android.applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('release.apk')) {
+                def fileName = "app-${variant.productFlavors[0].name}-${defaultConfig.versionName}.apk"
+                outputFileName = fileName
+                apks.add(outputFile.parentFile.absolutePath + File.separator + fileName)
+            }
+        }
+    }
+    afterEvaluate {
+        def folder = rootDir.getAbsolutePath() + File.separator + "apk"
+        assembleRelease.doFirst {
+            delete fileTree(dir: folder, include: "**/*.apk")
+        }
+        assembleRelease.doLast {
+            apks.forEach { apk ->
+                copy {
+                    from apk
+                    into folder
+                }
+            }
+        }
+    }
+    signingConfigs {
+        release {
+            storeFile file(keystore['RELEASE_STORE_FILE'])
+            keyAlias keystore['RELEASE_KEY_ALIAS']
+            storePassword keystore['RELEASE_KEY_PASSWORD']
+            keyPassword keystore['RELEASE_STORE_PASSWORD']
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     packagingOptions {
