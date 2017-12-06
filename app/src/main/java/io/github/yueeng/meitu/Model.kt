@@ -337,7 +337,7 @@ data class ObAlbum(@Id var id: Long = 0) {
 
 object dbFav {
     private class cob {
-        val ob: BoxStore by lazy { MyObjectBox.builder().androidContext(MainApplication.current()).build() }
+        val ob: BoxStore by lazy { MyObjectBox.builder().androidContext(MainApplication.instance()).build() }
         val oba: Box<ObAlbum> by lazy { ob.boxFor(ObAlbum::class.java) }
         val obl: Box<ObLink> by lazy { ob.boxFor(ObLink::class.java) }
     }

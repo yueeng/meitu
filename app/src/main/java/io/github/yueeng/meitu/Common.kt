@@ -258,7 +258,7 @@ fun Pair<String, String?>.jsoup() = try {
 }
 
 object MtSettings {
-    private val context: Context get() = MainApplication.current()
+    private val context: Context get() = MainApplication.instance()
     private val config by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
     private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
     private const val KEY_DAY_NIGHT_MODE = "app.day_night_mode"
@@ -412,7 +412,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
 abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>() {
     private var last: Int = -1
     private val interpolator = DecelerateInterpolator(3F)
-    private val from: Float = (MainApplication.current().windowManager.defaultDisplay).run {
+    private val from: Float = (MainApplication.instance().windowManager.defaultDisplay).run {
         Point().apply { getSize(this) }.let { Math.max(it.x, it.y) / 4F }
     }
 
@@ -657,7 +657,7 @@ class AccentClickableSpan<in T>(private val t: T, private val call: ((T) -> Unit
     }
 }
 
-val accentColor get() = ContextCompat.getColor(MainApplication.current(), R.color.colorAccent)
+val accentColor get() = ContextCompat.getColor(MainApplication.instance(), R.color.colorAccent)
 
 fun String.numbers() = "\\d+".toRegex().findAll(this).map { it.value }.toList()
 
@@ -680,13 +680,13 @@ object Save {
         r.replace(i, ' ')
     }
 
-    fun file(url: String, title: String): File = MainApplication.current().run {
+    fun file(url: String, title: String): File = MainApplication.instance().run {
         File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
                 "${encode(getString(R.string.app_name))}/${encode(title)}${url.right('/')}")
     }
 
     fun check(url: String): Int {
-        MainApplication.current().downloadManager.query(DownloadManager.Query()).use { c ->
+        MainApplication.instance().downloadManager.query(DownloadManager.Query()).use { c ->
             generateSequence(c.moveToFirst().takeIf { it }, { c.moveToNext().takeIf { it } }).forEach {
                 val u = c.getString(DownloadManager.COLUMN_URI)
                 val s = c.getInt(DownloadManager.COLUMN_STATUS)
@@ -696,7 +696,7 @@ object Save {
         }
     }
 
-    fun download(url: String, file: File) = MainApplication.current().run {
+    fun download(url: String, file: File) = MainApplication.instance().run {
         if (file.exists()) file.delete()
         val request = DownloadManager.Request(Uri.parse(url))
                 .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
@@ -1202,7 +1202,7 @@ fun File.listFiles(reduce: Boolean): List<File> {
 }
 
 object MtBackup {
-    private val context by lazy { MainApplication.current() }
+    private val context by lazy { MainApplication.instance() }
     private val objectbox by lazy { File(context.filesDir, "objectbox") }
     private val target = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)

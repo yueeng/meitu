@@ -17,7 +17,7 @@ class MainApplication : Application() {
     companion object {
         private var app: WeakReference<MainApplication>? = null
 
-        fun current() = app!!.get()!!
+        fun instance() = app!!.get()!!
     }
 
     init {
@@ -41,7 +41,7 @@ class SearchHistoryProvider : SearchRecentSuggestionsProvider() {
     }
 
     companion object {
-        val AUTHORITY: String = MainApplication.current().getString(R.string.app_search_provider)
+        val AUTHORITY: String = MainApplication.instance().getString(R.string.app_search_provider)
         val MODE: Int = SearchRecentSuggestionsProvider.DATABASE_MODE_QUERIES
     }
 }
