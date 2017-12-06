@@ -25,6 +25,7 @@ import android.preference.PreferenceManager
 import android.provider.Settings
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
+import android.support.design.widget.Snackbar
 import android.support.transition.Fade
 import android.support.transition.Slide
 import android.support.transition.TransitionManager
@@ -76,6 +77,7 @@ import com.bumptech.glide.request.transition.Transition
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.facebook.stetho.okhttp3.StethoInterceptor
+import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.*
 import io.reactivex.Observable
 import io.reactivex.android.MainThreadDisposable
@@ -716,25 +718,34 @@ object Save {
     }
 }
 
+fun Activity.goDetailsSettings() = try {
+    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+} catch (e: Exception) {
+    e.printStackTrace()
+}
+
 fun Activity.permission(permission: String, message: String? = null, call: (() -> Unit)? = null) {
-    if (ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
-        call?.invoke()
+    if (message == null) {
+        if (ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            call?.invoke()
+        }
     } else {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-            ActivityCompat.requestPermissions(this, arrayOf(permission), permission.hashCode())
-        } else {
-            if (message != null) toast(message)
-            try {
-                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
-            } catch (e: Exception) {
-                e.printStackTrace()
+        RxPermissions(this).requestEach(permission).subscribe { it ->
+            when {
+                it.granted -> call?.invoke()
+                it.shouldShowRequestPermissionRationale -> Snackbar.make(this.window.decorView, message, Snackbar.LENGTH_LONG)
+                        .setAction("重试", { permission(permission, message, call) })
+                        .show()
+                else -> Snackbar.make(this.window.decorView, message, Snackbar.LENGTH_LONG)
+                        .setAction("去设置", { goDetailsSettings() })
+                        .show()
             }
         }
     }
 }
 
-fun Activity.permissionWriteExternalStorage(call: (() -> Unit)? = null) {
-    permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, "没有写SD卡权限，将不能保存图片，请在权限管理中打开。", call)
+fun Activity.permissionWriteExternalStorage(quiet: Boolean = false, call: (() -> Unit)? = null) {
+    permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, if (quiet) null else "需要读写SD卡权限", call)
 }
 
 fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
@@ -1213,8 +1224,8 @@ object MtBackup {
     }.let {
         File(it, "${BuildConfig.APPLICATION_ID}.bak")
     }
-
-    fun backup() {
+    val time get() = if (target.exists()) target.lastModified() else 0L
+    fun backup(quiet: Boolean = false) {
         ZipOutputStream(BufferedOutputStream(FileOutputStream(target))).use { zip ->
             for (file in objectbox.listFiles(true)) {
                 val name = file.toRelativeString(objectbox) + if (file.isDirectory) "/" else ""
@@ -1225,12 +1236,14 @@ object MtBackup {
                 }
             }
         }
-        context.toast("备份完成: ${target.path}")
-        val notify = NotificationCompat.Builder(context, "")
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("数据备份")
-                .setContentText(target.path)
-        context.notificationManager.notify(0, notify.build())
+        if (!quiet) {
+            context.toast("备份完成: ${target.path}")
+            val notify = NotificationCompat.Builder(context, "")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("数据备份")
+                    .setContentText(target.path)
+            context.notificationManager.notify(0, notify.build())
+        }
     }
 
     fun restore() {

@@ -116,6 +116,7 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxjava:2.1.7'
     implementation 'io.reactivex.rxjava2:rxkotlin:2.2.0'
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    implementation 'com.tbruyelle.rxpermissions2:rxpermissions:0.9.4@aar'
     implementation 'io.objectbox:objectbox-rxjava:0.9.8'
     implementation 'com.github.bumptech.glide:glide:4.3.1'
     kapt 'com.github.bumptech.glide:compiler:4.3.1'

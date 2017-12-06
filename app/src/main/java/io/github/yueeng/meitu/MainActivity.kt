@@ -30,6 +30,7 @@ import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.searchManager
 import org.jetbrains.anko.startActivity
+import java.util.*
 
 /**
  * Main activity
@@ -86,6 +87,11 @@ class MainActivity : DayNightAppCompatActivity() {
         findViewById<DrawerLayout>(R.id.drawer).takeIf { it.isDrawerOpen(Gravity.START) }?.run {
             closeDrawer(Gravity.START)
         } ?: super.onBackPressed()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        permissionWriteExternalStorage(true) { dbFav.reset { MtBackup.backup(true) } }
     }
 }
 
@@ -357,7 +363,8 @@ class ListFragment : Fragment() {
         R.id.backup -> consumer {
             context?.alert()
                     ?.setTitle("备份")
-                    ?.setMessage("备份本地收藏数据，重装应用后可以恢复之前的收藏。")
+                    ?.setMessage("备份本地收藏数据，重装应用后可以恢复之前的收藏。" +
+                            MtBackup.time.takeIf { it != 0L }?.let { "\n最后备份时间：${Date(it)}" }.orEmpty())
                     ?.setPositiveButton("备份") { _, _ ->
                         activity?.permissionWriteExternalStorage { dbFav.reset { MtBackup.backup() } }
                     }
