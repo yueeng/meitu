@@ -73,7 +73,7 @@ android {
         variant.outputs.all { output ->
             def outputFile = output.outputFile
             if (outputFile != null && outputFile.name.endsWith('release.apk')) {
-                def fileName = "app-${variant.productFlavors[0].name}-${defaultConfig.versionName}.apk"
+                def fileName = "app-${variant.productFlavors[0].name}-release.apk"
                 outputFileName = fileName
                 apks.add(outputFile.parentFile.absolutePath + File.separator + fileName)
             }

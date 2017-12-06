@@ -22,4 +22,9 @@
         android:icon="@drawable/ic_backup"
         android:title="备份"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/update"
+        android:icon="@drawable/ic_update"
+        android:title="检测升级"
+        app:showAsAction="ifRoom" />
 </menu>

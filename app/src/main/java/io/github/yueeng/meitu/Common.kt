@@ -759,6 +759,61 @@ fun Fragment.delay(millis: Long, run: () -> Unit) {
     context?.delay(millis, run)
 }
 
+data class Version(val major: Int, val minor: Int, val patch: Int, val build: Int) {
+    companion object {
+        fun from(version: String) = version.split(".").map { it.toInt() }.let {
+            Version(if (it.size > 0) it[0] else 0,
+                    if (it.size > 1) it[1] else 0,
+                    if (it.size > 2) it[2] else 0,
+                    if (it.size > 3) it[3] else 0)
+        }
+    }
+
+    operator fun compareTo(that: Version): Int = when {
+        major != that.major -> major - that.major
+        minor != that.minor -> minor - that.minor
+        patch != that.patch -> patch - that.patch
+        else -> build - that.build
+    }
+}
+
+val version: String
+    get() = try {
+        MainApplication.instance().packageManager.getPackageInfo(MainApplication.instance().packageName, 0).versionName
+    } catch (e: Exception) {
+        e.printStackTrace()
+        ""
+    }
+
+fun Context.update(quiet: Boolean = false) {
+    val url = "https://github.com/yueeng/meitu/releases"
+    RxMt.create {
+        val dom = "$url/latest".httpGet().jsoup()
+        dom?.let {
+            Triple(dom.select(".css-truncate-target").text(),
+                    dom.select(".markdown-body").text(),
+                    dom.select(".release-downloads a[href$=.apk]:contains(${BuildConfig.FLAVOR})").attr("abs:href")
+            )
+        }
+    }.io2main().subscribe {
+        it?.also {
+            val v1 = Version.from(it.first)
+            val v2 = Version.from(version)
+            if (v1 > v2) {
+                alert().setTitle("版本：${it.first}")
+                        .setMessage(it.second)
+                        .setPositiveButton("更新", { _, _ -> openWeb(it.third) })
+                        .setNeutralButton("发布页", { _, _ -> openWeb(url) })
+                        .setNegativeButton("取消", null)
+                        .create()?.show()
+            } else {
+                if (!quiet) toast("${getString(R.string.app_name)} $version 已经是最新版本。")
+            }
+        }
+    }
+}
+
+fun Context.openWeb(uri: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 fun Context.wrapper(theme: Int = R.style.AppTheme) = ContextThemeWrapper(this, theme)
 fun Context.alert() = AlertDialog.Builder(this)
 fun Context.popupMenu(view: View, gravity: Int = Gravity.NO_GRAVITY, attr: Int = 0, res: Int = R.style.AppTheme_PopupMenu) = PopupMenu(this, view, gravity, attr, res)

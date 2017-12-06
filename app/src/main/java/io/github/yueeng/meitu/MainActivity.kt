@@ -81,6 +81,7 @@ class MainActivity : DayNightAppCompatActivity() {
                 else -> false
             }
         }
+        update(true)
     }
 
     override fun onBackPressed() {
@@ -377,6 +378,7 @@ class ListFragment : Fragment() {
                     ?.setNegativeButton("取消", null)
                     ?.create()?.show()
         }
+        R.id.update -> consumer { context?.update() }
         else -> super.onOptionsItemSelected(item)
     }
 
