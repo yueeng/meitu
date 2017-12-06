@@ -123,21 +123,22 @@ class FavoriteActivity : BaseSlideCloseActivity() {
     }
 
     class FavoriteAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+        @Suppress("ConstantConditionIf")
+        val data = mutableListOf(0 to "图集").also {
+            if (BuildConfig.fav_model) it.add(1 to "模特")
+            if (BuildConfig.fav_organ) it.add(2 to "机构")
+            it.add(3 to "标签")
+        }.toList()
+
         override fun getItem(position: Int): Fragment = when (position) {
             0 -> FavoriteFragment()
             else -> FavoriteTagsFragment().apply {
-                arguments = bundleOf("type" to position)
+                arguments = bundleOf("type" to data[position].first)
             }
         }
 
-        override fun getCount(): Int = 4
-        override fun getPageTitle(position: Int): CharSequence = when (position) {
-            0 -> "图集"
-            1 -> "模特"
-            2 -> "机构"
-            3 -> "标签"
-            else -> throw IllegalArgumentException()
-        }
+        override fun getCount(): Int = data.size
+        override fun getPageTitle(position: Int): CharSequence = data[position].second
     }
 }
 
