@@ -420,7 +420,7 @@ object dbFav {
     }.io2main().subscribe { fn(it) }
 }
 
-inline fun <reified T : Parcelable> mtSequence(uri: String?, noinline fn: (String) -> Pair<String?, List<T>>) = MtSequence(uri, fn)
+//inline fun <reified T : Parcelable> mtSequence(uri: String?, noinline fn: (String) -> Pair<String?, List<T>>) = MtSequence(uri, fn)
 class MtSequence<out T : Parcelable>(uri: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<T> {
     var ob: (() -> Unit)? = null
     private val data = LinkedList<T>()

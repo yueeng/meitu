@@ -128,7 +128,7 @@ object AlbumEx {
 
 }
 
-fun mtAlbumSequence(uri: String) = mtSequence(uri) {
+fun mtAlbumSequence(uri: String) = MtSequence(uri) {
     val first = it == uri
     val dom = it.httpGet().jsoup()
     val url = dom?.select("#pageNum a.thisclass+a")?.attr("abs:href")
@@ -159,7 +159,7 @@ fun mtAlbumSequence(uri: String) = mtSequence(uri) {
     url to list.orEmpty()
 }
 
-fun mtCollectSequence(uri: String) = mtSequence(uri) {
+fun mtCollectSequence(uri: String) = MtSequence(uri) {
     val dom = it.httpGet().jsoup()
     val data = dom?.select(".big-pic img")?.map { Name(it.attr("abs:src")) }
     val url = dom?.select(".pages .thisclass+li a")?.attr("abs:href")
