@@ -761,11 +761,15 @@ fun Fragment.delay(millis: Long, run: () -> Unit) {
 
 data class Version(val major: Int, val minor: Int, val patch: Int, val build: Int) {
     companion object {
-        fun from(version: String) = version.split(".").map { it.toInt() }.let {
-            Version(if (it.size > 0) it[0] else 0,
-                    if (it.size > 1) it[1] else 0,
-                    if (it.size > 2) it[2] else 0,
-                    if (it.size > 3) it[3] else 0)
+        fun from(version: String) = try {
+            version.split(".").map { it.toInt() }.let {
+                Version(if (it.size > 0) it[0] else 0,
+                        if (it.size > 1) it[1] else 0,
+                        if (it.size > 2) it[2] else 0,
+                        if (it.size > 3) it[3] else 0)
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -777,13 +781,7 @@ data class Version(val major: Int, val minor: Int, val patch: Int, val build: In
     }
 }
 
-val version: String
-    get() = try {
-        MainApplication.instance().packageManager.getPackageInfo(MainApplication.instance().packageName, 0).versionName
-    } catch (e: Exception) {
-        e.printStackTrace()
-        ""
-    }
+val version: String get() = BuildConfig.VERSION_NAME
 
 fun Context.update(quiet: Boolean = false) {
     val url = "https://github.com/yueeng/meitu/releases"
@@ -796,18 +794,20 @@ fun Context.update(quiet: Boolean = false) {
             )
         }
     }.io2main().subscribe {
-        it?.also {
-            val v1 = Version.from(it.first)
-            val v2 = Version.from(version)
-            if (v1 > v2) {
-                alert().setTitle("版本：${it.first}")
-                        .setMessage(it.second)
-                        .setPositiveButton("更新", { _, _ -> openWeb(it.third) })
-                        .setNeutralButton("发布页", { _, _ -> openWeb(url) })
-                        .setNegativeButton("取消", null)
-                        .create()?.show()
-            } else {
-                if (!quiet) toast("${getString(R.string.app_name)} $version 已经是最新版本。")
+        it?.also { triple ->
+            Version.from(triple.first)?.also { v1 ->
+                Version.from(version)?.also { v2 ->
+                    if (v1 > v2) {
+                        alert().setTitle("版本：${triple.first}")
+                                .setMessage(triple.second)
+                                .setPositiveButton("更新", { _, _ -> openWeb(triple.third) })
+                                .setNeutralButton("发布页", { _, _ -> openWeb(url) })
+                                .setNegativeButton("取消", null)
+                                .create()?.show()
+                    } else {
+                        if (!quiet) toast("${getString(R.string.app_name)} $version 已经是最新版本。")
+                    }
+                }
             }
         }
     }
