@@ -90,10 +90,10 @@ class MainActivity : DayNightAppCompatActivity() {
         } ?: super.onBackPressed()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        permissionWriteExternalStorage(true) { dbFav.reset { MtBackup.backup(true) } }
-    }
+//    override fun onDestroy() {
+//        super.onDestroy()
+//        permissionWriteExternalStorage(true) { dbFav.reset { MtBackup.backup(true) } }
+//    }
 }
 
 class MainAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
