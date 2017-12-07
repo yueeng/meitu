@@ -2,11 +2,11 @@
 
 buildscript {
     ext.kotlin_version = '1.2.0'
-    ext.android_compile_sdk = 26
-    ext.android_build_tools = '27.0.1'
-    ext.android_target_sdk = 26
+    ext.android_compile_sdk = 27
+    ext.android_build_tools = '27.0.2'
+    ext.android_target_sdk = 27
     ext.android_min_sdk = 16
-    ext.android_support_version = '27.0.1'
+    ext.android_support_version = '27.0.2'
     ext.okhttp_version = '3.8.1'
     ext.objectboxVersion = '1.2.1'
     repositories {
@@ -18,7 +18,7 @@ buildscript {
         classpath 'com.android.tools.build:gradle:3.1.0-alpha05'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "io.objectbox:objectbox-gradle-plugin:$objectboxVersion"
-
+        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.2'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
