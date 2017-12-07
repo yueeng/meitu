@@ -267,7 +267,7 @@ class PreviewFragment : Fragment() {
                             .asFile()
                             .load(item)
                             .progress(item, progress)
-                            .into(image)
+                            .into(image.apply { maxScale = 8F })
                     is ImageView -> GlideApp.with(image)
                             .load(item)
                             .crossFade()
