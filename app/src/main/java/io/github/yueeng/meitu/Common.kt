@@ -271,7 +271,7 @@ object MtSettings {
         get() = Math.min(MAX_PREVIEW_LIST_COLUMN, config.getInt(KEY_PREVIEW_LIST_COLUMN, LIST_COLUMN))
         set(value) = config.edit().putInt(KEY_PREVIEW_LIST_COLUMN, value).apply()
     var DAY_NIGHT_MODE: Int
-        get() = config.getInt(KEY_DAY_NIGHT_MODE, AppCompatDelegate.MODE_NIGHT_AUTO)
+        get() = config.getInt(KEY_DAY_NIGHT_MODE, AppCompatDelegate.getDefaultNightMode())
         set(value) = config.edit().putInt(KEY_DAY_NIGHT_MODE, value).apply()
 }
 
