@@ -510,7 +510,7 @@ class ListFragment : Fragment() {
         private val text4 = view.findViewById<TextView>(R.id.text4)
         private val progress: ProgressBar = view.findViewById(R.id.progress)
         override fun bind() {
-            GlideApp.with(image).load(value.image).crossFade()
+            GlideApp.with(image).load(value.image referer value.referer).crossFade()
                     .progress(value.image, progress).into(image)
             text1.text = value.name
             text3.text = value.tag.spannable(" ", { it.name }) {
@@ -550,7 +550,7 @@ class ListFragment : Fragment() {
         private val progress: ProgressBar = view.findViewById(R.id.progress)
         @SuppressLint("SetTextI18n")
         override fun bind() {
-            GlideApp.with(image).load(value.image).crossFade()
+            GlideApp.with(image).load(value.image referer value.referer).crossFade()
                     .progress(value.image, progress).into(image)
             text1.text = value.name
             text1.visibility = if (value.flag == 0 && value.name.isNotEmpty()) View.VISIBLE else View.GONE
@@ -574,7 +574,7 @@ class ListFragment : Fragment() {
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int, payloads: MutableList<Any>?) {
             if (payloads?.isEmpty() != false) {
-                GlideApp.with(image).load(value.image).crossFade()
+                GlideApp.with(image).load(value.image referer value.referer).crossFade()
                         .progress(value.image, progress)
                         .into(image)
                 text1.text = value.name
@@ -606,7 +606,7 @@ class ListFragment : Fragment() {
                                         R.id.menu_download_all -> activity.permissionWriteExternalStorage {
                                             mtCollectSequence(album.url).toObservable().toList()
                                                     .io2main().subscribe { list ->
-                                                activity.downloadAll(album.name, list.map { it.name })
+                                                activity.downloadAll(album.name, list)
                                             }
                                         }
                                         R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) { dbFav.put(it ?: album) }

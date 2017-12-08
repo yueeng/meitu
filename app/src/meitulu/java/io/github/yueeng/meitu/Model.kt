@@ -11,7 +11,7 @@ import org.jsoup.nodes.TextNode
  */
 val website = "https://www.meitulu.com"
 
-val homes = listOf(website to "首页",
+val homes = listOf("$website/" to "首页",
         "$website/xihuan/" to "精选美女",
         "$website/rihan/" to "日韩美女",
         "$website/gangtai/" to "港台美女",
@@ -100,6 +100,7 @@ object AlbumEx {
                         }
                     } ?: emptyList()
                     Album(dom.select("h1").text(), url).apply {
+                        referer = url
                         model = attr2links("模特姓名").plus((sample?.model ?: emptyList())).distinctBy { it.key }
                         organ = attr2links("发行机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
                         tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }

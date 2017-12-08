@@ -25,18 +25,20 @@ import kotlin.properties.Delegates
  */
 
 open class Name(val name: String) : Parcelable {
+    var referer: String? = null
     override fun toString(): String = name
     override fun equals(other: Any?): Boolean = name == other
     override fun hashCode(): Int = name.hashCode()
 
-    constructor(source: Parcel) : this(
-            source.readString()
-    )
+    constructor(source: Parcel) : this(source.readString()) {
+        referer = source.readString()
+    }
 
     override fun describeContents() = 0
 
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
+        writeString(referer)
     }
 
     companion object {
@@ -60,16 +62,16 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
     val key get() = "$name:${url ?: ""}"
     val uri get() = url?.takeIf { !url.isNullOrEmpty() } ?: search(name)
 
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    )
+    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+        referer = source.readString()
+    }
 
     override fun describeContents() = 0
 
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
+        writeString(referer)
     }
 
     companion object {
@@ -83,16 +85,16 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
 
 class Title(name: String, url: String? = null) : Link(name, url), Parcelable {
     constructor(e: Link) : this(e.name, e.url)
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    )
+    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+        referer = source.readString()
+    }
 
     override fun describeContents() = 0
 
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
+        writeString(referer)
     }
 
     companion object {
@@ -109,10 +111,8 @@ class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     constructor(e: Link) : this(e.name, e.url)
 
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    ) {
+    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+        referer = source.readString()
         count = source.readInt()
     }
 
@@ -121,6 +121,7 @@ class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
+        writeString(referer)
         writeInt(count)
     }
 
@@ -142,10 +143,8 @@ class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     constructor(e: Link) : this(e.name, e.url)
 
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    ) {
+    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+        referer = source.readString()
         image = source.readString()
         count = source.readInt()
     }
@@ -155,6 +154,7 @@ class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
+        writeString(referer)
         writeString(image)
         writeInt(count)
     }
@@ -181,10 +181,8 @@ class Info(name: String, url: String? = null) : Link(name, url), Parcelable {
     lateinit var etc: String
 
 
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    ) {
+    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+        referer = source.readString()
         image = source.readString()
         attr = mutableListOf()
         source.readList(attr, pairClass.classLoader)
@@ -198,6 +196,7 @@ class Info(name: String, url: String? = null) : Link(name, url), Parcelable {
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
+        writeString(referer)
         writeString(image)
         writeList(attr)
         writeList(tag)
@@ -224,7 +223,6 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     internal lateinit var tags: List<Link>
 
     internal var _count = 0
-
     val image get() = _image
 
     val count get() = _count
@@ -235,6 +233,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     constructor(e: Link) : this(e.name, e.url)
 
     constructor(it: ObAlbum) : this(it.name, it.url) {
+        referer = it.referer
         _image = it.image
         _count = it.count
         model = it.model.map { Link(it.name, it.url) }
@@ -242,10 +241,8 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
         tags = it.tags.map { Link(it.name, it.url) }
     }
 
-    constructor(source: Parcel) : this(
-            source.readString(),
-            source.readString()
-    ) {
+    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+        referer = source.readString()
         _image = source.readString()
         organ = mutableListOf()
         source.readList(organ, Link::class.java.classLoader)
@@ -261,6 +258,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(name)
         writeString(url)
+        writeString(referer)
         writeString(_image)
         writeList(organ)
         writeList(model)
@@ -283,7 +281,9 @@ class Link2(val id: Long, name: String, url: String?, val size: Int) : Link(name
             source.readString(),
             source.readString(),
             source.readInt()
-    )
+    ) {
+        referer = source.readString()
+    }
 
     constructor(source: ObLink) : this(source.id, source.name, source.url, source.albums.size)
 
@@ -294,6 +294,7 @@ class Link2(val id: Long, name: String, url: String?, val size: Int) : Link(name
         writeString(name)
         writeString(url)
         writeInt(size)
+        writeString(referer)
     }
 
     companion object {
@@ -328,6 +329,7 @@ data class ObAlbum(@Id var id: Long = 0) {
     lateinit var name: String
     @Index
     lateinit var url: String
+    var referer: String? = null
     lateinit var image: String
     lateinit var organ: ToMany<ObLink>
     lateinit var model: ToMany<ObLink>
@@ -380,6 +382,7 @@ object dbFav {
             (oba.find(ObAlbum_.url, album.url!!).firstOrNull() ?: ObAlbum()).apply {
                 name = album.name
                 url = album.url
+                referer = album.referer
                 image = album.image
                 count = album.count
                 album.model.forEach { model.add(link2info(it, ObLink.TYPE_MODEL, this)) }
@@ -421,7 +424,7 @@ object dbFav {
 }
 
 //inline fun <reified T : Parcelable> mtSequence(uri: String?, noinline fn: (String) -> Pair<String?, List<T>>) = MtSequence(uri, fn)
-class MtSequence<out T : Parcelable>(uri: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<T> {
+class MtSequence<out T : Name>(uri: String?, val fn: (String) -> Pair<String?, List<T>>) : Sequence<T> {
     var ob: (() -> Unit)? = null
     private val data = LinkedList<T>()
     private var url by Delegates.observable(uri) { _, o, n ->
@@ -446,9 +449,10 @@ class MtSequence<out T : Parcelable>(uri: String?, val fn: (String) -> Pair<Stri
     fun empty() = data.isEmpty() && url?.isEmpty() ?: true
 
     override fun iterator(): Iterator<T> = object : Iterator<T> {
-        override fun hasNext(): Boolean = data.isNotEmpty() || url?.let {
-            val result = fn(it)
+        override fun hasNext(): Boolean = data.isNotEmpty() || url?.let { uri ->
+            val result = fn(uri)
             url = result.first
+            result.second.forEach { it.referer = uri }
             data.addAll(result.second)
             data.isNotEmpty()
         } ?: false

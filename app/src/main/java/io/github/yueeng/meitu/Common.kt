@@ -244,6 +244,8 @@ fun GlideRequest<File>.into(image: SubsamplingScaleImageView, animation: Boolean
     })
 }
 
+infix fun String.referer(ref: String?) = GlideUrl(this, { mapOf("referer" to ref) })
+
 fun String.httpGet() = try {
     val html = okhttp.newCall(Request.Builder().url(this).build()).execute().body()?.string()
     Pair(this, html)
@@ -698,20 +700,21 @@ object Save {
         }
     }
 
-    fun download(url: String, file: File) = MainApplication.instance().run {
+    fun download(url: Name, file: File) = MainApplication.instance().run {
         if (file.exists()) file.delete()
-        val request = DownloadManager.Request(Uri.parse(url))
+        val request = DownloadManager.Request(Uri.parse(url.name))
+                .addRequestHeader("referer", url.referer)
                 .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationUri(Uri.fromFile(file))
         downloadManager.enqueue(request)
     }
 
-    fun download(url: String, title: String, override: Boolean = false, call: ((Int) -> Unit)? = null) {
-        check(url).let {
+    fun download(url: Name, title: String, override: Boolean = false, call: ((Int) -> Unit)? = null) {
+        check(url.name).let {
             when (it) {
-                0, DownloadManager.STATUS_FAILED -> download(url, file(url, title)).let { 0 }
-                DownloadManager.STATUS_SUCCESSFUL -> if (override) download(url, file(url, title)).let { 0 } else it
+                0, DownloadManager.STATUS_FAILED -> download(url, file(url.name, title)).let { 0 }
+                DownloadManager.STATUS_SUCCESSFUL -> if (override) download(url, file(url.name, title)).let { 0 } else it
                 else -> it
             }.let { call?.invoke(it) }
         }
@@ -1245,7 +1248,7 @@ fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Nam
     }
 }
 
-fun Context.downloadAll(name: String, data: List<String>) = alert().apply {
+fun Context.downloadAll(name: String, data: List<Name>) = alert().apply {
     setTitle(name)
     setMessage("该图集共有${data.size}张图片，要下载吗")
     setPositiveButton("下载全部") { _, _ ->

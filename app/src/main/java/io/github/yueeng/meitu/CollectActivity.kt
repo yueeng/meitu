@@ -101,9 +101,9 @@ class CollectFragment : Fragment() {
         setHasOptionsMenu(true)
         state?.let {
             mtseq(state.getBundle("uri"))
-            adapter.add(state.getStringArrayList("data"))
+            adapter.add(state.getParcelableArrayList("data"))
         } ?: query()
-        RxBus.instance.subscribe<Pair<Bundle, List<String>>>(this, "update_collect") {
+        RxBus.instance.subscribe<Pair<Bundle, List<Name>>>(this, "update_collect") {
             mtseq(it.first)
             adapter.add(it.second)
         }
@@ -117,7 +117,7 @@ class CollectFragment : Fragment() {
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
         state.putBundle("uri", mtseq())
-        state.putStringArrayList("data", ArrayList(adapter.data))
+        state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
     override fun onDestroyView() {
@@ -144,19 +144,19 @@ class CollectFragment : Fragment() {
         }.io2main().doOnComplete {
             busy * false
             fn?.invoke()
-        }.subscribe { adapter.add(it.name) }
+        }.subscribe { adapter.add(it) }
     }
 
-    inner class ImageHolder(view: View) : DataHolder<String>(view) {
+    inner class ImageHolder(view: View) : DataHolder<Name>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
         private val image: ImageView = view.findViewById(R.id.image)
         private val progress: ProgressBar = view.findViewById(R.id.progress)
         private val image2: ImageView = view.findViewById(R.id.image2)
         @SuppressLint("SetTextI18n")
         override fun bind(i: Int) {
-            GlideApp.with(image).load(value).crossFade().progress(value, progress).into(image)
+            GlideApp.with(image).load(value.name referer value.referer).crossFade().progress(value.name, progress).into(image)
             text.text = "${i + 1}"
-            image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
+            image2.visibility = if (Save.file(value.name, name).exists()) View.VISIBLE else View.INVISIBLE
         }
 
         init {
@@ -172,7 +172,7 @@ class CollectFragment : Fragment() {
         }
     }
 
-    inner class ImageAdapter : FooterDataAdapter<String, ImageHolder>() {
+    inner class ImageAdapter : FooterDataAdapter<Name, ImageHolder>() {
         override fun onCreateHolder(parent: ViewGroup, viewType: Int): ImageHolder =
                 ImageHolder(parent.inflate(R.layout.list_collect_item))
 

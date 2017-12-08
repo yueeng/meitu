@@ -108,7 +108,7 @@ class PreviewFragment : Fragment() {
                             }
                         }
                     }
-                    if (Save.check(url) != DownloadManager.STATUS_SUCCESSFUL) save(false) else {
+                    if (Save.check(url.name) != DownloadManager.STATUS_SUCCESSFUL) save(false) else {
                         context?.alert()?.apply {
                             setMessage("注意")
                             setMessage("似乎下载过该图片")
@@ -192,13 +192,13 @@ class PreviewFragment : Fragment() {
         state?.let {
             page * state.getInt("page")
             mtseq(state.getBundle("uri"))
-            adapter.data.addAll(state.getStringArrayList("data"))
-            thumb.add(state.getStringArrayList("thumb"))
+            adapter.data.addAll(state.getParcelableArrayList("data"))
+            thumb.add(state.getParcelableArrayList("thumb"))
             info = state.getParcelableArrayList<Bundle>("info")?.map {
                 Pair<String, List<Name>>(it.getString("key"), it.getParcelableArrayList("value"))
             }
         } ?: arguments?.let {
-            it.getStringArrayList("data")?.let {
+            it.getParcelableArrayList<Name>("data")?.let {
                 adapter.data.addAll(it)
                 thumb.add(it)
             }
@@ -215,8 +215,8 @@ class PreviewFragment : Fragment() {
         super.onSaveInstanceState(state)
         state.putInt("page", page())
         state.putBundle("uri", mtseq())
-        state.putStringArrayList("data", ArrayList(adapter.data))
-        state.putStringArrayList("thumb", ArrayList(thumb.data))
+        state.putParcelableArrayList("data", ArrayList(adapter.data))
+        state.putParcelableArrayList("thumb", ArrayList(thumb.data))
 
         state.putParcelableArrayList("info", info?.map {
             bundleOf("key" to it.first).apply {
@@ -233,7 +233,7 @@ class PreviewFragment : Fragment() {
             return
         }
         busy * true
-        val data = mutableListOf<String>()
+        val data = mutableListOf<Name>()
         mtseq.toObservable().let {
             if (all) it else it.take(10)
         }.io2main().doOnComplete {
@@ -242,36 +242,36 @@ class PreviewFragment : Fragment() {
             page * current()
             call?.invoke()
         }.subscribe {
-            data.add(it.name)
-            thumb.add(it.name)
-            adapter.data.add(it.name)
+            data.add(it)
+            thumb.add(it)
+            adapter.data.add(it)
             adapter.notifyDataSetChanged()
         }
     }
 
     private val pager get() = view?.findViewById<ViewPager>(R.id.pager)
 
-    class PreviewAdapter(val name: String) : DataPagerAdapter<String>(R.layout.preview_item) {
-        override fun layout(container: ViewGroup, position: Int, item: String): View =
-                if (item.endsWith(".gif", true))
+    class PreviewAdapter(val name: String) : DataPagerAdapter<Name>(R.layout.preview_item) {
+        override fun layout(container: ViewGroup, position: Int, item: Name): View =
+                if (item.name.endsWith(".gif", true))
                     container.inflate(R.layout.preview_image_item)
                 else super.layout(container, position, item)
 
-        override fun bind(view: View, item: String, position: Int) {
+        override fun bind(view: View, item: Name, position: Int) {
             val image2: ImageView = view.findViewById(R.id.image2)
-            image2.visibility = if (Save.file(item, name).exists()) View.VISIBLE else View.INVISIBLE
+            image2.visibility = if (Save.file(item.name, name).exists()) View.VISIBLE else View.INVISIBLE
             val progress: ProgressBar = view.findViewById(R.id.progress)
             view.findViewById<View>(R.id.image).let { image ->
                 when (image) {
                     is SubsamplingScaleImageView -> GlideApp.with(image)
                             .asFile()
-                            .load(item)
-                            .progress(item, progress)
+                            .load(item.name referer item.referer)
+                            .progress(item.name, progress)
                             .into(image.apply { maxScale = 8F })
                     is ImageView -> GlideApp.with(image)
-                            .load(item)
+                            .load(item.name referer item.referer)
                             .crossFade()
-                            .progress(item, progress)
+                            .progress(item.name, progress)
                             .into(image)
                 }
                 image.setOnClickListener {
@@ -281,17 +281,17 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    class ThumbHolder(view: View, val name: String) : DataHolder<String>(view) {
+    class ThumbHolder(view: View, val name: String) : DataHolder<Name>(view) {
         private val text: TextView = view.findViewById(R.id.text1)
         private val image: ImageView = view.findViewById(R.id.image)
         private val image2: ImageView = view.findViewById(R.id.image2)
         private val progress: ProgressBar = view.findViewById(R.id.progress)
         override fun bind(i: Int) {
-            GlideApp.with(image).load(value).crossFade()
-                    .progress(value, progress)
+            GlideApp.with(image).load(value.name referer value.referer).crossFade()
+                    .progress(value.name, progress)
                     .into(image)
             text.text = "${i + 1}"
-            image2.visibility = if (Save.file(value, name).exists()) View.VISIBLE else View.INVISIBLE
+            image2.visibility = if (Save.file(value.name, name).exists()) View.VISIBLE else View.INVISIBLE
         }
 
         init {
@@ -301,7 +301,7 @@ class PreviewFragment : Fragment() {
         }
     }
 
-    class ThumbAdapter(val name: String) : AnimDataAdapter<String, ThumbHolder>() {
+    class ThumbAdapter(val name: String) : AnimDataAdapter<Name, ThumbHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbHolder =
                 ThumbHolder(parent.inflate(R.layout.preview_thumb_item), name)
 

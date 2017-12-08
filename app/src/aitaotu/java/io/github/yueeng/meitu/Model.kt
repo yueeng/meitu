@@ -113,6 +113,7 @@ object AlbumEx {
                         }
                     } ?: emptyList()
                     Album(dom.select("h1").text(), url).apply {
+                        referer = url
                         model = emptyList()// attr2links("模特姓名").plus((sample?.model ?: emptyList())).distinctBy { it.key }
                         organ = emptyList()//attr2links("发行机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
                         tags = attr2links("来源").plus(attr2links("标签")).plus((sample?.tags ?: emptyList())).distinctBy { it.key }

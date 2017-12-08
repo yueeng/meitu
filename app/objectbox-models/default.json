@@ -5,7 +5,7 @@
   "entities": [
     {
       "id": "1:7633906544406478951",
-      "lastPropertyId": "6:2674314320140622871",
+      "lastPropertyId": "7:7522614619843289884",
       "name": "ObAlbum",
       "properties": [
         {
@@ -29,6 +29,10 @@
         {
           "id": "5:7529121501501379010",
           "name": "count"
+        },
+        {
+          "id": "7:7522614619843289884",
+          "name": "referer"
         }
       ],
       "relations": [
