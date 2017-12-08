@@ -1,7 +1,7 @@
 # Meitu
-[![aitaotu](https://github.com/yueeng/meitu/blob/master/app/src/aitaotu/res/mipmap-xxxhdpi/ic_launcher_round.png?raw=true)](https://github.com/yueeng/meitu/releases/download/1.0/app-aitaotu-release.apk)
-[![meitulu](https://github.com/yueeng/meitu/blob/master/app/src/meitulu/res/mipmap-xxxhdpi/ic_launcher_round.png?raw=true)](https://github.com/yueeng/meitu/releases/download/1.0/app-meitulu-release.apk)
-[![meituri](https://github.com/yueeng/meitu/blob/master/app/src/meituri/res/mipmap-xxxhdpi/ic_launcher_round.png?raw=true)](https://github.com/yueeng/meitu/releases/download/1.0/app-meituri-release.apk)
+|[爱套图](https://github.com/yueeng/meitu/releases/download/1.0/app-aitaotu-release.apk)|[美图录](https://github.com/yueeng/meitu/releases/download/1.0/app-meitulu-release.apk)|[美图日](https://github.com/yueeng/meitu/releases/download/1.0/app-meituri-release.apk)|
+---|---|---
+[![aitaotu](https://github.com/yueeng/meitu/blob/master/app/src/aitaotu/res/mipmap-xxxhdpi/ic_launcher_round.png?raw=true)](https://github.com/yueeng/meitu/releases/download/1.0/app-aitaotu-release.apk)|[![meitulu](https://github.com/yueeng/meitu/blob/master/app/src/meitulu/res/mipmap-xxxhdpi/ic_launcher_round.png?raw=true)](https://github.com/yueeng/meitu/releases/download/1.0/app-meitulu-release.apk)|[![meituri](https://github.com/yueeng/meitu/blob/master/app/src/meituri/res/mipmap-xxxhdpi/ic_launcher_round.png?raw=true)](https://github.com/yueeng/meitu/releases/download/1.0/app-meituri-release.apk)
 # Screenshot
 |首页|内容|预览|导航|
 ---|---|---|---
