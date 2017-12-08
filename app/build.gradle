@@ -16,6 +16,7 @@ android {
     defaultConfig {
         minSdkVersion android_min_sdk
         targetSdkVersion android_target_sdk
+        applicationId 'io.github.yueeng'
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -31,9 +32,13 @@ android {
         }
     }
     buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+        }
         release {
             minifyEnabled true
             shrinkResources true
+            zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
@@ -51,23 +56,20 @@ android {
     productFlavors {
         aitaotu {
             dimension 'meitu'
-            applicationId 'io.github.yueeng.aitaotu'
+            applicationIdSuffix '.aitaotu'
             resValue "string", "app_name", "爱套图"
-            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
             buildConfigField "boolean", "fav_model", "false"
             buildConfigField "boolean", "fav_organ", "false"
         }
         meituri {
             dimension 'meitu'
-            applicationId 'io.github.yueeng.meituri'
+            applicationIdSuffix '.meituri'
             resValue "string", "app_name", "美图日"
-            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
         meitulu {
             dimension 'meitu'
-            applicationId 'io.github.yueeng.meitulu'
+            applicationIdSuffix '.meitulu'
             resValue "string", "app_name", "美图录"
-            resValue "string", "app_search_provider", "${applicationId}.SearchHistoryProvider"
         }
     }
     def apks = []
@@ -124,7 +126,7 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.4.0'
     kapt 'com.github.bumptech.glide:compiler:4.4.0'
     implementation 'com.github.bumptech.glide:okhttp3-integration:4.4.0'
-    implementation ('com.davemorrissey.labs:subsampling-scale-image-view:3.9.0') {
+    implementation('com.davemorrissey.labs:subsampling-scale-image-view:3.9.0') {
         exclude group: 'com.android.support'
     }
     debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'

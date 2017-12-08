@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
-        android:name="io.github.yueeng.meitu.MainApplication"
+        android:name=".MainApplication"
         android:allowBackup="true"
         android:fullBackupContent="true"
         android:hardwareAccelerated="true"
@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name="io.github.yueeng.meitu.MainActivity">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -26,7 +26,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="io.github.yueeng.meitu.ListActivity"
+            android:name=".ListActivity"
             android:theme="@style/AppThemeTranslucent">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
@@ -37,21 +37,21 @@
                 android:resource="@xml/searchable" />
         </activity>
         <activity
-            android:name="io.github.yueeng.meitu.PreviewActivity"
+            android:name=".PreviewActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
-            android:name="io.github.yueeng.meitu.CollectActivity"
+            android:name=".CollectActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
-            android:name="io.github.yueeng.meitu.FavoriteActivity"
+            android:name=".FavoriteActivity"
             android:theme="@style/AppThemeTranslucent" />
         <activity
-            android:name="io.github.yueeng.meitu.FavoriteTagActivity"
+            android:name=".FavoriteTagActivity"
             android:theme="@style/AppThemeTranslucent" />
 
         <provider
-            android:name="io.github.yueeng.meitu.SearchHistoryProvider"
-            android:authorities="@string/app_search_provider"
+            android:name=".SearchHistoryProvider"
+            android:authorities="${applicationId}.SearchHistoryProvider"
             android:exported="false" />
     </application>
 
