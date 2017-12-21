@@ -88,7 +88,6 @@ import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subscribers.SerializedSubscriber
 import okhttp3.*
-import okhttp3.internal.cache.DiskLruCache
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.*
 import org.jetbrains.anko.*
@@ -787,15 +786,14 @@ data class Version(val major: Int, val minor: Int, val patch: Int, val build: In
 }
 
 val version: String get() = BuildConfig.VERSION_NAME
-
+val github = "https://github.com/yueeng/meitu"
 fun Context.update(quiet: Boolean = false) {
-    val url = "https://github.com/yueeng/meitu/releases"
     RxMt.create {
-        val dom = "$url/latest".httpGet().jsoup()
+        val dom = "$github/releases/latest".httpGet().jsoup()
         dom?.let {
             Triple(dom.select(".css-truncate-target").text(),
-                    dom.select(".markdown-body").text(),
-                    dom.select(".release-downloads a[href$=.apk]:contains(${BuildConfig.FLAVOR})").attr("abs:href")
+                    dom.select(".release-body .markdown-body").text(),
+                    dom.select(".release-body a[href$=.apk]:contains(${BuildConfig.FLAVOR})").attr("abs:href")
             )
         }
     }.io2main().subscribe {
@@ -806,7 +804,7 @@ fun Context.update(quiet: Boolean = false) {
                         alert().setTitle("版本：${triple.first}")
                                 .setMessage(triple.second)
                                 .setPositiveButton("更新", { _, _ -> openWeb(triple.third) })
-                                .setNeutralButton("发布页", { _, _ -> openWeb(url) })
+                                .setNeutralButton("发布页", { _, _ -> openWeb(github) })
                                 .setNegativeButton("取消", null)
                                 .create()?.show()
                     } else {

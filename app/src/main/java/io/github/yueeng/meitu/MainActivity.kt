@@ -379,6 +379,14 @@ class ListFragment : Fragment() {
                     ?.create()?.show()
         }
         R.id.update -> consumer { context?.update() }
+        R.id.about -> consumer {
+            context?.alert()?.setTitle(R.string.app_name)
+                    ?.setMessage("当前版本：$version")
+                    ?.setPositiveButton("发布页", { _, _ -> context?.openWeb(github) })
+                    ?.setNeutralButton("检测升级", { _, _ -> context?.update() })
+                    ?.setNegativeButton("取消", null)
+                    ?.create()?.show()
+        }
         else -> super.onOptionsItemSelected(item)
     }
 

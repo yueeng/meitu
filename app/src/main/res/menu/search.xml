@@ -27,4 +27,9 @@
         android:icon="@drawable/ic_update"
         android:title="检测升级"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/about"
+        android:icon="@drawable/ic_info"
+        android:title="关于"
+        app:showAsAction="ifRoom" />
 </menu>
