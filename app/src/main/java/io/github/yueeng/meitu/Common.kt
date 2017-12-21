@@ -88,6 +88,7 @@ import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subscribers.SerializedSubscriber
 import okhttp3.*
+import okhttp3.internal.cache.DiskLruCache
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.*
 import org.jetbrains.anko.*
@@ -134,6 +135,7 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .cache(Cache(MainApplication.instance().cacheDir, 1024 * 1024 * 256))
         .cookieJar(JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL)))
         .addNetworkInterceptor(StethoInterceptor())
         .addNetworkInterceptor { chain ->

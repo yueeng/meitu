@@ -9,7 +9,6 @@ def keystoreFile = rootProject.file("keystore.properties")
 def keystore = new Properties()
 keystore.load(new FileInputStream(keystoreFile))
 
-
 android {
     compileSdkVersion android_compile_sdk
     buildToolsVersion android_build_tools
@@ -17,8 +16,8 @@ android {
         minSdkVersion android_min_sdk
         targetSdkVersion android_target_sdk
         applicationId 'io.github.yueeng'
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         buildConfigField "boolean", "fav_model", "true"
         buildConfigField "boolean", "fav_organ", "true"
@@ -129,8 +128,8 @@ dependencies {
     implementation('com.davemorrissey.labs:subsampling-scale-image-view:3.9.0') {
         exclude group: 'com.android.support'
     }
-    debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
-    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
