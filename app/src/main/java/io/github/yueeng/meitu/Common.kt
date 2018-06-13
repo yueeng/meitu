@@ -239,7 +239,7 @@ fun GlideRequest<File>.into(image: SubsamplingScaleImageView, animation: Boolean
         }
     })
     into(object : SimpleTarget<File>() {
-        override fun onResourceReady(resource: File, transition: Transition<in File>) {
+        override fun onResourceReady(resource: File, transition: Transition<in File>?) {
             weak.get()?.setImage(ImageSource.uri(Uri.fromFile(resource)))
         }
     })
@@ -372,10 +372,10 @@ open class DataHolder<out T : Any>(view: View) : RecyclerView.ViewHolder(view) {
     val value: T get() = _value
     open fun bind() {}
     open fun bind(i: Int) = bind()
-    open fun bind(i: Int, payloads: MutableList<Any>?) = bind(i)
+    open fun bind(i: Int, payloads: MutableList<Any>) = bind(i)
 
     @Suppress("UNCHECKED_CAST")
-    fun set(v: Any, i: Int, payloads: MutableList<Any>?) {
+    fun set(v: Any, i: Int, payloads: MutableList<Any>) {
         _value = v as T
         bind(i, payloads)
     }
@@ -407,7 +407,7 @@ abstract class DataAdapter<T : Any, VH : DataHolder<T>> : RecyclerView.Adapter<V
 
     open fun get(position: Int) = _data[position]
 
-    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>?) {
+    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
         holder.set(get(position), position, payloads)
     }
 
@@ -426,7 +426,7 @@ abstract class AnimDataAdapter<T : Any, VH : DataHolder<T>> : DataAdapter<T, VH>
         return super.clear()
     }
 
-    override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int, payloads: MutableList<Any>?) {
+    override fun onBindViewHolder(holder: VH, @SuppressLint("RecyclerView") position: Int, payloads: MutableList<Any>) {
         super.onBindViewHolder(holder, position, payloads)
         animation(holder, position)
     }
@@ -517,7 +517,7 @@ abstract class FooterDataAdapter<T : Any, VH : DataHolder<T>> : AnimDataAdapter<
     override val data: List<T>
         get() = super.data as List<T>
 
-    override fun onBindViewHolder(holder: DataHolder<Any>, position: Int, payloads: MutableList<Any>?) {
+    override fun onBindViewHolder(holder: DataHolder<Any>, position: Int, payloads: MutableList<Any>) {
         when (getItemViewType(position)) {
             -1 -> holder.set(_header[position], position, payloads)
             -2 -> holder.set(_footer[position - data.size - _header.size], position - data.size - _header.size, payloads)

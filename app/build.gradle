@@ -98,8 +98,8 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
     implementation "com.android.support:support-annotations:$android_support_version"
     implementation "com.android.support:exifinterface:$android_support_version"
     implementation "com.android.support:appcompat-v7:$android_support_version"
@@ -110,27 +110,26 @@ dependencies {
     implementation "com.squareup.okhttp3:okhttp-urlconnection:$okhttp_version"
     implementation "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
     implementation "com.squareup.okhttp3:okhttp-android-support:$okhttp_version"
-    implementation 'org.jetbrains.anko:anko-sdk15:0.10.3'
-    implementation 'org.jsoup:jsoup:1.11.2'
+    implementation 'org.jetbrains.anko:anko-sdk15:0.10.4'
+    implementation 'org.jsoup:jsoup:1.11.3'
     implementation 'com.facebook.stetho:stetho:1.5.0'
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
     implementation "io.objectbox:objectbox-android:$objectboxVersion"
     implementation "io.objectbox:objectbox-kotlin:$objectboxVersion"
-//    implementation 'io.objectbox:objectbox-rxjava:0.9.8'
     kapt "io.objectbox:objectbox-processor:$objectboxVersion"
-    implementation 'io.reactivex.rxjava2:rxjava:2.1.7'
+    implementation 'io.reactivex.rxjava2:rxjava:2.1.14'
     implementation 'io.reactivex.rxjava2:rxkotlin:2.2.0'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
-    implementation 'com.tbruyelle.rxpermissions2:rxpermissions:0.9.4@aar'
-    implementation 'com.github.bumptech.glide:glide:4.4.0'
-    kapt 'com.github.bumptech.glide:compiler:4.4.0'
-    implementation 'com.github.bumptech.glide:okhttp3-integration:4.4.0'
-    implementation('com.davemorrissey.labs:subsampling-scale-image-view:3.9.0') {
+    implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
+    implementation 'com.tbruyelle.rxpermissions2:rxpermissions:0.9.5@aar'
+    implementation 'com.github.bumptech.glide:glide:4.7.1'
+    kapt 'com.github.bumptech.glide:compiler:4.7.1'
+    implementation 'com.github.bumptech.glide:okhttp3-integration:4.7.1'
+    implementation('com.davemorrissey.labs:subsampling-scale-image-view:3.10.0') {
         exclude group: 'com.android.support'
     }
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

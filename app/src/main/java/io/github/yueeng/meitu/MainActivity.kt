@@ -580,8 +580,8 @@ class ListFragment : Fragment() {
         private val progress: ProgressBar = view.findViewById(R.id.progress)
 
         @SuppressLint("SetTextI18n")
-        override fun bind(i: Int, payloads: MutableList<Any>?) {
-            if (payloads?.isEmpty() != false) {
+        override fun bind(i: Int, payloads: MutableList<Any>) {
+            if (payloads.isEmpty()) {
                 GlideApp.with(image).load(value.image referer value.referer).crossFade()
                         .progress(value.image, progress)
                         .into(image)
