@@ -13,9 +13,9 @@ val website = "https://www.meitulu.com"
 
 val homes = listOf("$website/" to "首页",
         "$website/xihuan/" to "精选美女",
+        "$website/guochan/" to "国产美女",
         "$website/rihan/" to "日韩美女",
-        "$website/gangtai/" to "港台美女",
-        "$website/guochan/" to "国产美女")
+        "$website/gangtai/" to "港台美女")
 
 fun search(key: String) = "$website/search/${Uri.encode(key)}"
 

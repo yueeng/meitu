@@ -23,6 +23,7 @@ import android.os.Environment
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.provider.Settings
+import android.support.annotation.RequiresApi
 import android.support.design.widget.BottomSheetBehavior
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
@@ -572,7 +573,8 @@ class Once {
 
 fun RecyclerView.findFirstVisibleItemPosition(): Int = layoutManager?.let { layout ->
     when (layout) {
-        is StaggeredGridLayoutManager -> layout.findFirstVisibleItemPositions(null).min() ?: RecyclerView.NO_POSITION
+        is StaggeredGridLayoutManager -> layout.findFirstVisibleItemPositions(null).min()
+                ?: RecyclerView.NO_POSITION
         is GridLayoutManager -> layout.findFirstVisibleItemPosition()
         is LinearLayoutManager -> layout.findFirstVisibleItemPosition()
         else -> RecyclerView.NO_POSITION
@@ -581,7 +583,8 @@ fun RecyclerView.findFirstVisibleItemPosition(): Int = layoutManager?.let { layo
 
 fun RecyclerView.findLastVisibleItemPosition(): Int = layoutManager?.let { layout ->
     when (layout) {
-        is StaggeredGridLayoutManager -> layout.findLastVisibleItemPositions(null).max() ?: RecyclerView.NO_POSITION
+        is StaggeredGridLayoutManager -> layout.findLastVisibleItemPositions(null).max()
+                ?: RecyclerView.NO_POSITION
         is GridLayoutManager -> layout.findLastVisibleItemPosition()
         is LinearLayoutManager -> layout.findLastVisibleItemPosition()
         else -> RecyclerView.NO_POSITION
@@ -752,8 +755,11 @@ fun Activity.permissionWriteExternalStorage(quiet: Boolean = false, call: (() ->
     permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, if (quiet) null else "需要读写SD卡权限", call)
 }
 
-fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: 0)
-fun String.left(c: Char, ignoreCase: Boolean = false) = this.substring(0, this.indexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 } ?: this.length - 1)
+fun String.right(c: Char, ignoreCase: Boolean = false) = this.substring(this.lastIndexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 }
+        ?: 0)
+
+fun String.left(c: Char, ignoreCase: Boolean = false) = this.substring(0, this.indexOf(c, ignoreCase = ignoreCase).takeIf { it != -1 }
+        ?: this.length-1)
 
 fun Context.delay(millis: Long, run: () -> Unit) {
     Handler(mainLooper).postDelayed({ run() }, millis)
@@ -967,7 +973,7 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
                 val x = ev.x
                 val y = ev.y
                 if (mInitialMotionX > mEdgeSlop && !isOpen && canScroll(this, false,
-                        Math.round(x - mInitialMotionX), Math.round(x), Math.round(y))) {
+                                Math.round(x - mInitialMotionX), Math.round(x), Math.round(y))) {
                     return super.onInterceptTouchEvent(MotionEvent.obtain(ev).apply {
                         action = MotionEvent.ACTION_CANCEL
                     })
@@ -1067,7 +1073,8 @@ fun <T> Observable<T>.io2main(): Observable<T> = this.io().main()
 object RxMt {
     fun <T> create(fn: () -> T): Observable<T> = Observable.create<T> {
         try {
-            it.onNext(fn())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) it.onNext(fn())
+            else fn()?.let { e -> it.onNext(e) }
             it.onComplete()
         } catch (e: Exception) {
             it.onError(e)

@@ -426,8 +426,8 @@ class ListFragment : Fragment() {
             adapter.data.asSequence().mapIndexed { i, v -> i to v }
                     .filter { it.second is Album }.map { it.first to it.second as Album }
                     .filter { it.second.url == uri }.forEach {
-                adapter.notifyItemChanged(it.first, "favorite")
-            }
+                        adapter.notifyItemChanged(it.first, "favorite")
+                    }
         }
         RxBus.instance.subscribe<String>(this, "command") {
             adapter.clear()
@@ -614,10 +614,12 @@ class ListFragment : Fragment() {
                                         R.id.menu_download_all -> activity.permissionWriteExternalStorage {
                                             mtCollectSequence(album.url).toObservable().toList()
                                                     .io2main().subscribe { list ->
-                                                activity.downloadAll(album.name, list)
-                                            }
+                                                        activity.downloadAll(album.name, list)
+                                                    }
                                         }
-                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) { dbFav.put(it ?: album) }
+                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) {
+                                            dbFav.put(it ?: album)
+                                        }
                                         R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
                                         R.id.menu_info -> context.showInfo(album.name, album.url)
                                     }
@@ -648,7 +650,8 @@ class ListFragment : Fragment() {
             is Info -> ListType.Info.value
             is Title -> ListType.Title.value
             is Link -> ListType.Link.value
-            else -> get(position).takeIf { it.name.isNotEmpty() }?.let { ListType.Name.value } ?: ListType.Sp.value
+            else -> get(position).takeIf { it.name.isNotEmpty() }?.let { ListType.Name.value }
+                    ?: ListType.Sp.value
         }
 
         override fun onCreateHolder(parent: ViewGroup, viewType: Int): DataHolder<Name> = when (viewType) {

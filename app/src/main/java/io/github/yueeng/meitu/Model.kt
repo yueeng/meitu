@@ -368,7 +368,10 @@ object dbFav {
         } else {
             @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
             val info = album.info
-                    .flatMap { obl.query().equal(ObLink_.name, it.name).and().equal(ObLink_.url, it.url ?: "").build().find() }
+                    .flatMap {
+                        obl.query().equal(ObLink_.name, it.name).and().equal(ObLink_.url, it.url
+                                ?: "").build().find()
+                    }
                     .map { Pair(it.key, it) }.toMap()
 
             fun link2info(link: Link, t: Int, oba: ObAlbum) = (info[link.key] ?: ObLink().apply {

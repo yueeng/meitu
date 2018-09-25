@@ -137,7 +137,9 @@ class PreviewFragment : Fragment() {
                             else activity?.permissionWriteExternalStorage {
                                 query(true) { context?.downloadAll(name, adapter.data) }
                             }
-                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else AlbumEx.from(album.url!!, album) { dbFav.put(it ?: album) }
+                            R.id.menu_favorite -> if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else AlbumEx.from(album.url!!, album) {
+                                dbFav.put(it ?: album)
+                            }
                             R.id.menu_thumb -> sliding?.open()
                         }
                     }
@@ -177,11 +179,11 @@ class PreviewFragment : Fragment() {
             }).takeIf { it.moveToFirst() }?.let { c ->
                 c.getInt(DownloadManager.COLUMN_STATUS)
                         .takeIf { it == DownloadManager.STATUS_SUCCESSFUL }?.let {
-                    view?.findViewById<ViewPager>(R.id.pager)
-                            ?.findViewWithTag<View>(c.getString(DownloadManager.COLUMN_URI))
-                            ?.findViewById<ImageView>(R.id.image2)
-                            ?.fadeIn()
-                }
+                            view?.findViewById<ViewPager>(R.id.pager)
+                                    ?.findViewWithTag<View>(c.getString(DownloadManager.COLUMN_URI))
+                                    ?.findViewById<ImageView>(R.id.image2)
+                                    ?.fadeIn()
+                        }
             }
         }
     }
