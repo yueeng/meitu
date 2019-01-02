@@ -8,3 +8,6 @@
 /captures
 .externalNativeBuild
 *.apk
+.settings
+.project
+.classpath

@@ -110,7 +110,7 @@ dependencies {
     implementation "com.squareup.okhttp3:okhttp-urlconnection:$okhttp_version"
     implementation "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
     implementation "com.squareup.okhttp3:okhttp-android-support:$okhttp_version"
-    implementation 'org.jetbrains.anko:anko-sdk15:0.10.4'
+    implementation 'org.jetbrains.anko:anko-sdk15:0.10.8'
     implementation 'org.jsoup:jsoup:1.11.3'
     implementation 'com.facebook.stetho:stetho:1.5.0'
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
