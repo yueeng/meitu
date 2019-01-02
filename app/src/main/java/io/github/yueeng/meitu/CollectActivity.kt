@@ -3,18 +3,18 @@ package io.github.yueeng.meitu
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.support.transition.TransitionManager
-import android.support.v4.app.Fragment
-import android.support.v4.content.ContextCompat
-import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.StaggeredGridLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.transition.TransitionManager
 import io.reactivex.rxkotlin.toObservable
 import org.jetbrains.anko.toast
 
@@ -56,9 +56,9 @@ class CollectFragment : Fragment() {
         }
         view.findViewById<FAB>(R.id.button1).setOnClickListener {
             TransitionManager.beginDelayedTransition(recycler)
-            (recycler.layoutManager as? StaggeredGridLayoutManager)?.let {
-                it.spanCount = (it.spanCount + 1).takeIf { it <= MtSettings.MAX_PREVIEW_LIST_COLUMN } ?: 1
-                MtSettings.PREVIEW_LIST_COLUMN = it.spanCount
+            (recycler.layoutManager as? StaggeredGridLayoutManager)?.let { sg ->
+                sg.spanCount = (sg.spanCount + 1).takeIf { i -> i <= MtSettings.MAX_PREVIEW_LIST_COLUMN } ?: 1
+                MtSettings.PREVIEW_LIST_COLUMN = sg.spanCount
             }
         }
         fun favStat(anim: Boolean = true) {
@@ -74,8 +74,8 @@ class CollectFragment : Fragment() {
         }
         favStat(false)
         view.findViewById<FAB>(R.id.button2).setOnClickListener {
-            if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else AlbumEx.from(album.url!!, album) {
-                dbFav.put(it ?: album)
+            if (dbFav.exists(album.url!!)) dbFav.del(album.url!!) else AlbumEx.from(album.url!!, album) { ab ->
+                dbFav.put(ab ?: album)
             }
         }
         view.findViewById<FAB>(R.id.button3).setOnClickListener {
@@ -85,7 +85,7 @@ class CollectFragment : Fragment() {
             }
         }
         view.findViewById<FAB>(R.id.button4).setOnClickListener {
-            context?.showInfo(name, url, info) { info = it }
+            context?.showInfo(name, url, info) { i -> info = i }
         }
         RxBus.instance.subscribe<Int>(this, "hack_shared_elements") {
             recycler?.adapter?.notifyItemChanged(it)
@@ -100,8 +100,8 @@ class CollectFragment : Fragment() {
         retainInstance = true
         setHasOptionsMenu(true)
         state?.let {
-            mtseq(state.getBundle("uri"))
-            adapter.add(state.getParcelableArrayList("data"))
+            mtseq(state.getBundle("uri")!!)
+            adapter.add(state.getParcelableArrayList("data")!!)
         } ?: query()
         RxBus.instance.subscribe<Pair<Bundle, List<Name>>>(this, "update_collect") {
             mtseq(it.first)
@@ -133,6 +133,7 @@ class CollectFragment : Fragment() {
         else adapter.replace(FooterDataAdapter.TYPE_FOOTER, 0, msg)
     }
 
+    @SuppressLint("CheckResult")
     private fun query(all: Boolean = false, fn: (() -> Unit)? = null) {
         if (busy() || mtseq.empty()) {
             if (mtseq.empty()) fn?.invoke()
@@ -161,8 +162,8 @@ class CollectFragment : Fragment() {
 
         init {
             view.setOnClickListener {
-                activity?.let {
-                    it.startActivity(Intent(it, PreviewActivity::class.java)
+                activity?.let { fa ->
+                    fa.startActivity(Intent(fa, PreviewActivity::class.java)
                             .putExtra("album", album)
                             .putExtra("data", ArrayList(adapter.data))
                             .putExtra("uri", mtseq())

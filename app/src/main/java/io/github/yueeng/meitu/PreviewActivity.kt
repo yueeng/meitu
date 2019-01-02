@@ -7,21 +7,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.support.design.widget.BottomSheetBehavior
-import android.support.design.widget.FloatingActionButton
-import android.support.v4.app.Fragment
-import android.support.v4.view.ViewPager
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.os.bundleOf
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager.widget.ViewPager
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import io.reactivex.rxkotlin.toObservable
-import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.downloadManager
 import org.jetbrains.anko.toast
 
@@ -86,6 +86,7 @@ class PreviewFragment : Fragment() {
             }
 
             var last: Int = BottomSheetBehavior.STATE_COLLAPSED
+            @SuppressLint("SwitchIntDef")
             override fun onStateChanged(sheet: View, state: Int) {
                 if (last == BottomSheetBehavior.STATE_COLLAPSED && state == BottomSheetBehavior.STATE_EXPANDED) {
                     recycler.smoothScrollToPosition(pager.currentItem)
@@ -100,8 +101,8 @@ class PreviewFragment : Fragment() {
             activity?.permissionWriteExternalStorage {
                 adapter.data[current()].let { url ->
                     fun save(override: Boolean) {
-                        Save.download(url, name, override) {
-                            when (it) {
+                        Save.download(url, name, override) { stat ->
+                            when (stat) {
                                 0 -> context?.toast("添加下载队列完成，从通知栏查看下载进度。")
                                 DownloadManager.STATUS_SUCCESSFUL -> context?.toast("已经下载过了")
                                 else -> context?.toast("已经在下载队列中")
@@ -123,16 +124,16 @@ class PreviewFragment : Fragment() {
             }
         }
         view.findViewById<View>(R.id.button2).setOnClickListener {
-            context?.showInfo(name, url, info) { info = it }
+            context?.showInfo(name, url, info) { i -> info = i }
         }
-        view.findViewById<View>(R.id.button3).setOnClickListener {
-            context?.wrapper()?.popupMenu(it)?.apply {
+        view.findViewById<View>(R.id.button3).setOnClickListener { v ->
+            context?.wrapper()?.popupMenu(v)?.apply {
                 setForceShowIcon(true)
                 inflate(R.menu.preivew_more)
                 menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
-                setOnMenuItemClickListener {
+                setOnMenuItemClickListener { menu ->
                     consumer {
-                        when (it.itemId) {
+                        when (menu.itemId) {
                             R.id.menu_download_all -> if (busy()) context?.toast("正在请求数据，请稍后重试。")
                             else activity?.permissionWriteExternalStorage {
                                 query(true) { context?.downloadAll(name, adapter.data) }
@@ -193,21 +194,21 @@ class PreviewFragment : Fragment() {
         retainInstance = true
         state?.let {
             page * state.getInt("page")
-            mtseq(state.getBundle("uri"))
-            adapter.data.addAll(state.getParcelableArrayList("data"))
-            thumb.add(state.getParcelableArrayList("thumb"))
-            info = state.getParcelableArrayList<Bundle>("info")?.map {
-                Pair<String, List<Name>>(it.getString("key"), it.getParcelableArrayList("value"))
+            mtseq(state.getBundle("uri")!!)
+            adapter.data.addAll(state.getParcelableArrayList("data")!!)
+            thumb.add(state.getParcelableArrayList("thumb")!!)
+            info = state.getParcelableArrayList<Bundle>("info")?.map { bundle ->
+                Pair<String, List<Name>>(bundle.getString("key")!!, bundle.getParcelableArrayList("value")!!)
             }
         } ?: arguments?.let {
-            it.getParcelableArrayList<Name>("data")?.let {
-                adapter.data.addAll(it)
-                thumb.add(it)
+            it.getParcelableArrayList<Name>("data")?.let { names ->
+                adapter.data.addAll(names)
+                thumb.add(names)
             }
-            mtseq(it.getBundle("uri"))
-            it.getInt("index").let {
-                page * it
-                current * it
+            mtseq(it.getBundle("uri")!!)
+            it.getInt("index").let { index ->
+                page * index
+                current * index
             }
             query()
         }
@@ -229,6 +230,7 @@ class PreviewFragment : Fragment() {
 
     private var info: List<Pair<String, List<Name>>>? = null
 
+    @SuppressLint("CheckResult")
     private fun query(all: Boolean = false, call: (() -> Unit)? = null) {
         if (busy() || mtseq.empty()) {
             if (mtseq.empty()) call?.invoke()

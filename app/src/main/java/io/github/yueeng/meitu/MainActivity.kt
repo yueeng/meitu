@@ -5,29 +5,30 @@ import android.app.SearchManager
 import android.content.ComponentName
 import android.os.Bundle
 import android.provider.SearchRecentSuggestions
-import android.support.design.widget.NavigationView
-import android.support.design.widget.TabLayout
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentManager
-import android.support.v4.app.FragmentStatePagerAdapter
-import android.support.v4.content.ContextCompat
-import android.support.v4.view.ViewPager
-import android.support.v4.widget.DrawerLayout
-import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatDelegate
-import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.SearchView
 import android.text.method.LinkMovementMethod
 import android.view.*
 import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentStatePagerAdapter
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.viewpager.widget.ViewPager
+import com.google.android.material.navigation.NavigationView
+import com.google.android.material.tabs.TabLayout
 import io.reactivex.rxkotlin.toObservable
-import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.searchManager
 import org.jetbrains.anko.startActivity
 import java.util.*
@@ -85,8 +86,8 @@ class MainActivity : DayNightAppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        findViewById<DrawerLayout>(R.id.drawer).takeIf { it.isDrawerOpen(Gravity.START) }?.run {
-            closeDrawer(Gravity.START)
+        findViewById<DrawerLayout>(R.id.drawer).takeIf { it.isDrawerOpen(GravityCompat.START) }?.run {
+            closeDrawer(GravityCompat.START)
         } ?: super.onBackPressed()
     }
 
@@ -180,7 +181,7 @@ class FavoriteTagsFragment : Fragment() {
         super.onCreate(state)
         state?.let {
             page = state.getLong("page")
-            adapter.add(state.getParcelableArrayList("data"))
+            adapter.add(state.getParcelableArrayList("data")!!)
         } ?: query()
     }
 
@@ -254,7 +255,7 @@ class FavoriteFragment : Fragment() {
         RxBus.instance.unsubscribe(this)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater?) {
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         menu.add(Menu.NONE, 0x1000, Menu.NONE, "打开").setIcon(R.drawable.ic_open).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         super.onCreateOptionsMenu(menu, inflater)
     }
@@ -262,8 +263,8 @@ class FavoriteFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         0x1000 -> consumer {
             dbFav.tag(tag) {
-                it?.let {
-                    context?.startActivity<ListActivity>("url" to it.uri, "name" to it.name)
+                it?.let { link ->
+                    context?.startActivity<ListActivity>("url" to link.uri, "name" to link.name)
                 }
             }
         }
@@ -275,7 +276,7 @@ class FavoriteFragment : Fragment() {
         if (tag > 0) setHasOptionsMenu(true)
         state?.let {
             page = state.getLong("page")
-            adapter.add(state.getParcelableArrayList("data"))
+            adapter.add(state.getParcelableArrayList("data")!!)
         } ?: query()
     }
 
@@ -334,7 +335,7 @@ class ListFragment : Fragment() {
         menu.setIconEnable(true)
         inflater.inflate(R.menu.search, menu)
         val search = menu.findItem(R.id.search).actionView as SearchView
-        val info = context?.searchManager?.getSearchableInfo(ComponentName(context, ListActivity::class.java))
+        val info = context?.searchManager?.getSearchableInfo(ComponentName(context!!, ListActivity::class.java))
         search.setSearchableInfo(info)
         super.onCreateOptionsMenu(menu, inflater)
     }
@@ -352,8 +353,8 @@ class ListFragment : Fragment() {
                     ?.setSingleChoiceItems(items.map { it.second }.toTypedArray(), items.indexOfFirst { it.first == current }, null)
                     ?.setPositiveButton("确定") { d, _ ->
                         (d as? AlertDialog)?.listView?.checkedItemPosition?.let {
-                            items[it].first.takeIf { it != MtSettings.DAY_NIGHT_MODE }?.let {
-                                MtSettings.DAY_NIGHT_MODE = it
+                            items[it].first.takeIf { mode -> mode != MtSettings.DAY_NIGHT_MODE }?.let { m ->
+                                MtSettings.DAY_NIGHT_MODE = m
                                 RxBus.instance.post("day_night", MtSettings.DAY_NIGHT_MODE)
                             }
                         }
@@ -445,8 +446,8 @@ class ListFragment : Fragment() {
         retainInstance = true
         setHasOptionsMenu(true)
         state?.let {
-            mtseq(state.getBundle("uri"))
-            adapter.add(state.getParcelableArrayList("data"))
+            mtseq(state.getBundle("uri")!!)
+            adapter.add(state.getParcelableArrayList("data")!!)
         } ?: query()
     }
 
@@ -462,6 +463,7 @@ class ListFragment : Fragment() {
         state.putParcelableArrayList("data", ArrayList(adapter.data))
     }
 
+    @SuppressLint("CheckResult")
     private fun query() {
         if (busy() || mtseq.empty()) return
         busy * true
@@ -608,17 +610,17 @@ class ListFragment : Fragment() {
                             setForceShowIcon(true)
                             inflate(R.menu.list_more)
                             menu.findItem(R.id.menu_favorite).isChecked = dbFav.exists(album.url!!)
-                            setOnMenuItemClickListener {
+                            setOnMenuItemClickListener { mi ->
                                 consumer {
-                                    when (it.itemId) {
+                                    when (mi.itemId) {
                                         R.id.menu_download_all -> activity.permissionWriteExternalStorage {
                                             mtCollectSequence(album.url).toObservable().toList()
                                                     .io2main().subscribe { list ->
                                                         activity.downloadAll(album.name, list)
                                                     }
                                         }
-                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) {
-                                            dbFav.put(it ?: album)
+                                        R.id.menu_favorite -> if (dbFav.exists(album.url)) dbFav.del(album.url) else AlbumEx.from(album.url, album) { ab ->
+                                            dbFav.put(ab ?: album)
                                         }
                                         R.id.menu_thumb -> activity.startActivity<PreviewActivity>("album" to album)
                                         R.id.menu_info -> context.showInfo(album.name, album.url)
@@ -633,8 +635,8 @@ class ListFragment : Fragment() {
             check.setOnClickListener {
                 value.url?.let { url ->
                     if (check.isChecked)
-                        AlbumEx.from(url, value) {
-                            dbFav.put(it ?: value)
+                        AlbumEx.from(url, value) { album ->
+                            dbFav.put(album ?: value)
                         }
                     else dbFav.del(url)
                 }

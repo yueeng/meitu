@@ -5,6 +5,7 @@ package io.github.yueeng.meitu
 import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.core.os.bundleOf
 import io.objectbox.Box
 import io.objectbox.BoxStore
 import io.objectbox.annotation.Entity
@@ -12,7 +13,6 @@ import io.objectbox.annotation.Id
 import io.objectbox.annotation.Index
 import io.objectbox.relation.ToMany
 import io.reactivex.disposables.Disposable
-import org.jetbrains.anko.bundleOf
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import java.util.*
@@ -30,7 +30,7 @@ open class Name(val name: String) : Parcelable {
     override fun equals(other: Any?): Boolean = name == other
     override fun hashCode(): Int = name.hashCode()
 
-    constructor(source: Parcel) : this(source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!) {
         referer = source.readString()
     }
 
@@ -62,7 +62,7 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
     val key get() = "$name:${url ?: ""}"
     val uri get() = url?.takeIf { !url.isNullOrEmpty() } ?: search(name)
 
-    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!, source.readString()) {
         referer = source.readString()
     }
 
@@ -85,7 +85,7 @@ open class Link(name: String, val url: String? = null) : Name(name), Parcelable 
 
 class Title(name: String, url: String? = null) : Link(name, url), Parcelable {
     constructor(e: Link) : this(e.name, e.url)
-    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!, source.readString()) {
         referer = source.readString()
     }
 
@@ -111,7 +111,7 @@ class Organ(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     constructor(e: Link) : this(e.name, e.url)
 
-    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!, source.readString()) {
         referer = source.readString()
         count = source.readInt()
     }
@@ -143,9 +143,9 @@ class Model(name: String, url: String? = null) : Link(name, url), Parcelable {
 
     constructor(e: Link) : this(e.name, e.url)
 
-    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!, source.readString()) {
         referer = source.readString()
-        image = source.readString()
+        image = source.readString()!!
         count = source.readInt()
     }
 
@@ -181,14 +181,14 @@ class Info(name: String, url: String? = null) : Link(name, url), Parcelable {
     lateinit var etc: String
 
 
-    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!, source.readString()) {
         referer = source.readString()
-        image = source.readString()
+        image = source.readString()!!
         attr = mutableListOf()
         source.readList(attr, pairClass.classLoader)
         tag = mutableListOf()
         source.readList(tag, Link::class.java.classLoader)
-        etc = source.readString()
+        etc = source.readString()!!
     }
 
     override fun describeContents() = 0
@@ -241,9 +241,9 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
         tags = it.tags.map { Link(it.name, it.url) }
     }
 
-    constructor(source: Parcel) : this(source.readString(), source.readString()) {
+    constructor(source: Parcel) : this(source.readString()!!, source.readString()) {
         referer = source.readString()
-        _image = source.readString()
+        _image = source.readString()!!
         organ = mutableListOf()
         source.readList(organ, Link::class.java.classLoader)
         model = mutableListOf()
@@ -278,7 +278,7 @@ class Album(name: String, url: String? = null) : Link(name, url), Parcelable {
 class Link2(val id: Long, name: String, url: String?, val size: Int) : Link(name, url), Parcelable {
     constructor(source: Parcel) : this(
             source.readLong(),
-            source.readString(),
+            source.readString()!!,
             source.readString(),
             source.readInt()
     ) {
@@ -440,7 +440,7 @@ class MtSequence<out T : Name>(uri: String?, val fn: (String) -> Pair<String?, L
 
     operator fun invoke(bundle: Bundle) {
         data.clear()
-        data.addAll(bundle.getParcelableArrayList("data"))
+        data.addAll(bundle.getParcelableArrayList("data")!!)
         url = bundle.getString("url")
     }
 

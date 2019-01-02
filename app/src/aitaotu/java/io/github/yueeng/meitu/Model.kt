@@ -1,5 +1,6 @@
 package io.github.yueeng.meitu
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -9,7 +10,7 @@ import org.jsoup.nodes.TextNode
  * Model
  * Created by Rain on 2017/11/30.
  */
-val website = "https://www.aitaotu.com"
+const val website = "https://www.aitaotu.com"
 
 val homes = listOf("$website/" to "首页",
         "$website/taotu/" to "美女套图",
@@ -31,46 +32,26 @@ val homes = listOf("$website/" to "首页",
 
 fun search(key: String) = "$website/search/${Uri.encode(key)}"
 
-object OrganEx {
-    private val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
-    fun from(e: Element) = Organ(Link(e.select("a"))).apply {
-        count = e.select("span").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-        }
-    }
-}
-
 object ModelEx {
-    private val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
     fun from(e: Element) = Model(Link(e.select("img").attr("alt"), e.select("a").attr("abs:href"))).apply {
         image = e.select("img").attr("abs:src")
-//        count = e.select(".shuliang").text().let {
-//            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-//        }
     }
 
-    fun dz_tag(e: Element) = Model(Link(e.attr("data-tagname"), e.attr("abs:href"))).apply {
+    fun dzTag(e: Element) = Model(Link(e.attr("data-tagname"), e.attr("abs:href"))).apply {
         image = "https://img.aitaotu.cc:8089/Thumb/Tagbg/${e.attr("data-tagcode")}_dz.jpg"
         flag = 1
-    }
-}
-
-object InfoEx {
-    fun from(e: Element) = Info(Link(e.select(".listtags_r h1"))).apply {
-        image = e.select(".listtags_l img").attr("abs:src")
-        attr = emptyList()
-        tag = e.select(".listtags_r a").map { Link(it) }
-        etc = e.select(".listtags_r p").map { it.text().trim() }.filter { it.isNotEmpty() }.joinToString("\n")
     }
 }
 
 object AlbumEx {
     private val rgx = "(\\d+)\\s*张".toRegex(RegexOption.IGNORE_CASE)
 
-    fun from(e: Element) = Album(Link(e.selects(".thumb+.text>.txtc", ".title a", "span a", "p a", "a")?.text() ?: "", e.selects(".thumb a", ".title a", "span a", "p a", "a")?.attr("abs:href"))).apply {
+    fun from(e: Element) = Album(Link(e.selects(".thumb+.text>.txtc", ".title a", "span a", "p a", "a")?.text()
+            ?: "", e.selects(".thumb a", ".title a", "span a", "p a", "a")?.attr("abs:href"))).apply {
         _image = e.selects(".item_t .img img", ".thumb img", "img")?.attrs("abs:data-original", "abs:src") ?: ""
         _count = e.select(".items_likes").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: e.select(".item_h_info_r_dt").text().tryInt()
+            rgx.find(it)?.let { it.groups[1]?.value?.toInt() }
+                    ?: e.select(".item_h_info_r_dt").text().tryInt()
         }
         model = emptyList()
         organ = emptyList()
@@ -82,26 +63,29 @@ object AlbumEx {
                 .flatMap { it.childNodes() }
                 .flatMap {
                     when (it) {
-                        is TextNode -> it.text()?.takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList()
+                        is TextNode -> it.text()?.takeIf { it.isNotBlank() }?.let { listOf(it) }
+                                ?: emptyList()
                         is Element -> when (it.tagName()) {
                             "a", "A" -> listOf(Link(it.text(), it.attr("abs:href")))
-                            "span" -> it.text()?.takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList()
+                            "span" -> it.text()?.takeIf { it.isNotBlank() }?.let { listOf(it) }
+                                    ?: emptyList()
                             else -> emptyList()
                         }
                         else -> emptyList()
                     }
                 }.fold<Any, MutableList<MutableList<Name>>>(mutableListOf()) { r, t ->
-            r.apply {
-                when (t) {
-                    is Link -> r.last() += t
-                    is String -> mutableListOf<Name>().apply {
-                        r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
+                    r.apply {
+                        when (t) {
+                            is Link -> r.last() += t
+                            is String -> mutableListOf<Name>().apply {
+                                r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
+                            }
+                        }
                     }
-                }
-            }
-        }.map { it.first().toString() to it.drop(1) }.filterNot { it.first.startsWith("提示") }
+                }.map { it.first().toString() to it.drop(1) }.filterNot { it.first.startsWith("提示") }
     }
 
+    @SuppressLint("CheckResult")
     fun from(url: String, sample: Album? = null, fn: (Album?) -> Unit) {
         RxMt.create {
             url.httpGet().jsoup()?.let { dom ->
@@ -116,7 +100,8 @@ object AlbumEx {
                         referer = url
                         model = emptyList()// attr2links("模特姓名").plus((sample?.model ?: emptyList())).distinctBy { it.key }
                         organ = emptyList()//attr2links("发行机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
-                        tags = attr2links("来源").plus(attr2links("标签")).plus((sample?.tags ?: emptyList())).distinctBy { it.key }
+                        tags = attr2links("来源").plus(attr2links("标签")).plus((sample?.tags
+                                ?: emptyList())).distinctBy { it.key }
                         _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".big-pic img").firstOrNull()?.attr("abs:src") ?: ""
                         _count = 0/*sample?.count?.takeIf { it != 0 } ?: it["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
                             rgx.find(it)?.let { it.groups[1]?.value?.toInt() }
@@ -150,7 +135,7 @@ fun mtAlbumSequence(uri: String) = MtSequence(uri) {
             ".Clbc_Game_r:eq(0) .Clbc_r_cont li" to { e -> 1 to if (first) AlbumEx.from(e).option() else emptyList() },
             ".dz_nav a:not(:contains(图说词条))" to { e ->
                 0 to listOf(Title(Link(e))) + dom?.select(".dz_tag li")?.get(e.elementSiblingIndex())?.let {
-                    it.select("a").map { ModelEx.dz_tag(it) }
+                    it.select("a").map { ModelEx.dzTag(it) }
                 }.orEmpty()
             } //https://www.aitaotu.com/
     )

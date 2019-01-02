@@ -1,5 +1,6 @@
 package io.github.yueeng.meitu
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -9,7 +10,7 @@ import org.jsoup.nodes.TextNode
  * Model
  * Created by Rain on 2017/11/30.
  */
-val website = "https://www.meitulu.com"
+const val website = "https://www.meitulu.com"
 
 val homes = listOf("$website/" to "首页",
         "$website/xihuan/" to "精选美女",
@@ -19,22 +20,9 @@ val homes = listOf("$website/" to "首页",
 
 fun search(key: String) = "$website/search/${Uri.encode(key)}"
 
-object OrganEx {
-    private val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
-    fun from(e: Element) = Organ(Link(e.select("a"))).apply {
-        count = e.select("span").text().let {
-            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-        }
-    }
-}
-
 object ModelEx {
-    private val rgx = "(\\d+)\\s*套".toRegex(RegexOption.IGNORE_CASE)
     fun from(e: Element) = Model(Link(e.select("img").attr("alt"), e.select("a").attr("abs:href"))).apply {
         image = e.select("img").attr("abs:src")
-//        count = e.select(".shuliang").text().let {
-//            rgx.find(it)?.let { it.groups[1]?.value?.toInt() } ?: 0
-//        }
     }
 }
 
@@ -78,17 +66,18 @@ object AlbumEx {
                         else -> emptyList()
                     }
                 }.fold<Any, MutableList<MutableList<Name>>>(mutableListOf()) { r, t ->
-            r.apply {
-                when (t) {
-                    is String -> mutableListOf<Name>().apply {
-                        r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
+                    r.apply {
+                        when (t) {
+                            is String -> mutableListOf<Name>().apply {
+                                r += apply { addAll(t.split("：").filter { it.isNotBlank() }.map(::Name)) }
+                            }
+                            is Link -> r.last() += t
+                        }
                     }
-                    is Link -> r.last() += t
-                }
-            }
-        }.map { it.first().toString() to it.drop(1) }
+                }.map { it.first().toString() to it.drop(1) }
     }
 
+    @SuppressLint("CheckResult")
     fun from(url: String, sample: Album? = null, fn: (Album?) -> Unit) {
         RxMt.create {
             url.httpGet().jsoup()?.let { dom ->
@@ -101,9 +90,12 @@ object AlbumEx {
                     } ?: emptyList()
                     Album(dom.select("h1").text(), url).apply {
                         referer = url
-                        model = attr2links("模特姓名").plus((sample?.model ?: emptyList())).distinctBy { it.key }
-                        organ = attr2links("发行机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
-                        tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }
+                        model = attr2links("模特姓名").plus((sample?.model
+                                ?: emptyList())).distinctBy { it.key }
+                        organ = attr2links("发行机构").plus((sample?.organ
+                                ?: emptyList())).distinctBy { it.key }
+                        tags = attr2links("标签").plus((sample?.tags
+                                ?: emptyList())).distinctBy { it.key }
                         _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".content img.tupian_img").firstOrNull()?.attr("abs:src") ?: ""
                         _count = sample?.count?.takeIf { it != 0 } ?: it["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
                             rgx.find(it)?.let { it.groups[1]?.value?.toInt() }

@@ -1,5 +1,6 @@
 package io.github.yueeng.meitu
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -9,7 +10,7 @@ import org.jsoup.nodes.TextNode
  * Model
  * Created by Rain on 2017/11/30.
  */
-val website = "http://www.meituri.com"
+const val website = "http://www.meituri.com"
 
 val homes = listOf("$website/" to "首页",
         "$website/zhongguo/" to "中国美女",
@@ -90,6 +91,7 @@ object AlbumEx {
         }
     }?.map { it.first().toString() to it.drop(1) }
 
+    @SuppressLint("CheckResult")
     fun from(url: String, sample: Album? = null, fn: (Album?) -> Unit) {
         RxMt.create {
             url.httpGet().jsoup()?.let { dom ->
@@ -102,9 +104,12 @@ object AlbumEx {
                     } ?: emptyList()
                     Album(dom.select("h1").text(), url).apply {
                         referer = url
-                        model = attr2links("出镜模特").plus((sample?.model ?: emptyList())).distinctBy { it.key }
-                        organ = attr2links("拍摄机构").plus((sample?.organ ?: emptyList())).distinctBy { it.key }
-                        tags = attr2links("标签").plus((sample?.tags ?: emptyList())).distinctBy { it.key }
+                        model = attr2links("出镜模特").plus((sample?.model
+                                ?: emptyList())).distinctBy { it.key }
+                        organ = attr2links("拍摄机构").plus((sample?.organ
+                                ?: emptyList())).distinctBy { it.key }
+                        tags = attr2links("标签").plus((sample?.tags
+                                ?: emptyList())).distinctBy { it.key }
                         _image = sample?._image?.takeIf { it.isNotEmpty() } ?: dom.select(".content img.tupian_img").firstOrNull()?.attr("abs:src") ?: ""
                         _count = sample?.count?.takeIf { it != 0 } ?: it["图片数量"]?.map { it.toString() }?.firstOrNull()?.let {
                             rgx.find(it)?.let { it.groups[1]?.value?.toInt() }

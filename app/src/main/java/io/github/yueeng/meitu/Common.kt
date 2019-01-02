@@ -23,29 +23,6 @@ import android.os.Environment
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.provider.Settings
-import android.support.annotation.RequiresApi
-import android.support.design.widget.BottomSheetBehavior
-import android.support.design.widget.FloatingActionButton
-import android.support.design.widget.Snackbar
-import android.support.transition.Fade
-import android.support.transition.Slide
-import android.support.transition.TransitionManager
-import android.support.transition.TransitionSet
-import android.support.v4.app.ActivityCompat
-import android.support.v4.app.Fragment
-import android.support.v4.app.NotificationCompat
-import android.support.v4.app.SharedElementCallback
-import android.support.v4.content.ContextCompat
-import android.support.v4.view.PagerAdapter
-import android.support.v4.view.ViewPager
-import android.support.v4.widget.SlidingPaneLayout
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.app.AppCompatDelegate
-import android.support.v7.view.menu.MenuPopupHelper
-import android.support.v7.widget.*
-import android.support.v7.widget.PopupMenu
-import android.support.v7.widget.Toolbar
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextPaint
@@ -58,9 +35,30 @@ import android.util.Log
 import android.view.*
 import android.view.animation.DecelerateInterpolator
 import android.widget.*
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.view.menu.MenuPopupHelper
+import androidx.appcompat.widget.PopupMenu
+import androidx.appcompat.widget.Toolbar
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.SharedElementCallback
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.*
+import androidx.slidingpanelayout.widget.SlidingPaneLayout
+import androidx.transition.Fade
+import androidx.transition.Slide
+import androidx.transition.TransitionManager
+import androidx.transition.TransitionSet
+import androidx.viewpager.widget.PagerAdapter
+import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.GlideBuilder
 import com.bumptech.glide.Registry
+import com.bumptech.glide.annotation.Excludes
 import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
 import com.bumptech.glide.load.DataSource
@@ -69,15 +67,17 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.module.AppGlideModule
-import com.bumptech.glide.module.LibraryGlideModule
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.target.CustomViewTarget
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.facebook.stetho.okhttp3.StethoInterceptor
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.snackbar.Snackbar
 import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.*
 import io.reactivex.Observable
@@ -175,7 +175,7 @@ private class ProgressResponseBody internal constructor(private val responseBody
 
     private fun source(source: Source): Source {
         return object : ForwardingSource(source) {
-            internal var totalBytesRead = 0L
+            var totalBytesRead = 0L
 
             @Throws(IOException::class)
             override fun read(sink: Buffer, byteCount: Long): Long {
@@ -189,15 +189,13 @@ private class ProgressResponseBody internal constructor(private val responseBody
     }
 }
 
+@Excludes(com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule::class)
 @GlideModule
 class MtAppGlideModule : AppGlideModule() {
     override fun applyOptions(context: Context, builder: GlideBuilder) {
         builder.setDefaultRequestOptions(RequestOptions().format(DecodeFormat.PREFER_RGB_565))
     }
-}
 
-@GlideModule
-class OkHttpLibraryGlideModule : LibraryGlideModule() {
     override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
         registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(okhttp))
     }
@@ -216,6 +214,7 @@ fun <T> GlideRequest<T>.complete(fn: (Boolean) -> Unit): GlideRequest<T> = this.
     }
 })
 
+@SuppressLint("CheckResult")
 fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: Long = 100L): GlideRequest<T> {
     progressBar.progress = 0
     progressBar.max = 100
@@ -229,7 +228,7 @@ fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: 
     return this.complete { progress.get()?.visibility = View.INVISIBLE }
 }
 
-fun GlideRequest<File>.into(image: SubsamplingScaleImageView, animation: Boolean = true): SimpleTarget<File> = WeakReference(image).let { weak ->
+fun GlideRequest<File>.into(image: SubsamplingScaleImageView, animation: Boolean = true): CustomViewTarget<SubsamplingScaleImageView, File> = WeakReference(image).let { weak ->
     if (animation) weak.get()?.setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
         override fun onImageLoaded() {
             weak.get()?.let {
@@ -239,14 +238,20 @@ fun GlideRequest<File>.into(image: SubsamplingScaleImageView, animation: Boolean
             }
         }
     })
-    into(object : SimpleTarget<File>() {
+    into(object : CustomViewTarget<SubsamplingScaleImageView, File>(image) {
+        override fun onLoadFailed(errorDrawable: Drawable?) {
+        }
+
+        override fun onResourceCleared(placeholder: Drawable?) {
+        }
+
         override fun onResourceReady(resource: File, transition: Transition<in File>?) {
             weak.get()?.setImage(ImageSource.uri(Uri.fromFile(resource)))
         }
     })
 }
 
-infix fun String.referer(ref: String?) = GlideUrl(this, { mapOf("referer" to ref) })
+infix fun String.referer(ref: String?) = GlideUrl(this) { mapOf("referer" to ref) }
 
 fun String.httpGet() = try {
     val html = okhttp.newCall(Request.Builder().url(this).build()).execute().body()?.string()
@@ -268,7 +273,9 @@ object MtSettings {
     private val config by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
     private const val KEY_PREVIEW_LIST_COLUMN = "app.preview_list_column"
     private const val KEY_DAY_NIGHT_MODE = "app.day_night_mode"
-    val LIST_COLUMN: Int get() = context.resources.getInteger(R.integer.list_columns)
+    @Suppress("MemberVisibilityCanBePrivate")
+    val LIST_COLUMN: Int
+        get() = context.resources.getInteger(R.integer.list_columns)
     val MAX_PREVIEW_LIST_COLUMN: Int
         get() = LIST_COLUMN + if (context.isPortrait) 1 else 2
     var PREVIEW_LIST_COLUMN: Int
@@ -318,7 +325,7 @@ fun ViewGroup.inflate(layout: Int, attach: Boolean = false): View = LayoutInflat
 val ImageView.bitmap: Bitmap? get() = (this.drawable as? BitmapDrawable)?.bitmap
 fun View.delay(delay: Long, action: () -> Unit) = this.postDelayed({ action() }, delay)
 
-infix fun <A, B> A.to4(that: B): android.support.v4.util.Pair<A, B> = android.support.v4.util.Pair(this, that)
+infix fun <A, B> A.to4(that: B): Pair<A, B> = Pair(this, that)
 fun <T, R> Iterable<T>.collect(clazz: Class<R>, predicate: ((R) -> Boolean) = { true }): List<R> =
         filter { clazz.isInstance(it) }.map { clazz.cast(it) }.filter(predicate)
 
@@ -362,7 +369,8 @@ class ViewBinder<T, V : View>(private var value: T, private val func: (V, T) -> 
 }
 
 var RecyclerView.supportsChangeAnimations
-    get() = (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations ?: false
+    get() = (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations
+            ?: false
     set(value) {
         (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations = value
     }
@@ -683,6 +691,7 @@ inline fun consumer(fn: () -> Unit): Boolean = fn().let { true }
 fun Cursor.getString(column: String): String = getString(getColumnIndex(column))
 fun Cursor.getInt(column: String) = getInt(getColumnIndex(column))
 
+@Suppress("MemberVisibilityCanBePrivate")
 object Save {
     private fun encode(path: String): String = """\/:*?"<>|""".fold(path) { r, i ->
         r.replace(i, ' ')
@@ -695,7 +704,8 @@ object Save {
 
     fun check(url: String): Int {
         MainApplication.instance().downloadManager.query(DownloadManager.Query()).use { c ->
-            generateSequence(c.moveToFirst().takeIf { it }, { c.moveToNext().takeIf { it } }).forEach {
+            @Suppress("ForEachParameterNotUsed")
+            generateSequence(c.moveToFirst().takeIf { it }) { c.moveToNext().takeIf { i -> i } }.forEach {
                 val u = c.getString(DownloadManager.COLUMN_URI)
                 val s = c.getInt(DownloadManager.COLUMN_STATUS)
                 if (u == url) return s
@@ -715,11 +725,11 @@ object Save {
     }
 
     fun download(url: Name, title: String, override: Boolean = false, call: ((Int) -> Unit)? = null) {
-        check(url.name).let {
-            when (it) {
+        check(url.name).let { i ->
+            when (i) {
                 0, DownloadManager.STATUS_FAILED -> download(url, file(url.name, title)).let { 0 }
-                DownloadManager.STATUS_SUCCESSFUL -> if (override) download(url, file(url.name, title)).let { 0 } else it
-                else -> it
+                DownloadManager.STATUS_SUCCESSFUL -> if (override) download(url, file(url.name, title)).let { 0 } else i
+                else -> i
             }.let { call?.invoke(it) }
         }
     }
@@ -731,6 +741,7 @@ fun Activity.goDetailsSettings() = try {
     e.printStackTrace()
 }
 
+@SuppressLint("CheckResult")
 fun Activity.permission(permission: String, message: String? = null, call: (() -> Unit)? = null) {
     if (message == null) {
         if (ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
@@ -741,10 +752,10 @@ fun Activity.permission(permission: String, message: String? = null, call: (() -
             when {
                 it.granted -> call?.invoke()
                 it.shouldShowRequestPermissionRationale -> Snackbar.make(this.window.decorView, message, Snackbar.LENGTH_LONG)
-                        .setAction("重试", { permission(permission, message, call) })
+                        .setAction("重试") { permission(permission, message, call) }
                         .show()
                 else -> Snackbar.make(this.window.decorView, message, Snackbar.LENGTH_LONG)
-                        .setAction("去设置", { goDetailsSettings() })
+                        .setAction("去设置") { goDetailsSettings() }
                         .show()
             }
         }
@@ -773,7 +784,7 @@ data class Version(val major: Int, val minor: Int, val patch: Int, val build: In
     companion object {
         fun from(version: String) = try {
             version.split(".").map { it.toInt() }.let {
-                Version(if (it.size > 0) it[0] else 0,
+                Version(if (it.isNotEmpty()) it[0] else 0,
                         if (it.size > 1) it[1] else 0,
                         if (it.size > 2) it[2] else 0,
                         if (it.size > 3) it[3] else 0)
@@ -792,7 +803,8 @@ data class Version(val major: Int, val minor: Int, val patch: Int, val build: In
 }
 
 val version: String get() = BuildConfig.VERSION_NAME
-val github = "https://github.com/yueeng/meitu"
+const val github = "https://github.com/yueeng/meitu"
+@SuppressLint("CheckResult")
 fun Context.update(quiet: Boolean = false) {
     RxMt.create {
         val dom = "$github/releases/latest".httpGet().jsoup()
@@ -809,10 +821,10 @@ fun Context.update(quiet: Boolean = false) {
                     if (v1 > v2) {
                         alert().setTitle("版本：${triple.first}")
                                 .setMessage(triple.second)
-                                .setPositiveButton("更新", { _, _ -> openWeb(triple.third) })
-                                .setNeutralButton("发布页", { _, _ -> openWeb(github) })
+                                .setPositiveButton("更新") { _, _ -> openWeb(triple.third) }
+                                .setNeutralButton("发布页") { _, _ -> openWeb(github) }
                                 .setNegativeButton("取消", null)
-                                .create()?.show()
+                                .create().show()
                     } else {
                         if (!quiet) toast("${getString(R.string.app_name)} $version 已经是最新版本。")
                     }
@@ -863,7 +875,7 @@ open class ViewSharedElementCallback(private val call: () -> Pair<View, String>)
         sharedElements.clear()
         val (view, name) = call()
         names.add(name)
-        sharedElements.put(name, view)
+        sharedElements[name] = view
     }
 }
 
@@ -886,9 +898,9 @@ fun Activity.exitSharedElementCallback(call: () -> Pair<View, String>) {
 }
 
 var <V : View>BottomSheetBehavior<V>.isOpen: Boolean
-    get() = this.state == BottomSheetBehavior.STATE_EXPANDED
+    get() = this.state == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
     set(value) {
-        this.state = if (value) BottomSheetBehavior.STATE_EXPANDED else BottomSheetBehavior.STATE_COLLAPSED
+        this.state = if (value) com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED else com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
     }
 
 fun <V : View> BottomSheetBehavior<V>.open() {
@@ -964,23 +976,26 @@ class PagerSlidingPaneLayout @JvmOverloads constructor(context: Context, attrs: 
     override fun onTouchEvent(ev: MotionEvent?): Boolean = super.onTouchEvent(ev)
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        when (ev.action) {
+        return when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
                 mInitialMotionX = ev.x
                 mInitialMotionY = ev.y
+                null
             }
             MotionEvent.ACTION_MOVE -> {
                 val x = ev.x
                 val y = ev.y
                 if (mInitialMotionX > mEdgeSlop && !isOpen && canScroll(this, false,
                                 Math.round(x - mInitialMotionX), Math.round(x), Math.round(y))) {
-                    return super.onInterceptTouchEvent(MotionEvent.obtain(ev).apply {
-                        action = MotionEvent.ACTION_CANCEL
-                    })
-                }
+                    val me = MotionEvent.obtain(ev)
+                    me.action = MotionEvent.ACTION_CANCEL
+                    super.onInterceptTouchEvent(me).also {
+                        me.recycle()
+                    }
+                } else null
             }
-        }
-        return super.onInterceptTouchEvent(ev)
+            else -> null
+        } ?: super.onInterceptTouchEvent(ev)
     }
 }
 
@@ -1139,7 +1154,7 @@ class RxBus {
                       scheduler: Scheduler = AndroidSchedulers.mainThread(),
                       call: (T) -> Unit): Disposable =
             flowable(clazz, action, scheduler).subscribe { call(it) }.also { obs ->
-                map.getOrPut(target, { mutableMapOf() }).getOrPut(action, { mutableListOf() }).add(obs)
+                map.getOrPut(target) { mutableMapOf() }.getOrPut(action) { mutableListOf() }.add(obs)
             }
 
     inline fun <reified T> subscribe(target: Any,
@@ -1161,14 +1176,16 @@ inline fun <reified T : View> ViewParent.children() = (this as? ViewGroup)?.let 
     (0..view.childCount).asSequence().mapNotNull { view.getChildAt(it) as? T }
 } ?: emptySequence()
 
-@SuppressLint("WrongViewCast")
-class FAB @JvmOverloads constructor(
-        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+class FAB(context: Context?, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
+    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : this(context, attrs, defStyleAttr, 0)
+    constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)
+    constructor(context: Context?) : this(context, null)
+
     init {
         LayoutInflater.from(context).inflate(R.layout.fab, this, true).apply {
             orientation = LinearLayout.HORIZONTAL
-            val a = context.obtainStyledAttributes(
+            val a = context!!.obtainStyledAttributes(
                     attrs, R.styleable.FAB, defStyleAttr, defStyleRes)
             fabSrc = a.getDrawable(R.styleable.FAB_fab_src)
             fabLabel = a.getString(R.styleable.FAB_fab_label)
@@ -1191,9 +1208,13 @@ class FAB @JvmOverloads constructor(
         }
 }
 
-class FAM @JvmOverloads constructor(
-        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+@Suppress("MemberVisibilityCanBePrivate")
+class FAM(context: Context?, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
+    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : this(context, attrs, defStyleAttr, 0)
+    constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)
+    constructor(context: Context?) : this(context, null)
+
     var famSrc: Drawable? = null
         set(value) {
             findViewById<FloatingActionButton>(R.id.fam_button)?.setImageDrawable(value)
@@ -1203,7 +1224,7 @@ class FAM @JvmOverloads constructor(
     init {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.END
-        val a = context.obtainStyledAttributes(attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
+        val a = context!!.obtainStyledAttributes(attrs, R.styleable.FAM, defStyleAttr, defStyleRes)
         famSrc = a.getDrawable(R.styleable.FAM_fam_src)
         a.recycle()
     }
@@ -1231,11 +1252,12 @@ class FAM @JvmOverloads constructor(
     }
 }
 
+@SuppressLint("CheckResult")
 fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Name>>>? = null, fn: ((List<Pair<String, List<Name>>>?) -> Unit)? = null) {
     RxMt.create {
         info ?: AlbumEx.attr(url.httpGet().jsoup())
-    }.io2main().subscribe {
-        it?.let { info ->
+    }.io2main().subscribe { names ->
+        names?.let { info ->
             alert().apply {
                 setTitle(name)
                 setPositiveButton("确定", null)
@@ -1251,7 +1273,7 @@ fun Context.showInfo(name: String, url: String, info: List<Pair<String, List<Nam
                 }
             }
         } ?: toast("获取信息失败，请稍后重试。")
-        fn?.invoke(it)
+        fn?.invoke(names)
     }
 }
 
@@ -1269,9 +1291,9 @@ fun Context.downloadAll(name: String, data: List<Name>) = alert().apply {
 fun File.listFiles(reduce: Boolean): List<File> {
     return if (reduce) {
         mutableListOf<File>().apply {
-            listFiles().let {
-                addAll(it)
-                it.filter { it.isDirectory }.forEach { addAll(it.listFiles(reduce)) }
+            listFiles().let { files ->
+                addAll(files)
+                files.filter { it.isDirectory }.forEach { addAll(it.listFiles(reduce)) }
             }
         }
     } else this.listFiles().toList()
@@ -1331,14 +1353,18 @@ object MtBackup {
     }
 }
 
-class AspectRatioImageView @JvmOverloads constructor(
-        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0, defStyleRes: Int = 0
-) : ImageView(context, attrs, defStyleAttr, defStyleRes) {
+@Suppress("MemberVisibilityCanBePrivate")
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+class AspectRatioImageView(context: Context?, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) : ImageView(context, attrs, defStyleAttr, defStyleRes) {
+    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : this(context, attrs, defStyleAttr, 0)
+    constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)
+    constructor(context: Context?) : this(context, null)
+
     var arivAspectRatio: Float = 0F
     var arivAdjustViewBounds: Boolean = true
 
     init {
-        val a = context.obtainStyledAttributes(
+        val a = context!!.obtainStyledAttributes(
                 attrs, R.styleable.AspectRatioImageView, defStyleAttr, defStyleRes)
         arivAspectRatio = a.getFloat(R.styleable.AspectRatioImageView_ariv_aspectRatio, 0F)
         arivAdjustViewBounds = a.getBoolean(R.styleable.AspectRatioImageView_ariv_adjustViewBounds, true)
