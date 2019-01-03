@@ -221,11 +221,13 @@ fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: 
     progressBar.max = 100
     progressBar.visibility = View.VISIBLE
     val progress = WeakReference(progressBar)
-    progressBus.flowable<Int>(url).onBackpressureDrop().lifecycle(progressBar).sample(sample, TimeUnit.MILLISECONDS, true).observeOn(AndroidSchedulers.mainThread()).subscribe {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            progress.get()?.setProgress(it, true)
-        } else progress.get()?.progress = it
-    }
+    progressBus.flowable<Int>(url).onBackpressureLatest().lifecycle(progressBar)
+            .sample(sample, TimeUnit.MILLISECONDS, true)
+            .observeOn(AndroidSchedulers.mainThread()).subscribe {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    progress.get()?.setProgress(it, true)
+                } else progress.get()?.progress = it
+            }
     return this.complete { progress.get()?.visibility = View.INVISIBLE }
 }
 
@@ -1134,26 +1136,21 @@ class RxBus {
 
     private val bus: FlowableProcessor<RxMsg> by lazy { PublishProcessor.create<RxMsg>().toSerialized() }
     private val map = mutableMapOf<Any, MutableMap<String, MutableList<Disposable>>>()
+    private val sub = SerializedSubscriber(bus)
 
-    fun <T : Any> post(a: String, o: T) = SerializedSubscriber(bus).onNext(RxMsg(a, o))
+    fun <T : Any> post(a: String, o: T) = sub.onNext(RxMsg(a, o))
 
-    fun <T> flowable(clazz: Class<T>,
-                     action: String,
-                     scheduler: Scheduler = AndroidSchedulers.mainThread()
-    ): Flowable<T> = bus.ofType(RxMsg::class.java).filter {
-        it.action == action && clazz.isInstance(it.event)
-    }.map { clazz.cast(it.event) }.observeOn(scheduler)
+    fun <T> flowable(clazz: Class<T>, action: String): Flowable<T> = bus.ofType(RxMsg::class.java)
+            .filter { it.action == action && clazz.isInstance(it.event) }.map { clazz.cast(it.event) }
 
-    inline fun <reified T> flowable(action: String,
-                                    scheduler: Scheduler = AndroidSchedulers.mainThread()
-    ): Flowable<T> = flowable(T::class.java, action, scheduler)
+    inline fun <reified T> flowable(action: String): Flowable<T> = flowable(T::class.java, action)
 
     fun <T> subscribe(clazz: Class<T>,
                       target: Any,
                       action: String,
                       scheduler: Scheduler = AndroidSchedulers.mainThread(),
                       call: (T) -> Unit
-    ): Disposable = flowable(clazz, action, scheduler).subscribe { call(it) }.also { obs ->
+    ): Disposable = flowable(clazz, action).observeOn(scheduler).subscribe { call(it) }.also { obs ->
         map.getOrPut(target) { mutableMapOf() }.getOrPut(action) { mutableListOf() }.add(obs)
     }
 
