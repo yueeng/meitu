@@ -812,9 +812,9 @@ fun Context.update(quiet: Boolean = false) {
     RxMt.create {
         val dom = "$github/releases/latest".httpGet().jsoup()
         dom?.let {
-            Triple(dom.select(".css-truncate-target").text(),
-                    dom.select(".release-body .markdown-body").text(),
-                    dom.select(".release-body a[href$=.apk]:contains(${BuildConfig.FLAVOR})").attr("abs:href")
+            Triple(dom.select(".release .css-truncate-target").text(),
+                    dom.select(".release .markdown-body").text(),
+                    dom.select(".release a[href$=.apk]:contains(${BuildConfig.FLAVOR})").attr("abs:href")
             )
         }
     }.io2main().subscribe {
