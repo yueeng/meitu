@@ -131,6 +131,7 @@ inline fun <reified T : Any> Any.clazz(): T? = this as? T
 fun <T : Any> T?.or(other: () -> T?): T? = this ?: other()
 fun <T : Any> T?.option(): List<T> = if (this != null) listOf(this) else emptyList()
 
+val progressBus = RxBus.create()
 val okhttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
@@ -144,7 +145,7 @@ val okhttp: OkHttpClient = OkHttpClient.Builder()
             val response = chain.proceed(request)
             response.newBuilder().body(ProgressResponseBody(response.body()!!, object : ProgressListener {
                 override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
-                    RxBus.instance.post(url, if (done) 100 else (bytesRead * 100 / contentLength).toInt())
+                    progressBus.post(url, if (done) 100 else (bytesRead * 100 / contentLength).toInt())
                 }
             })).build()
         }
@@ -220,7 +221,7 @@ fun <T> GlideRequest<T>.progress(url: String, progressBar: ProgressBar, sample: 
     progressBar.max = 100
     progressBar.visibility = View.VISIBLE
     val progress = WeakReference(progressBar)
-    RxBus.instance.flowable<Int>(url).lifecycle(progressBar).sample(sample, TimeUnit.MILLISECONDS, true).observeOn(AndroidSchedulers.mainThread()).subscribe {
+    progressBus.flowable<Int>(url).onBackpressureDrop().lifecycle(progressBar).sample(sample, TimeUnit.MILLISECONDS, true).observeOn(AndroidSchedulers.mainThread()).subscribe {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             progress.get()?.setProgress(it, true)
         } else progress.get()?.progress = it
@@ -1094,7 +1095,7 @@ object RxMt {
         } catch (e: Exception) {
             it.onError(e)
         }
-    }!!
+    }
 }
 
 fun <T> Flowable<T>.lifecycle(view: View): Flowable<T> = WeakReference(view).let { weak ->
@@ -1125,8 +1126,8 @@ fun <T> Flowable<T>.lifecycle(view: View): Flowable<T> = WeakReference(view).let
 
 class RxBus {
     companion object {
-        private val _instance: RxBus by lazy { RxBus() }
-        val instance get() = _instance
+        val instance: RxBus by lazy { RxBus() }
+        fun create(): RxBus = RxBus()
     }
 
     data class RxMsg(val action: String, val event: Any)
@@ -1138,30 +1139,29 @@ class RxBus {
 
     fun <T> flowable(clazz: Class<T>,
                      action: String,
-                     scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> {
-        return bus.ofType(RxMsg::class.java).filter {
-            it.action == action && clazz.isInstance(it.event)
-        }.map { clazz.cast(it.event) }.observeOn(scheduler)
-    }
+                     scheduler: Scheduler = AndroidSchedulers.mainThread()
+    ): Flowable<T> = bus.ofType(RxMsg::class.java).filter {
+        it.action == action && clazz.isInstance(it.event)
+    }.map { clazz.cast(it.event) }.observeOn(scheduler)
 
     inline fun <reified T> flowable(action: String,
-                                    scheduler: Scheduler = AndroidSchedulers.mainThread()): Flowable<T> =
-            flowable(T::class.java, action, scheduler)
+                                    scheduler: Scheduler = AndroidSchedulers.mainThread()
+    ): Flowable<T> = flowable(T::class.java, action, scheduler)
 
     fun <T> subscribe(clazz: Class<T>,
                       target: Any,
                       action: String,
                       scheduler: Scheduler = AndroidSchedulers.mainThread(),
-                      call: (T) -> Unit): Disposable =
-            flowable(clazz, action, scheduler).subscribe { call(it) }.also { obs ->
-                map.getOrPut(target) { mutableMapOf() }.getOrPut(action) { mutableListOf() }.add(obs)
-            }
+                      call: (T) -> Unit
+    ): Disposable = flowable(clazz, action, scheduler).subscribe { call(it) }.also { obs ->
+        map.getOrPut(target) { mutableMapOf() }.getOrPut(action) { mutableListOf() }.add(obs)
+    }
 
     inline fun <reified T> subscribe(target: Any,
                                      action: String,
                                      scheduler: Scheduler = AndroidSchedulers.mainThread(),
-                                     noinline call: (T) -> Unit): Disposable =
-            subscribe(T::class.java, target, action, scheduler, call)
+                                     noinline call: (T) -> Unit
+    ): Disposable = subscribe(T::class.java, target, action, scheduler, call)
 
     fun unsubscribe(target: Any, action: String? = null) {
         map[target]?.let {
